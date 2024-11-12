@@ -29,11 +29,6 @@ CFoldersView::~CFoldersView()
 {
 }
 
-void CFoldersView::updateOutlook()
-{
-    fModel->update();
-}
-
 void CFoldersView::addEntry()
 {
     if ( !fImpl->name->text().isEmpty() )

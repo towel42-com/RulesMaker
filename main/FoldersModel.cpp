@@ -6,7 +6,7 @@
 CFoldersModel::CFoldersModel( QObject *parent ) :
     QStandardItemModel( parent )
 {
-    auto folder = COutlookHelpers::getInstance()->selectInboxFolder( dynamic_cast< QWidget * >( parent ) );
+    auto folder = COutlookHelpers::getInstance()->getInbox( dynamic_cast< QWidget * >( parent ) );
     if ( !folder )
         return;
 
@@ -14,10 +14,6 @@ CFoldersModel::CFoldersModel( QObject *parent ) :
     auto rootItem = new QStandardItem( folder->Name() );
     appendRow( rootItem );
     addSubFolders( rootItem, folder );
-
-    connect( folder.get(), SIGNAL( ItemAdd( IDispatch * ) ), parent, SLOT( updateOutlook() ) );
-    connect( folder.get(), SIGNAL( ItemChange( IDispatch * ) ), parent, SLOT( updateOutlook() ) );
-    connect( folder.get(), SIGNAL( ItemRemove() ), parent, SLOT( updateOutlook() ) );
 }
 
 CFoldersModel::~CFoldersModel()

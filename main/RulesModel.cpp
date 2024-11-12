@@ -6,11 +6,14 @@
 CRulesModel::CRulesModel( QObject *parent ) :
     QAbstractListModel( parent )
 {
-    auto folder = COutlookHelpers::getInstance()->selectContactFolder( dynamic_cast< QWidget * >( parent ) );
+    auto folder = COutlookHelpers::getInstance()->getContacts( dynamic_cast< QWidget * >( parent ) );
     if ( !folder )
         return;
 
     fItems = std::make_unique< Outlook::Items >( folder->Items() );
+    if ( fItems )
+        fCountCache = fItems->Count();
+
     connect( fItems.get(), SIGNAL( ItemAdd( IDispatch * ) ), parent, SLOT( updateOutlook() ) );
     connect( fItems.get(), SIGNAL( ItemChange( IDispatch * ) ), parent, SLOT( updateOutlook() ) );
     connect( fItems.get(), SIGNAL( ItemRemove() ), parent, SLOT( updateOutlook() ) );
@@ -22,6 +25,8 @@ CRulesModel::~CRulesModel()
 
 int CRulesModel::rowCount( const QModelIndex & ) const
 {
+    if ( fItems && fCountCache.has_value() )
+        return fCountCache.value();
     return fItems ? fItems->Count() : 0;
 }
 
@@ -58,15 +63,15 @@ QVariant CRulesModel::data( const QModelIndex &index, int role ) const
         return QVariant();
 
     QStringList data;
-    if ( fCache.contains( index ) )
+    if ( fCache.contains( index.row() ) )
     {
-        data = fCache.value( index );
+        data = fCache.value( index.row() );
     }
     else if ( fItems )
     {
         Outlook::Rule rule( fItems->Item( index.row() + 1 ) );
         data << rule.Name() << QString() << QString();
-        fCache.insert( index, data );
+        fCache.insert( index.row(), data );
     }
 
     if ( index.column() < data.count() )

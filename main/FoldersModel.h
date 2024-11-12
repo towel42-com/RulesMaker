@@ -29,7 +29,7 @@ public:
     void update();
 
     QString fullPath( const QModelIndex &index ) const;
-    QString CFoldersModel::fullPath( QStandardItem *item ) const;
+    QString fullPath( QStandardItem *item ) const;
 
 private:
     void addSubFolders( QStandardItem *item, std::shared_ptr< Outlook::MAPIFolder > parentFolder );

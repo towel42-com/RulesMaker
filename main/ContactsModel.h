@@ -4,6 +4,7 @@
 #include <QString>
 #include <QAbstractListModel>
 #include <memory>
+#include <optional>
 namespace Outlook
 {
     class Items;
@@ -28,7 +29,8 @@ private:
 
     std::unique_ptr< Outlook::Items > fItems{ nullptr };
 
-    mutable QHash< QModelIndex, QStringList > fCache;
+    mutable QHash< int, QStringList > fCache;
+    mutable std::optional< int > fCountCache;
 };
 
 #endif

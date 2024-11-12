@@ -24,8 +24,6 @@ protected slots:
     void changeEntry();
     void itemSelected( const QModelIndex &index );
 
-    void updateOutlook();
-
 protected:
     std::shared_ptr< CFoldersModel > fModel;
     std::unique_ptr< Ui::CFoldersView > fImpl;
