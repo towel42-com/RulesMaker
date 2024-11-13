@@ -17,10 +17,13 @@ class CFoldersView : public QWidget
 
 public:
     explicit CFoldersView( QWidget *parent = nullptr );
+
+    void init();
+
     ~CFoldersView();
 
     void reload();
-
+    void clear();
 Q_SIGNALS:
     void sigFinishedLoading();
 

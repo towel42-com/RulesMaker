@@ -8,32 +8,93 @@
 CEmailGroupingModel::CEmailGroupingModel( QObject *parent ) :
     QStandardItemModel( parent )
 {
-    setHorizontalHeaderLabels( QStringList() << "Domain" );
+    clear();
 }
 
 CEmailGroupingModel::~CEmailGroupingModel()
 {
 }
 
-void CEmailGroupingModel::addEmailAddress( const QString &emailAddress )
+void CEmailGroupingModel::addEmailAddress( std::shared_ptr< Outlook::MailItem > mailItem, const QString &emailAddress )
 {
+    auto pos = fCache.find( emailAddress );
+    if ( pos != fCache.end() )
+        return;
+
     auto split = emailAddress.splitRef( '@', QString::SplitBehavior::SkipEmptyParts );
     if ( split.empty() )
         return;
 
     auto user = split.front();
     QStringRef domain;
-    if ( split.count() == 2 )
-    {
-        domain = split.back();
-    }
-    else
+    if ( split.count() != 2 )
         return;
+
+    domain = split.back();
+    pos = fDomainCache.find( domain.toString() );
+    if ( pos != fDomainCache.end() )
+    {
+        auto retVal = findOrAddEmailAddressSection( user, {}, ( *pos ).second );
+        fCache[ emailAddress ] = retVal;
+        fEmailCache[ retVal ] = mailItem;
+        return;
+    }
 
     auto list = domain.split( '.', QString::SplitBehavior::SkipEmptyParts );
     std::reverse( std::begin( list ), std::end( list ) );
     list.push_back( user );
-    findOrAddEmailAddressSection( list.front(), list.mid( 1 ), nullptr );
+    auto retVal = findOrAddEmailAddressSection( list.front(), list.mid( 1 ), nullptr );
+    if ( retVal )
+    {
+        fCache[ emailAddress ] = retVal;
+        fEmailCache[ retVal ] = mailItem;
+        auto parent = dynamic_cast< CEmailAddressSection * >( retVal->parent() );
+        if ( parent )
+            fDomainCache[ domain.toString() ] = parent;
+    }
+}
+
+void CEmailGroupingModel::clear()
+{
+    QStandardItemModel::clear();
+    setHorizontalHeaderLabels(
+        QStringList() << "Domain"
+                      << "User" );
+    beginResetModel();
+    fRootItems.clear();
+    fCache.clear();
+    fDomainCache.clear();
+    endResetModel();
+}
+
+std::shared_ptr< Outlook::MailItem > CEmailGroupingModel::emailItemFromIndex( const QModelIndex &idx )
+{
+    if ( !idx.isValid() )
+        return {};
+    auto item = itemFromIndex( idx );
+    if ( !item )
+        return {};
+    auto pos = fEmailCache.find( item );
+    if ( pos == fEmailCache.end() )
+    {
+        if ( idx.column() == 0 )
+        {
+            auto otherIdx = this->index( idx.row(), 1, idx.parent() );
+            return emailItemFromIndex( otherIdx );
+        }
+        return {};
+    }
+    return ( *pos ).second;
+}
+
+QList< QStandardItem * > makeRow( QStandardItem *item, bool inBack )
+{
+    QList< QStandardItem * > row;
+    if ( inBack )
+        row << new CEmailAddressSection << item;
+    else
+        row << item << new CEmailAddressSection;
+    return row;
 }
 
 CEmailAddressSection *CEmailGroupingModel::findOrAddEmailAddressSection( const QStringRef &curr, const QVector< QStringRef > &remaining, CEmailAddressSection *parent )
@@ -46,7 +107,8 @@ CEmailAddressSection *CEmailGroupingModel::findOrAddEmailAddressSection( const Q
         if ( pos == parent->fChildItems.end() )
         {
             auto item = new CEmailAddressSection( key );
-            parent->appendRow( item );
+
+            parent->appendRow( makeRow( item, remaining.empty() ) );
             parent->fChildItems[ key ] = item;
             retVal = item;
         }
@@ -59,7 +121,7 @@ CEmailAddressSection *CEmailGroupingModel::findOrAddEmailAddressSection( const Q
         if ( pos == fRootItems.end() )
         {
             auto item = new CEmailAddressSection( key );
-            appendRow( item );
+            appendRow( makeRow( item, remaining.empty() ) );
             fRootItems[ key ] = item;
             retVal = item;
         }

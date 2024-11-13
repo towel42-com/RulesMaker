@@ -19,14 +19,13 @@ public:
     explicit COutlookSetup( QWidget *parent = nullptr );
     ~COutlookSetup();
 
+    virtual void reject() override;
 protected slots:
     void slotSelectAccount();
     void slotSelectInbox();
-    //void slotSelectContacts();
 
 protected:
     void selectInbox( bool singleOnly );
-    //void selectContacts( bool singleOnly );
     std::unique_ptr< Ui::COutlookSetup > fImpl;
 };
 

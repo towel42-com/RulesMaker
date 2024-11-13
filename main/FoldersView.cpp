@@ -8,20 +8,18 @@ CFoldersView::CFoldersView( QWidget *parent ) :
     QWidget( parent ),
     fImpl( new Ui::CFoldersView )
 {
-    fImpl->setupUi( this );
+    init();
 
     if ( !parent )
         QTimer::singleShot( 0, [ = ]() { reload(); } );
 
+}
+
+void CFoldersView::init()
+{
+    fImpl->setupUi( this );
     setWindowTitle( QObject::tr( "Folders" ) );
-}
 
-CFoldersView::~CFoldersView()
-{
-}
-
-void CFoldersView::reload()
-{
     fModel = std::make_shared< CFoldersModel >( this );
     fImpl->folders->setModel( fModel.get() );
     connect( fImpl->folders->selectionModel(), &QItemSelectionModel::currentChanged, this, &CFoldersView::itemSelected );
@@ -32,7 +30,21 @@ void CFoldersView::reload()
             fImpl->folders->expandAll();
             emit sigFinishedLoading();
         } );
+}
+
+CFoldersView::~CFoldersView()
+{
+}
+
+void CFoldersView::reload()
+{
     fModel->reload();
+}
+
+void CFoldersView::clear()
+{
+    if ( fModel )
+        fModel->clear();
 }
 
 void CFoldersView::itemSelected( const QModelIndex &index )

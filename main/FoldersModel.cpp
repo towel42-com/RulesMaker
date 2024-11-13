@@ -10,7 +10,7 @@
 CFoldersModel::CFoldersModel( QObject *parent ) :
     QStandardItemModel( parent )
 {
-    setHorizontalHeaderLabels( QStringList() << "Folder Name" );
+    clear();
 }
 
 void CFoldersModel::reload()
@@ -92,4 +92,10 @@ QString CFoldersModel::fullPath( QStandardItem *item ) const
         retVal = R"(\\)" + retVal;
 
     return retVal;
+}
+
+void CFoldersModel::clear()
+{
+    QStandardItemModel::clear();
+    setHorizontalHeaderLabels( QStringList() << "Folder Name" );
 }

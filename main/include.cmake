@@ -53,20 +53,20 @@ set(project_SRCS
 )
 
 set(qtproject_H
+    EmailGroupingModel.h
     EmailModel.h
     EmailView.h
     FoldersModel.h
     FoldersView.h
-    RulesModel.h
-    RulesView.h
     MainWindow.h
     OutlookSetup.h
+    OutlookHelpers.h
+    RulesModel.h
+    RulesView.h
 )
 
 set(project_H
     ${CMAKE_CURRENT_BINARY_DIR}/MSOUTL.h
-    EmailGroupingModel.h
-    OutlookHelpers.h
 )
 
 set( project_pub_LIB_DIRS 

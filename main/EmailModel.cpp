@@ -5,17 +5,24 @@
 #include <QTimer>
 #include <QProgressDialog>
 #include <QProgressBar>
+#include <QDateTime>
 
+#include <QDebug>
 #include "MSOUTL.h"
+
+//QTimer::singleShot( 10, [ = ]() { addMailItems( parent ); } );
+
+//return retVal;
 
 CEmailModel::CEmailModel( QObject *parent ) :
     QAbstractListModel( parent )
 {
-    reload();
 }
 
 void CEmailModel::reload()
 {
+    beginResetModel();
+    clear();
     auto folder = COutlookHelpers::getInstance()->getInbox( dynamic_cast< QWidget * >( parent() ) );
     if ( !folder )
         return;
@@ -24,7 +31,19 @@ void CEmailModel::reload()
     if ( fItems )
         fCountCache = fItems->Count();
 
+    endResetModel();
     emit sigFinishedLoading();
+    QTimer::singleShot( 0, [ = ]() { groupMailItemsBySender( dynamic_cast< QWidget * >( parent() ) ); } );
+}
+
+void CEmailModel::clear()
+{
+    beginResetModel();
+    fGroupedFrom->clear();
+    fCache.clear();
+    fItems.reset();
+    fCountCache.reset();
+    endResetModel();
 }
 
 CEmailModel::~CEmailModel()
@@ -95,23 +114,19 @@ QVariant CEmailModel::data( const QModelIndex &index, int role ) const
     return QVariant();
 }
 
-CEmailGroupingModel *CEmailModel::getGroupedEmailModels( QWidget *parent )
+CEmailGroupingModel *CEmailModel::getGroupedEmailModel()
 {
-    delete fGroupedFrom;
-
-    fGroupedFrom = new CEmailGroupingModel( this );
-
-    auto retVal = fGroupedFrom;
-
-    QTimer::singleShot( 10, [ = ]() { addMailItems( parent ); } );
-
-    return retVal;
+    if ( !fGroupedFrom )
+        fGroupedFrom = new CEmailGroupingModel( this );
+    return fGroupedFrom;
 }
 
-void CEmailModel::addMailItems( QWidget *parent )
+void CEmailModel::groupMailItemsBySender( QWidget *parent )
 {
     if ( !fItems )
         return;
+
+    auto start = QDateTime::currentDateTime();
 
     auto itemCount = fItems->Count();
     QProgressDialog dlg( parent );
@@ -137,17 +152,16 @@ void CEmailModel::addMailItems( QWidget *parent )
         if ( !item )
             continue;
 
-        Outlook::MailItem mail( item );
-        if ( COutlookHelpers::getObjectClass( &mail ) == Outlook::OlObjectClass::olMail )
-            addMailItem( &mail );
+        auto mail = std::make_shared< Outlook::MailItem >( item );
+        if ( COutlookHelpers::getObjectClass( mail.get() ) == Outlook::OlObjectClass::olMail )
+            fGroupedFrom->addEmailAddress( mail, COutlookHelpers::getSenderEmailAddress( mail.get() ) );
+#ifdef _DEBUG
+        if ( ii >= 1000 )
+            break;
+#endif
     }
     emit sigFinishedGrouping();
-}
-
-void CEmailModel::addMailItem( Outlook::MailItem *mailItem )
-{
-    if ( !mailItem )
-        return;
-
-    fGroupedFrom->addEmailAddress( COutlookHelpers::getSenderEmailAddress( mailItem ) );
+    auto end = QDateTime::currentDateTime();
+    auto diff = start.secsTo( end );
+    qDebug() << "It took " << diff << " seconds to group emails.";
 }

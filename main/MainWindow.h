@@ -1,7 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include <QWidget>
+#include <QMainWindow>
 #include <memory>
 namespace Ui
 {
@@ -9,18 +9,23 @@ namespace Ui
 }
 
 class QModelIndex;
-class CEmailModel;
 
-class CMainWindow : public QWidget
+class CMainWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
     explicit CMainWindow( QWidget *parent = nullptr );
+
+    void slotUpdateActions();
+
     ~CMainWindow();
 
 protected slots:
+    void slotSelectServer();
     void slotReload();
+
+    void clearViews();
 
 protected:
     std::unique_ptr< Ui::CMainWindow > fImpl;

@@ -26,24 +26,48 @@ std::shared_ptr< COutlookHelpers > COutlookHelpers::getInstance()
 
 COutlookHelpers::~COutlookHelpers()
 {
-    //if ( fOutlook && !fOutlook->isNull() )
-    //    Outlook::NameSpace( fOutlook->Session() ).Logoff();
+    logout( false );
 }
 
-std::shared_ptr< Outlook::Account > COutlookHelpers::selectAccount( QWidget *parent )
+void COutlookHelpers::logout( bool andNotify )
 {
     fAccount.reset();
+    fInbox.reset();
+    fContacts.reset();
+    fRules.reset();
+
+    if ( fLoggedIn && fOutlook && !fOutlook->isNull() && fOutlook->Session() )
+    {
+        Outlook::NameSpace( fOutlook->Session() ).Logoff();
+        fLoggedIn = false;
+        if ( andNotify )
+            emit sigAccountChanged();
+    }
+}
+
+bool COutlookHelpers::accountSelected() const
+{
+    return fAccount.operator bool();
+}
+
+std::shared_ptr< Outlook::Account > COutlookHelpers::selectAccount( bool notifyOnChange, QWidget *parent )
+{
+    logout( notifyOnChange );
     if ( fOutlook->isNull() )
         return {};
 
     Outlook::NameSpace session( fOutlook->Session() );
     session.Logon();
+    fLoggedIn = true;
 
     std::list< std::shared_ptr< Outlook::Account > > allAccounts;
 
     auto accounts = session.Accounts();
     if ( !accounts )
+    {
+        logout( notifyOnChange );
         return {};
+    }
 
     auto numAccounts = accounts->Count();
     for ( auto ii = 1; ii <= numAccounts; ++ii )
@@ -71,7 +95,10 @@ std::shared_ptr< Outlook::Account > COutlookHelpers::selectAccount( QWidget *par
     }
 
     if ( allAccounts.size() == 0 )
+    {
+        logout( notifyOnChange );
         return {};
+    }
     if ( allAccounts.size() == 1 )
         fAccount = allAccounts.front();
 
@@ -87,13 +114,19 @@ std::shared_ptr< Outlook::Account > COutlookHelpers::selectAccount( QWidget *par
     bool aOK{ false };
     auto item = QInputDialog::getItem( parent, QString( "Select Account:" ), "Account:", accountNames, 0, false, &aOK );
     if ( !aOK )
+    {
+        logout( notifyOnChange );
         return {};
+    }
     auto pos = accountMap.find( item );
     if ( pos == accountMap.end() )
+    {
+        logout( notifyOnChange );
         return {};
+    }
     fAccount = ( *pos ).second;
-    fInbox.reset();
-    fContacts.reset();
+    if ( notifyOnChange )
+        emit sigAccountChanged();
     return fAccount;
 }
 
@@ -108,7 +141,7 @@ std::pair< std::shared_ptr< Outlook::MAPIFolder >, bool > COutlookHelpers::selec
 {
     if ( !fAccount )
     {
-        if ( !selectAccount( parent ) )
+        if ( !selectAccount( true, parent ) )
             return {};
     }
 
@@ -145,7 +178,7 @@ std::pair< std::shared_ptr< Outlook::MAPIFolder >, bool > COutlookHelpers::selec
 {
     if ( !fAccount )
     {
-        if ( !selectAccount( parent ) )
+        if ( !selectAccount( true, parent ) )
             return {};
     }
 
@@ -173,7 +206,7 @@ std::shared_ptr< Outlook::Rules > COutlookHelpers::selectRules( QWidget *parent 
 {
     if ( !fAccount )
     {
-        if ( !selectAccount( parent ) )
+        if ( !selectAccount( true, parent ) )
             return {};
     }
 

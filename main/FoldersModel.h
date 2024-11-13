@@ -26,6 +26,8 @@ public:
     QString fullPath( const QModelIndex &index ) const;
     QString fullPath( QStandardItem *item ) const;
 
+    void clear();
+
 Q_SIGNALS:
     void sigFinishedLoading();
 

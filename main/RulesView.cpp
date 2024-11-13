@@ -8,20 +8,17 @@ CRulesView::CRulesView( QWidget *parent ) :
     QWidget( parent ),
     fImpl( new Ui::CRulesView )
 {
-    fImpl->setupUi( this );
-
+    init();
+    
     if ( !parent )
         QTimer::singleShot( 0, [ = ]() { reload(); } );
 
-    setWindowTitle( QObject::tr( "Rules" ) );
 }
 
-CRulesView::~CRulesView()
+void CRulesView::init()
 {
-}
+    fImpl->setupUi( this );
 
-void CRulesView::reload()
-{
     fModel = std::make_shared< CRulesModel >( this );
     fImpl->rules->setModel( fModel.get() );
     connect( fImpl->rules->selectionModel(), &QItemSelectionModel::currentChanged, this, &CRulesView::itemSelected );
@@ -33,7 +30,23 @@ void CRulesView::reload()
             fImpl->rules->resizeColumnToContents( 0 );
             emit sigFinishedLoading();
         } );
+
+    setWindowTitle( QObject::tr( "Rules" ) );
+}
+
+CRulesView::~CRulesView()
+{
+}
+
+void CRulesView::reload()
+{
     fModel->reload();
+}
+
+void CRulesView::clear()
+{
+    if ( fModel )
+        fModel->clear();
 }
 
 void CRulesView::itemSelected( const QModelIndex &index )

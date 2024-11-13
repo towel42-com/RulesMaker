@@ -25,29 +25,27 @@ public:
     virtual ~CEmailModel();
 
     void reload();
+    void clear();
 
     int rowCount( const QModelIndex &parent = QModelIndex() ) const;
     int columnCount( const QModelIndex &parent ) const;
     QVariant headerData( int section, Qt::Orientation orientation, int role ) const;
     QVariant data( const QModelIndex &index, int role ) const;
 
-    CEmailGroupingModel *CEmailModel::getGroupedEmailModels( QWidget *parent );
+    CEmailGroupingModel *getGroupedEmailModel();
 
 Q_SIGNALS:
     void sigFinishedLoading();
     void sigFinishedGrouping();
 
 private:
-    void addMailItems( QWidget *parent );
-    void addMailItem( Outlook::MailItem *mailItem );
+    void groupMailItemsBySender( QWidget *parent );
 
     std::shared_ptr< Outlook::Items > fItems{ nullptr };
     mutable QHash< int, QStringList > fCache;
     mutable std::optional< int > fCountCache;
 
     CEmailGroupingModel *fGroupedFrom{ nullptr };
-    //CEmailGroupingModel *fGroupedTo{ nullptr };
-    //CEmailGroupingModel *fGroupedCC{ nullptr };
 };
 
 #endif

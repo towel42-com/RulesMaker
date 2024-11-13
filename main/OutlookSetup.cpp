@@ -26,7 +26,7 @@ COutlookSetup::~COutlookSetup()
 
 void COutlookSetup::slotSelectAccount()
 {
-    auto account = COutlookHelpers::getInstance()->selectAccount( dynamic_cast< QWidget * >( parent() ) );
+    auto account = COutlookHelpers::getInstance()->selectAccount( false, dynamic_cast< QWidget * >( parent() ) );
     if ( !account )
         return;
     fImpl->account->setText( account->DisplayName() );
@@ -50,18 +50,8 @@ void COutlookSetup::selectInbox( bool singleOnly )
     fImpl->inbox->setText( folder->FullFolderPath() );
 }
 
-//void COutlookSetup::slotSelectContacts()
-//{
-//    selectContacts( false );
-//}
-//
-//void COutlookSetup::selectContacts( bool singleOnly )
-//{
-//    auto && [ folder, hadMultiple ] = COutlookHelpers::getInstance()->selectContacts( dynamic_cast< QWidget * >( parent() ), singleOnly );
-//    fImpl->contactsBtn->setEnabled( hadMultiple );
-//
-//    if ( !folder )
-//        return;
-//
-//    fImpl->contacts->setText( folder->FullFolderPath() );
-//}
+void COutlookSetup::reject()
+{
+    COutlookHelpers::getInstance()->logout( false );
+    QDialog::reject();
+}

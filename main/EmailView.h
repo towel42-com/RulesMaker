@@ -10,6 +10,7 @@ namespace Ui
 
 class QModelIndex;
 class CEmailModel;
+class CEmailGroupingModel;
 
 class CEmailView : public QWidget
 {
@@ -17,8 +18,12 @@ class CEmailView : public QWidget
 
 public:
     explicit CEmailView( QWidget *parent = nullptr );
+
+    void init();
+
     ~CEmailView();
 
+    void clear();
     void reload();
 
 Q_SIGNALS:
@@ -26,11 +31,13 @@ Q_SIGNALS:
     void sigFinishedGrouping();
 
 protected slots:
-    void itemSelected( const QModelIndex &index );
+    void slotItemSelected( const QModelIndex &index );
+    void slotGroupedItemDoubleClicked( const QModelIndex &idx );
     void slotLoadGrouped();
 
 protected:
     std::shared_ptr< CEmailModel > fModel;
+    CEmailGroupingModel *fGroupedModel{ nullptr }; // owned by fModel
     std::unique_ptr< Ui::CEmailView > fImpl;
 };
 

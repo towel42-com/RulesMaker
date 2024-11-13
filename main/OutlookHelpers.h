@@ -1,6 +1,7 @@
 #ifndef OUTLOOKHELPERS_H
 #define OUTLOOKHELPERS_H
 
+#include <QObject>
 #include <memory>
 #include <list>
 #include <functional>
@@ -32,19 +33,23 @@ namespace Outlook
     enum class OlMarkInterval;
 }
 
-class COutlookHelpers
+class COutlookHelpers : public QObject
 {
+    Q_OBJECT;
+
 public:
     friend class COutlookSetup;
     COutlookHelpers();
     static std::shared_ptr< COutlookHelpers > getInstance();
     virtual ~COutlookHelpers();
 
+    std::shared_ptr< Outlook::Account > selectAccount( bool notifyOnChange, QWidget *parent );
+    void logout( bool andNotify );
+
+    bool accountSelected() const;
     std::shared_ptr< Outlook::MAPIFolder > getInbox( QWidget *parent );
     std::shared_ptr< Outlook::MAPIFolder > getContacts( QWidget *parent );
     std::shared_ptr< Outlook::Rules > getRules( QWidget *parent );
-
-    std::shared_ptr< Outlook::Account > selectAccount( QWidget *parent );
 
     std::pair< std::shared_ptr< Outlook::MAPIFolder >, bool > selectFolder( QWidget *parent, const QString &folderName, std::function< bool( std::shared_ptr< Outlook::MAPIFolder > folder ) > acceptFolder, bool singleOnly );
     std::pair< std::shared_ptr< Outlook::MAPIFolder >, bool > selectFolder( QWidget *parent, const QString &folderName, const std::list< std::shared_ptr< Outlook::MAPIFolder > > &folders, bool singleOnly );
@@ -75,6 +80,9 @@ public:
 
     std::shared_ptr< Outlook::Application > outlook() { return fOutlook; }
 
+Q_SIGNALS:
+    void sigAccountChanged();
+
 private:
     std::pair< std::shared_ptr< Outlook::MAPIFolder >, bool > selectInbox( QWidget *parent, bool singleOnly );
     std::pair< std::shared_ptr< Outlook::MAPIFolder >, bool > selectContacts( QWidget *parent, bool singleOnly );
@@ -87,6 +95,8 @@ private:
     std::shared_ptr< Outlook::Rules > fRules;
 
     static std::shared_ptr< COutlookHelpers > sInstance;
+
+    bool fLoggedIn{ false };
 };
 
 QString toString( Outlook::OlItemType olItemType );

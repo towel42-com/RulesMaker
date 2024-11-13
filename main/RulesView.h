@@ -17,10 +17,13 @@ class CRulesView : public QWidget
 
 public:
     explicit CRulesView( QWidget *parent = nullptr );
+
+    void init();
+
     ~CRulesView();
 
     void reload();
-
+    void clear();
 Q_SIGNALS:
     void sigFinishedLoading();
 
