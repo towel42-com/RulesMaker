@@ -1,8 +1,6 @@
 #ifndef OUTLOOKHELPERS_H
 #define OUTLOOKHELPERS_H
 
-//#include "msoutl.h"
-
 #include <memory>
 #include <list>
 #include <functional>
@@ -20,10 +18,18 @@ namespace Outlook
     class Account;
     class MailItem;
     class AddressEntry;
+    class AddressEntries;
     class Recipient;
+    class Rules;
+    class Recipients;
+    class AddressList;
+    enum class OlImportance;
     enum class OlItemType;
     enum class OlMailRecipientType;
     enum class OlObjectClass;
+    enum class OlRuleConditionType;
+    enum class OlSensitivity;
+    enum class OlMarkInterval;
 }
 
 class COutlookHelpers
@@ -36,6 +42,7 @@ public:
 
     std::shared_ptr< Outlook::MAPIFolder > getInbox( QWidget *parent );
     std::shared_ptr< Outlook::MAPIFolder > getContacts( QWidget *parent );
+    std::shared_ptr< Outlook::Rules > getRules( QWidget *parent );
 
     std::shared_ptr< Outlook::Account > selectAccount( QWidget *parent );
 
@@ -54,30 +61,39 @@ public:
     }
     static Outlook::OlObjectClass getObjectClass( IDispatch *item );
     static QString getSenderEmailAddress( Outlook::MailItem *mailItem );
-    static QStringList getRecipients( Outlook::MailItem *mailItem, Outlook::OlMailRecipientType recipientType );
+    static QStringList getRecipientEmails( Outlook::MailItem *mailItem, Outlook::OlMailRecipientType recipientType );
+    static QStringList getRecipientEmails( Outlook::Recipients *recipients, std::optional< Outlook::OlMailRecipientType > recipientType );
+
+    static QStringList getEmailAddresses( Outlook::AddressList *addresses );
+    static QStringList getEmailAddresses( Outlook::AddressEntry *address );
+    static QStringList getEmailAddresses( Outlook::AddressEntries *entries );
 
     static QString getEmailAddress( Outlook::Recipient *recipient );
-
-    static bool isExchangeUser( Outlook::AddressEntry *address );
-    static std::optional< QString > getEmailAddress( Outlook::AddressEntry *address );
 
     void dumpSession( Outlook::NameSpace &session );
     void dumpFolder( Outlook::MAPIFolder *root );
 
     std::shared_ptr< Outlook::Application > outlook() { return fOutlook; }
 
-    static QString toString( Outlook::OlItemType olItemType );
-
 private:
     std::pair< std::shared_ptr< Outlook::MAPIFolder >, bool > selectInbox( QWidget *parent, bool singleOnly );
     std::pair< std::shared_ptr< Outlook::MAPIFolder >, bool > selectContacts( QWidget *parent, bool singleOnly );
+    std::shared_ptr< Outlook::Rules > selectRules( QWidget *parent );
 
     std::shared_ptr< Outlook::Application > fOutlook;
     std::shared_ptr< Outlook::Account > fAccount;
     std::shared_ptr< Outlook::MAPIFolder > fInbox;
     std::shared_ptr< Outlook::MAPIFolder > fContacts;
+    std::shared_ptr< Outlook::Rules > fRules;
 
     static std::shared_ptr< COutlookHelpers > sInstance;
 };
+
+QString toString( Outlook::OlItemType olItemType );
+QString toString( Outlook::OlRuleConditionType olItemType );
+QString toString( Outlook::OlImportance importance );
+QString toString( Outlook::OlSensitivity sensitivity );
+QString toString( Outlook::OlMarkInterval markInterval );
+
 
 #endif

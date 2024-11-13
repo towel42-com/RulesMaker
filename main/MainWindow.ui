@@ -1,72 +1,79 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>CRulesView</class>
- <widget class="QWidget" name="CRulesView">
+ <class>CMainWindow</class>
+ <widget class="QWidget" name="CMainWindow">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>910</width>
-    <height>441</height>
+    <width>954</width>
+    <height>513</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="3" column="0" colspan="2">
-    <widget class="QSplitter" name="splitter">
+   <item row="1" column="0">
+    <spacer name="horizontalSpacer">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
-     <widget class="QTreeView" name="folders">
-      <property name="uniformRowHeights">
-       <bool>true</bool>
-      </property>
-     </widget>
-     <widget class="QTreeView" name="email">
-      <property name="uniformRowHeights">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </widget>
-   </item>
-   <item row="0" column="1">
-    <widget class="QPushButton" name="addButton">
-     <property name="text">
-      <string>Create Rule</string>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="1">
-    <widget class="QPushButton" name="changeButton">
-     <property name="text">
-      <string>&amp;Change</string>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="1">
-    <spacer name="verticalSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
      <property name="sizeHint" stdset="0">
       <size>
-       <width>20</width>
-       <height>40</height>
+       <width>40</width>
+       <height>20</height>
       </size>
      </property>
     </spacer>
    </item>
-   <item row="0" column="0" rowspan="3">
-    <widget class="QTreeView" name="rules">
-     <property name="uniformRowHeights">
-      <bool>true</bool>
+   <item row="1" column="1">
+    <widget class="QPushButton" name="reloadBtn">
+     <property name="text">
+      <string>&amp;Reload</string>
      </property>
+    </widget>
+   </item>
+   <item row="0" column="0" colspan="2">
+    <widget class="QSplitter" name="splitter_2">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <widget class="CRulesView" name="rules" native="true"/>
+     <widget class="QSplitter" name="splitter">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+      <widget class="CFoldersView" name="folders" native="true"/>
+      <widget class="CEmailView" name="email" native="true"/>
+     </widget>
     </widget>
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>CEmailView</class>
+   <extends>QWidget</extends>
+   <header>EmailView.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>CFoldersView</class>
+   <extends>QWidget</extends>
+   <header>FoldersView.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>CRulesView</class>
+   <extends>QWidget</extends>
+   <header>RulesView.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <tabstops>
+  <tabstop>rules</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

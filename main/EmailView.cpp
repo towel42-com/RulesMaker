@@ -12,16 +12,9 @@ CEmailView::CEmailView( QWidget *parent ) :
 {
     fImpl->setupUi( this );
 
-    QTimer::singleShot(
-        0,
-        [ = ]()
-        {
-            fModel = std::make_shared< CEmailModel >( this );
-            fImpl->emails->setModel( fModel.get() );
-            connect( fImpl->emails->selectionModel(), &QItemSelectionModel::currentChanged, this, &CEmailView::itemSelected );
-        } );
+    if ( !parent )
+        QTimer::singleShot( 0, [ = ]() { reload(); } );
 
-    connect( fImpl->groupEmails, &QPushButton::clicked, this, &CEmailView::slotLoadGrouped );
     setWindowTitle( QObject::tr( "Inbox Emails" ) );
 }
 
@@ -41,20 +34,30 @@ void CEmailView::itemSelected( const QModelIndex &index )
     fImpl->subject->setText( model->data( model->index( index.row(), 3 ) ).toString() );
 }
 
+void CEmailView::reload()
+{
+    fModel = std::make_shared< CEmailModel >( this );
+    fImpl->emails->setModel( fModel.get() );
+    connect( fImpl->emails->selectionModel(), &QItemSelectionModel::currentChanged, this, &CEmailView::itemSelected );
+    connect(
+        fModel.get(), &CEmailModel::sigFinishedLoading,
+        [ = ]()
+        {
+            slotLoadGrouped();
+            emit sigFinishedLoading();
+        } );
+    fModel->reload();
+}
+
 void CEmailView::slotLoadGrouped()
 {
-    auto &&[ from, to, cc, subjects ] = fModel->getGroupedEmailModels( this );
+    auto &&from = fModel->getGroupedEmailModels( this );
     fImpl->fromGroupings->setModel( from );
-    fImpl->toGroupings->setModel( to );
-    fImpl->ccGroupings->setModel( cc );
-    fImpl->subjectGroupings->setModel( subjects );
     connect(
-        fModel.get(), &CEmailModel::sigFinishedGroupingEmails,
+        fModel.get(), &CEmailModel::sigFinishedGrouping,
         [ = ]()
         {
             fImpl->fromGroupings->expandAll();
-            fImpl->toGroupings->expandAll();
-            fImpl->ccGroupings->expandAll();
-            fImpl->subjectGroupings->expandAll();
+            emit sigFinishedGrouping();
         } );
 }

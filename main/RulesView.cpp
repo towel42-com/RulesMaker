@@ -9,17 +9,9 @@ CRulesView::CRulesView( QWidget *parent ) :
     fImpl( new Ui::CRulesView )
 {
     fImpl->setupUi( this );
-    connect( fImpl->addButton, &QPushButton::clicked, this, &CRulesView::addEntry );
-    connect( fImpl->changeButton, &QPushButton::clicked, this, &CRulesView::changeEntry );
 
-    QTimer::singleShot(
-        0,
-        [ = ]()
-        {
-            fModel = std::make_shared< CRulesModel >( this );
-            fImpl->rules->setModel( fModel.get() );
-            connect( fImpl->rules->selectionModel(), &QItemSelectionModel::currentChanged, this, &CRulesView::itemSelected );
-        } );
+    if ( !parent )
+        QTimer::singleShot( 0, [ = ]() { reload(); } );
 
     setWindowTitle( QObject::tr( "Rules" ) );
 }
@@ -28,27 +20,20 @@ CRulesView::~CRulesView()
 {
 }
 
-void CRulesView::updateOutlook()
+void CRulesView::reload()
 {
-    fModel->update();
-}
-
-void CRulesView::addEntry()
-{
-    if ( !fImpl->name->text().isEmpty() )
-    {
-        fModel->addItem( fImpl->name->text() );
-    }
-
-    fImpl->name->clear();
-}
-
-void CRulesView::changeEntry()
-{
-    QModelIndex current = fImpl->rules->currentIndex();
-
-    if ( current.isValid() )
-        fModel->changeItem( current, fImpl->name->text() );
+    fModel = std::make_shared< CRulesModel >( this );
+    fImpl->rules->setModel( fModel.get() );
+    connect( fImpl->rules->selectionModel(), &QItemSelectionModel::currentChanged, this, &CRulesView::itemSelected );
+    connect(
+        fModel.get(), &CRulesModel::sigFinishedLoading,
+        [ = ]()
+        {
+            fImpl->rules->expandAll();
+            fImpl->rules->resizeColumnToContents( 0 );
+            emit sigFinishedLoading();
+        } );
+    fModel->reload();
 }
 
 void CRulesView::itemSelected( const QModelIndex &index )
@@ -56,6 +41,12 @@ void CRulesView::itemSelected( const QModelIndex &index )
     if ( !index.isValid() )
         return;
 
-    QAbstractItemModel *model = fImpl->rules->model();
-    fImpl->name->setText( model->data( model->index( index.row(), 0 ) ).toString() );
+    fImpl->name->clear();
+    auto item = fModel->itemFromIndex( index );
+    if ( !item )
+        return;
+    while ( item->parent() )
+        item = item->parent();
+
+    fImpl->name->setText( item->text() );
 }

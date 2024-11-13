@@ -2,36 +2,90 @@
 #define RULESMODEL_H
 
 #include <QString>
-#include <QAbstractListModel>
+#include <QStandardItemModel>
 
 #include <memory>
 #include <optional>
 
 namespace Outlook
 {
-    class Items;
+    class Rules;
+    class Rule;
+    class RuleConditions;
+
+    class AccountRuleCondition;
+    class AddressRuleCondition;
+    class CategoryRuleCondition;
+    class FormNameRuleCondition;
+    class FromRssFeedRuleCondition;
+    class ImportanceRuleCondition;
+    class RuleCondition;
+    class SenderInAddressListRuleCondition;
+    class SensitivityRuleCondition;
+    class TextRuleCondition;
+    class ToOrFromRuleCondition;
+
+    class AssignToCategoryRuleAction;
+    class MarkAsTaskRuleAction;
+    class MoveOrCopyRuleAction;
+    class NewItemAlertRuleAction;
+    class PlaySoundRuleAction;
+    class RuleAction;
+    class SendRuleAction;
 }
 
-class CRulesModel : public QAbstractListModel
+class CRulesModel : public QStandardItemModel
 {
+    Q_OBJECT;
+
 public:
     explicit CRulesModel( QObject *parent );
+
     virtual ~CRulesModel();
 
-    int rowCount( const QModelIndex &parent = QModelIndex() ) const;
-    int columnCount( const QModelIndex &parent ) const;
-    QVariant headerData( int section, Qt::Orientation orientation, int role ) const;
-    QVariant data( const QModelIndex &index, int role ) const;
+    void reload();
 
     void changeItem( const QModelIndex &index, const QString &folderName );
     void addItem( const QString &folderName );
     void update();
+Q_SIGNALS:
+    void sigFinishedLoading();
 
 private:
-    std::unique_ptr< Outlook::Items > fItems{ nullptr };
+    void loadRules();
 
-    mutable QHash< int, QStringList > fCache;
-    mutable std::optional< int > fCountCache;
+    void addAttribute( QStandardItem *parent, const QString &label, const QString &value );
+    void addAttribute( QStandardItem *parent, const QString &label, QStringList value, const QString & separator );
+    void addAttribute( QStandardItem *parent, const QString &label, bool value );
+    void addAttribute( QStandardItem *parent, const QString &label, int value );
+    void addAttribute( QStandardItem *parent, const QString &label, const char *value );
+
+    void addConditions( QStandardItem *parent, std::shared_ptr< Outlook::Rule > rule );
+    void addExceptions( QStandardItem *parent, std::shared_ptr< Outlook::Rule > rule );
+    void addConditions( QStandardItem *parent, std::shared_ptr< Outlook::Rule > rule, bool exceptions );
+
+    bool addCondition( QStandardItem *parent, Outlook::AccountRuleCondition *condition );
+    bool addCondition( QStandardItem *parent, Outlook::RuleCondition *condition, const QString & ruleName );
+    bool addCondition( QStandardItem *parent, Outlook::TextRuleCondition *condition, const QString &ruleName );
+    bool addCondition( QStandardItem *parent, Outlook::CategoryRuleCondition *condition, const QString &ruleName );
+    bool addCondition( QStandardItem *parent, Outlook::ToOrFromRuleCondition *condition, bool from );
+    bool addCondition( QStandardItem *parent, Outlook::FormNameRuleCondition *condition );
+    bool addCondition( QStandardItem *parent, Outlook::FromRssFeedRuleCondition *condition );
+    bool addCondition( QStandardItem *parent, Outlook::ImportanceRuleCondition *condition );
+    bool addCondition( QStandardItem *parent, Outlook::AddressRuleCondition *condition );
+    bool addCondition( QStandardItem *parent, Outlook::SenderInAddressListRuleCondition *condition );
+    bool addCondition( QStandardItem *parent, Outlook::SensitivityRuleCondition *condition );
+    
+    void addActions( QStandardItem *parent, std::shared_ptr< Outlook::Rule > rule );
+    bool addAction( QStandardItem *parent, Outlook::AssignToCategoryRuleAction *action );
+    bool addAction( QStandardItem *parent, Outlook::MarkAsTaskRuleAction *action );
+    bool addAction( QStandardItem *parent, Outlook::MoveOrCopyRuleAction *action, const QString & actionName );
+    bool addAction( QStandardItem *parent, Outlook::NewItemAlertRuleAction *action );
+    bool addAction( QStandardItem *parent, Outlook::PlaySoundRuleAction *action );
+    bool addAction( QStandardItem *parent, Outlook::RuleAction *action, const QString &actionName );
+    bool addAction( QStandardItem *parent, Outlook::SendRuleAction *action, const QString &actionName );
+
+    std::shared_ptr< Outlook::Rules > fRules{ nullptr };
 };
 
 #endif

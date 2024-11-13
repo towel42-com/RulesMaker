@@ -15,24 +15,23 @@ namespace Outlook
 
 class CFoldersModel : public QStandardItemModel
 {
+    Q_OBJECT;
+
 public:
     explicit CFoldersModel( QObject *parent );
+
     virtual ~CFoldersModel();
 
-    //int rowCount( const QModelIndex &parent = QModelIndex() ) const;
-    //int columnCount( const QModelIndex &parent ) const;
-    //QVariant headerData( int section, Qt::Orientation orientation, int role ) const;
-    //QVariant data( const QModelIndex &index, int role ) const;
-
-    void changeItem( const QModelIndex &index, const QString &folderName );
-    void addItem( const QString &folderName );
-    void update();
-
+    void reload();
     QString fullPath( const QModelIndex &index ) const;
     QString fullPath( QStandardItem *item ) const;
 
+Q_SIGNALS:
+    void sigFinishedLoading();
+
 private:
     void addSubFolders( QStandardItem *item, std::shared_ptr< Outlook::MAPIFolder > parentFolder );
+    void addSubFolders( std::shared_ptr< Outlook::MAPIFolder > rootFolder );
 };
 
 #endif

@@ -162,6 +162,34 @@ std::pair< std::shared_ptr< Outlook::MAPIFolder >, bool > COutlookHelpers::selec
         singleOnly );
 }
 
+std::shared_ptr< Outlook::Rules > COutlookHelpers::getRules( QWidget *parent )
+{
+    if ( !fRules )
+        fRules = selectRules( parent );
+    return fRules;
+}
+
+std::shared_ptr< Outlook::Rules > COutlookHelpers::selectRules( QWidget *parent )
+{
+    if ( !fAccount )
+    {
+        if ( !selectAccount( parent ) )
+            return {};
+    }
+
+    if ( fOutlook->isNull() )
+        return {};
+    if ( fAccount->isNull() )
+        return {};
+
+    auto store = fAccount->DeliveryStore();
+    if ( !store )
+        return {};
+
+    auto rules = store->GetRules();
+    return std::shared_ptr< Outlook::Rules >( rules );
+}
+
 std::pair< std::shared_ptr< Outlook::MAPIFolder >, bool > COutlookHelpers::selectFolder( QWidget *parent, const QString &folderName, std::function< bool( std::shared_ptr< Outlook::MAPIFolder > folder ) > acceptFolder, bool singleOnly )
 {
     auto folders = getFolders( acceptFolder );
@@ -206,21 +234,12 @@ std::list< std::shared_ptr< Outlook::MAPIFolder > > COutlookHelpers::getFolders(
     if ( fAccount->isNull() )
         return {};
 
-    //Outlook::NameSpace session( fOutlook->Session() );
-    //session.Logon();
-
-    //std::list< std::shared_ptr< Outlook::MAPIFolder > > retVal;
-    //auto stores = session.Stores();
-    //auto numStores = stores->Count();
-    //for ( auto ii = 1; ii <= numStores; ++ii )
-    //{
     auto store = fAccount->DeliveryStore();
     if ( !store )
         return {};
 
     auto root = std::shared_ptr< Outlook::MAPIFolder >( store->GetRootFolder() );
     auto retVal = getFolders( root, false, acceptFolder );
-    //retVal.insert( retVal.end(), currFolders.begin(), currFolders.end() );
 
     return retVal;
 }
@@ -257,16 +276,6 @@ bool hasProperty( QObject *item, const char *propName )
     //auto aoxMO = dynamic_cast< c * >( mo );
     auto idx = mo->indexOfProperty( propName );
     return idx != -1;
-    do
-    {
-        for ( int ii = mo->propertyOffset(); ii < mo->propertyCount(); ++ii )
-        {
-            if ( propName == mo->property( ii ).name() )
-                return true;
-        }
-    }
-    while ( ( mo = mo->superClass() ) );
-    return false;
 }
 
 Outlook::OlObjectClass COutlookHelpers::getObjectClass( IDispatch *item )
@@ -274,10 +283,7 @@ Outlook::OlObjectClass COutlookHelpers::getObjectClass( IDispatch *item )
     if ( !item )
         return {};
 
-    auto tmp = new QAxObject( item );
-    bool t2 = hasProperty( tmp, "Class" );
-    auto retVal = tmp->property( "Class" );
-    delete tmp;
+    auto retVal = QAxObject( item ).property( "Class" );
 
     return static_cast< Outlook::OlObjectClass >( retVal.toInt() );
 }
@@ -287,38 +293,73 @@ QString COutlookHelpers::getSenderEmailAddress( Outlook::MailItem *mailItem )
     if ( !mailItem )
         return {};
 
-    auto email = getEmailAddress( mailItem->Sender() );
-    if ( email.has_value() )
-        return email.value();
-
-    bool hasProperty = ::hasProperty( mailItem, "SenderEmailAddress" );
-    if ( !hasProperty )
-        return {};
+    auto email = getEmailAddresses( mailItem->Sender() );
+    if ( !email.empty() )
+        return email.front();
 
     auto retVal = mailItem->SenderEmailAddress();
     return retVal;
 }
 
-bool COutlookHelpers::isExchangeUser( Outlook::AddressEntry *address )
+QStringList COutlookHelpers::getEmailAddresses( Outlook::AddressEntry *address )
 {
-    if ( !address )
-        return false;
+    auto type = address->AddressEntryUserType();
+    QStringList retVal;
+    switch ( type )
+    {
+        case Outlook::OlAddressEntryUserType::olExchangeAgentAddressEntry:
+        case Outlook::OlAddressEntryUserType::olExchangeRemoteUserAddressEntry:
+        case Outlook::OlAddressEntryUserType::olExchangeUserAddressEntry:
+        case Outlook::OlAddressEntryUserType::olOutlookContactAddressEntry:
+            {
+                if ( address->GetExchangeUser() )
+                {
+                    retVal.push_back( address->GetExchangeUser()->PrimarySmtpAddress() );
+                }
+            }
+            break;
+        case Outlook::OlAddressEntryUserType::olOutlookDistributionListAddressEntry:
+        case Outlook::OlAddressEntryUserType::olExchangeDistributionListAddressEntry:
+            {
+                auto list = address->GetExchangeDistributionList();
+                if ( list )
+                {
+                    retVal << list->PrimarySmtpAddress();
+                }
+            }
+            break;
+        case Outlook::OlAddressEntryUserType::olSmtpAddressEntry:
+            {
+                retVal.push_back( address->Address() );
+            }
+        case Outlook::OlAddressEntryUserType::olExchangeOrganizationAddressEntry:
+        case Outlook::OlAddressEntryUserType::olExchangePublicFolderAddressEntry:
+        case Outlook::OlAddressEntryUserType::olLdapAddressEntry:
+        case Outlook::OlAddressEntryUserType::olOtherAddressEntry:
+            break;
+            break;
+    }
 
-    auto user = address->GetExchangeUser();
-    return user != nullptr;
+    retVal.removeAll( QString() );
+    return retVal;
 }
 
-std::optional< QString > COutlookHelpers::getEmailAddress( Outlook::AddressEntry *address )
+QStringList COutlookHelpers::getEmailAddresses( Outlook::AddressEntries *entries )
 {
-    if ( !isExchangeUser( address ) )
+    if ( !entries )
         return {};
-
-    auto user = address->GetExchangeUser();
-    if ( user )
+    QStringList retVal;
+    auto num = entries->Count();
+    for ( int ii = 1; ii <= num; ++ii )
     {
-        return user->PrimarySmtpAddress();
+        auto currItem = entries->Item( ii );
+        if ( !currItem )
+            continue;
+        auto currEmails = getEmailAddresses( currItem );
+        retVal << currEmails;
     }
-    return {};
+    retVal.removeAll( QString() );
+    return retVal;
 }
 
 QString COutlookHelpers::getEmailAddress( Outlook::Recipient *recipient )
@@ -326,13 +367,39 @@ QString COutlookHelpers::getEmailAddress( Outlook::Recipient *recipient )
     if ( !recipient )
         return {};
 
-    auto exchUserEmail = getEmailAddress( recipient->AddressEntry() );
-    if ( exchUserEmail.has_value() )
-        return exchUserEmail.value();
-    return recipient->Address();
+    QString retVal;
+    auto entryEmail = getEmailAddresses( recipient->AddressEntry() );
+    if ( !entryEmail.isEmpty() )
+        return entryEmail.front();
+    else
+        return recipient->Address();
+
+    return retVal;
 }
 
-QStringList COutlookHelpers::getRecipients( Outlook::MailItem *mailItem, Outlook::OlMailRecipientType recipientType )
+QStringList COutlookHelpers::getEmailAddresses( Outlook::AddressList *addresses )
+{
+    if ( !addresses )
+        return {};
+
+    auto entries = addresses->AddressEntries();
+    if ( !entries )
+        return {};
+    auto count = entries->Count();
+
+    QStringList retVal;
+    for ( int ii = 1; ii <= count; ++ii )
+    {
+        auto entry = entries->Item( ii );
+        if ( !entry )
+            continue;
+        auto currEmails = getEmailAddresses( entry );
+        retVal << currEmails;
+    }
+    return retVal;
+}
+
+QStringList COutlookHelpers::getRecipientEmails( Outlook::MailItem *mailItem, Outlook::OlMailRecipientType recipientType )
 {
     if ( !mailItem )
         return {};
@@ -340,6 +407,13 @@ QStringList COutlookHelpers::getRecipients( Outlook::MailItem *mailItem, Outlook
     if ( !recipients )
         return {};
 
+    return getRecipientEmails( recipients, recipientType );
+}
+
+QStringList COutlookHelpers::getRecipientEmails( Outlook::Recipients *recipients, std::optional< Outlook::OlMailRecipientType > recipientType )
+{
+    if ( !recipients )
+        return {};
     auto numRecipients = recipients->Count();
     QStringList retVal;
     for ( int ii = 1; ii <= numRecipients; ++ii )
@@ -347,10 +421,11 @@ QStringList COutlookHelpers::getRecipients( Outlook::MailItem *mailItem, Outlook
         auto recipient = recipients->Item( ii );
         if ( !recipient )
             continue;
-        if ( recipientType != static_cast< Outlook::OlMailRecipientType >( recipient->Type() ) )
+        if ( recipientType.has_value() && ( recipientType.value() != static_cast< Outlook::OlMailRecipientType >( recipient->Type() ) ) )
             continue;
 
-        retVal << getEmailAddress( recipient );
+        auto addresses = getEmailAddresses( recipient->AddressEntry() );
+        retVal << addresses;
     }
     return retVal;
 }
@@ -370,7 +445,22 @@ void COutlookHelpers::dumpSession( Outlook::NameSpace &session )
     }
 }
 
-QString COutlookHelpers::toString( Outlook::OlItemType olItemType )
+void COutlookHelpers::dumpFolder( Outlook::MAPIFolder *parent )
+{
+    if ( !parent )
+        return;
+
+    auto folders = parent->Folders();
+    auto folderCount = folders->Count();
+    for ( auto jj = 1; jj < folderCount; ++jj )
+    {
+        auto folder = folders->Item( jj );
+        qDebug() << folder->FolderPath() << toString( folder->DefaultItemType() );
+        dumpFolder( folder );
+    }
+}
+
+QString toString( Outlook::OlItemType olItemType )
 {
     switch ( olItemType )
     {
@@ -398,17 +488,127 @@ QString COutlookHelpers::toString( Outlook::OlItemType olItemType )
     return "<UNKNOWN>";
 }
 
-void COutlookHelpers::dumpFolder( Outlook::MAPIFolder *parent )
+QString toString( Outlook::OlRuleConditionType olRuleConditionType )
 {
-    if ( !parent )
-        return;
-
-    auto folders = parent->Folders();
-    auto folderCount = folders->Count();
-    for ( auto jj = 1; jj < folderCount; ++jj )
+    switch ( olRuleConditionType )
     {
-        auto folder = folders->Item( jj );
-        qDebug() << folder->FolderPath() << toString( folder->DefaultItemType() );
-        dumpFolder( folder );
+        case Outlook::OlRuleConditionType::olConditionUnknown:
+            return "ConditionUnknown";
+        case Outlook::OlRuleConditionType::olConditionFrom:
+            return "ConditionFrom";
+        case Outlook::OlRuleConditionType::olConditionSubject:
+            return "ConditionSubject";
+        case Outlook::OlRuleConditionType::olConditionAccount:
+            return "ConditionAccount";
+        case Outlook::OlRuleConditionType::olConditionOnlyToMe:
+            return "ConditionOnlyToMe";
+        case Outlook::OlRuleConditionType::olConditionTo:
+            return "ConditionTo";
+        case Outlook::OlRuleConditionType::olConditionImportance:
+            return "ConditionImportance";
+        case Outlook::OlRuleConditionType::olConditionSensitivity:
+            return "ConditionSensitivity";
+        case Outlook::OlRuleConditionType::olConditionFlaggedForAction:
+            return "ConditionFlaggedForAction";
+        case Outlook::OlRuleConditionType::olConditionCc:
+            return "ConditionCc";
+        case Outlook::OlRuleConditionType::olConditionToOrCc:
+            return "ConditionToOrCc";
+        case Outlook::OlRuleConditionType::olConditionNotTo:
+            return "ConditionNotTo";
+        case Outlook::OlRuleConditionType::olConditionSentTo:
+            return "ConditionSentTo";
+        case Outlook::OlRuleConditionType::olConditionBody:
+            return "ConditionBody";
+        case Outlook::OlRuleConditionType::olConditionBodyOrSubject:
+            return "ConditionBodyOrSubject";
+        case Outlook::OlRuleConditionType::olConditionMessageHeader:
+            return "ConditionMessageHeader";
+        case Outlook::OlRuleConditionType::olConditionRecipientAddress:
+            return "ConditionRecipientAddress";
+        case Outlook::OlRuleConditionType::olConditionSenderAddress:
+            return "ConditionSenderAddress";
+        case Outlook::OlRuleConditionType::olConditionCategory:
+            return "ConditionCategory";
+        case Outlook::OlRuleConditionType::olConditionOOF:
+            return "ConditionOOF";
+        case Outlook::OlRuleConditionType::olConditionHasAttachment:
+            return "ConditionHasAttachment";
+        case Outlook::OlRuleConditionType::olConditionSizeRange:
+            return "ConditionSizeRange";
+        case Outlook::OlRuleConditionType::olConditionDateRange:
+            return "ConditionDateRange";
+        case Outlook::OlRuleConditionType::olConditionFormName:
+            return "ConditionFormName";
+        case Outlook::OlRuleConditionType::olConditionProperty:
+            return "ConditionProperty";
+        case Outlook::OlRuleConditionType::olConditionSenderInAddressBook:
+            return "ConditionSenderInAddressBook";
+        case Outlook::OlRuleConditionType::olConditionMeetingInviteOrUpdate:
+            return "ConditionMeetingInviteOrUpdate";
+        case Outlook::OlRuleConditionType::olConditionLocalMachineOnly:
+            return "ConditionLocalMachineOnly";
+        case Outlook::OlRuleConditionType::olConditionOtherMachine:
+            return "ConditionOtherMachine";
+        case Outlook::OlRuleConditionType::olConditionAnyCategory:
+            return "ConditionAnyCategory";
+        case Outlook::OlRuleConditionType::olConditionFromRssFeed:
+            return "ConditionFromRssFeed";
+        case Outlook::OlRuleConditionType::olConditionFromAnyRssFeed:
+            return "ConditionFromAnyRssFeed";
     }
+    return "<UNKNOWN>";
+}
+
+QString toString( Outlook::OlImportance importance )
+{
+    switch ( importance )
+    {
+        case Outlook::OlImportance::olImportanceLow:
+            return "Low";
+        case Outlook::OlImportance::olImportanceNormal:
+            return "Normal";
+        case Outlook::OlImportance::olImportanceHigh:
+            return "High";
+    }
+
+    return "<UNKNOWN>";
+}
+
+QString toString( Outlook::OlSensitivity sensitivity )
+{
+    switch ( sensitivity )
+    {
+        case Outlook::OlSensitivity::olPersonal:
+            return "Personal";
+        case Outlook::OlSensitivity::olNormal:
+            return "Normal";
+        case Outlook::OlSensitivity::olPrivate:
+            return "Private";
+        case Outlook::OlSensitivity::olConfidential:
+            return "Confidential";
+    }
+
+    return "<UNKNOWN>";
+}
+
+QString toString( Outlook::OlMarkInterval markInterval )
+{
+    switch ( markInterval )
+    {
+        case Outlook::OlMarkInterval::olMarkToday:
+            return "Mark Today";
+        case Outlook::OlMarkInterval::olMarkTomorrow:
+            return "Mark Tomorrow";
+        case Outlook::OlMarkInterval::olMarkThisWeek:
+            return "Mark This Week";
+        case Outlook::OlMarkInterval::olMarkNextWeek:
+            return "Mark Next Week";
+        case Outlook::OlMarkInterval::olMarkNoDate:
+            return "Mark No Date";
+        case Outlook::OlMarkInterval::olMarkComplete:
+            return "Mark Complete";
+    }
+
+    return "<UNKNOWN>";
 }

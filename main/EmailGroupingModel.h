@@ -37,7 +37,6 @@ private:
     CEmailAddressSection *findOrAddEmailAddressSection( const QStringRef &curr, const QVector< QStringRef > &remaining, CEmailAddressSection *parent );
 
     std::shared_ptr< Outlook::Items > fEmailItems;
-
     std::map< QString, CEmailAddressSection * > fRootItems;
 };
 

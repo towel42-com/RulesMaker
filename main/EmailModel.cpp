@@ -2,8 +2,8 @@
 #include "EmailGroupingModel.h"
 #include "OutlookHelpers.h"
 
-#include <QProgressDialog>
 #include <QTimer>
+#include <QProgressDialog>
 #include <QProgressBar>
 
 #include "MSOUTL.h"
@@ -11,16 +11,20 @@
 CEmailModel::CEmailModel( QObject *parent ) :
     QAbstractListModel( parent )
 {
-    auto folder = COutlookHelpers::getInstance()->getInbox( dynamic_cast< QWidget * >( parent ) );
+    reload();
+}
+
+void CEmailModel::reload()
+{
+    auto folder = COutlookHelpers::getInstance()->getInbox( dynamic_cast< QWidget * >( parent() ) );
     if ( !folder )
         return;
 
     fItems = std::make_shared< Outlook::Items >( folder->Items() );
     if ( fItems )
         fCountCache = fItems->Count();
-    connect( fItems.get(), SIGNAL( ItemAdd( IDispatch * ) ), parent, SLOT( updateOutlook() ) );
-    connect( fItems.get(), SIGNAL( ItemChange( IDispatch * ) ), parent, SLOT( updateOutlook() ) );
-    connect( fItems.get(), SIGNAL( ItemRemove() ), parent, SLOT( updateOutlook() ) );
+
+    emit sigFinishedLoading();
 }
 
 CEmailModel::~CEmailModel()
@@ -77,8 +81,8 @@ QVariant CEmailModel::data( const QModelIndex &index, int role ) const
         if ( COutlookHelpers::getObjectClass( &mail ) == Outlook::OlObjectClass::olMail )
         {
             auto from = COutlookHelpers::getSenderEmailAddress( &mail );
-            auto to = COutlookHelpers::getRecipients( &mail, Outlook::OlMailRecipientType::olTo );
-            auto cc = COutlookHelpers::getRecipients( &mail, Outlook::OlMailRecipientType::olCC );
+            auto to = COutlookHelpers::getRecipientEmails( &mail, Outlook::OlMailRecipientType::olTo );
+            auto cc = COutlookHelpers::getRecipientEmails( &mail, Outlook::OlMailRecipientType::olCC );
 
             data << from << to.join( ";" ) << cc.join( ";" ) << mail.Subject();
             fCache.insert( index.row(), data );
@@ -91,21 +95,13 @@ QVariant CEmailModel::data( const QModelIndex &index, int role ) const
     return QVariant();
 }
 
-std::tuple< CEmailGroupingModel *, CEmailGroupingModel *, CEmailGroupingModel *, QStandardItemModel * > CEmailModel::getGroupedEmailModels( QWidget *parent )
+CEmailGroupingModel *CEmailModel::getGroupedEmailModels( QWidget *parent )
 {
     delete fGroupedFrom;
-    delete fGroupedTo;
-    delete fGroupedCC;
-    delete fUniqueSubjects;
-    fSubjectMap.clear();
 
     fGroupedFrom = new CEmailGroupingModel( this );
-    fGroupedTo = new CEmailGroupingModel( this );
-    fGroupedCC = new CEmailGroupingModel( this );
-    fUniqueSubjects = new QStandardItemModel( this );
-    fUniqueSubjects->setHorizontalHeaderLabels( { "Subject" } );
 
-    auto retVal = std::make_tuple( fGroupedFrom, fGroupedTo, fGroupedCC, fUniqueSubjects );
+    auto retVal = fGroupedFrom;
 
     QTimer::singleShot( 10, [ = ]() { addMailItems( parent ); } );
 
@@ -125,6 +121,7 @@ void CEmailModel::addMailItems( QWidget *parent )
     dlg.setMinimum( 0 );
     dlg.setMaximum( itemCount );
     dlg.setLabelText( "Grouping Emails" );
+    dlg.setMinimumDuration( 0 );
     dlg.setWindowModality( Qt::WindowModal );
 
     for ( int ii = 1; ii <= itemCount; ++ii )
@@ -133,10 +130,6 @@ void CEmailModel::addMailItems( QWidget *parent )
         if ( dlg.wasCanceled() )
         {
             fGroupedFrom->clear();
-            fGroupedTo->clear();
-            fGroupedCC->clear();
-            fSubjectMap.clear();
-            fUniqueSubjects->clear();
             break;
         }
 
@@ -148,7 +141,7 @@ void CEmailModel::addMailItems( QWidget *parent )
         if ( COutlookHelpers::getObjectClass( &mail ) == Outlook::OlObjectClass::olMail )
             addMailItem( &mail );
     }
-    emit sigFinishedGroupingEmails();
+    emit sigFinishedGrouping();
 }
 
 void CEmailModel::addMailItem( Outlook::MailItem *mailItem )
@@ -157,20 +150,4 @@ void CEmailModel::addMailItem( Outlook::MailItem *mailItem )
         return;
 
     fGroupedFrom->addEmailAddress( COutlookHelpers::getSenderEmailAddress( mailItem ) );
-
-    auto emailList = COutlookHelpers::getRecipients( mailItem, Outlook::OlMailRecipientType::olTo );
-    for ( auto &&ii : emailList )
-        fGroupedTo->addEmailAddress( ii );
-
-    emailList = COutlookHelpers::getRecipients( mailItem, Outlook::OlMailRecipientType::olCC );
-    for ( auto &&ii : emailList )
-        fGroupedCC->addEmailAddress( ii );
-
-    auto subject = mailItem->Subject();
-    auto pos = fSubjectMap.find( subject );
-    if ( pos == fSubjectMap.end() )
-    {
-        fSubjectMap[ subject ] = true;
-        fUniqueSubjects->appendRow( new QStandardItem( subject ) );
-    }
 }

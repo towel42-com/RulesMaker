@@ -19,6 +19,12 @@ public:
     explicit CEmailView( QWidget *parent = nullptr );
     ~CEmailView();
 
+    void reload();
+
+Q_SIGNALS:
+    void sigFinishedLoading();
+    void sigFinishedGrouping();
+
 protected slots:
     void itemSelected( const QModelIndex &index );
     void slotLoadGrouped();

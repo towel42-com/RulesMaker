@@ -21,17 +21,21 @@ class CEmailModel : public QAbstractListModel
 
 public:
     explicit CEmailModel( QObject *parent );
+
     virtual ~CEmailModel();
+
+    void reload();
 
     int rowCount( const QModelIndex &parent = QModelIndex() ) const;
     int columnCount( const QModelIndex &parent ) const;
     QVariant headerData( int section, Qt::Orientation orientation, int role ) const;
     QVariant data( const QModelIndex &index, int role ) const;
 
-    std::tuple< CEmailGroupingModel *, CEmailGroupingModel *, CEmailGroupingModel *, QStandardItemModel * > CEmailModel::getGroupedEmailModels( QWidget *parent );
+    CEmailGroupingModel *CEmailModel::getGroupedEmailModels( QWidget *parent );
 
 Q_SIGNALS:
-    void sigFinishedGroupingEmails();
+    void sigFinishedLoading();
+    void sigFinishedGrouping();
 
 private:
     void addMailItems( QWidget *parent );
@@ -42,10 +46,8 @@ private:
     mutable std::optional< int > fCountCache;
 
     CEmailGroupingModel *fGroupedFrom{ nullptr };
-    CEmailGroupingModel *fGroupedTo{ nullptr };
-    CEmailGroupingModel *fGroupedCC{ nullptr };
-    QStandardItemModel *fUniqueSubjects{ nullptr };
-    QHash< QString, bool > fSubjectMap;
+    //CEmailGroupingModel *fGroupedTo{ nullptr };
+    //CEmailGroupingModel *fGroupedCC{ nullptr };
 };
 
 #endif

@@ -22,11 +22,11 @@ public:
 protected slots:
     void slotSelectAccount();
     void slotSelectInbox();
-    void slotSelectContacts();
+    //void slotSelectContacts();
 
 protected:
     void selectInbox( bool singleOnly );
-    void selectContacts( bool singleOnly );
+    //void selectContacts( bool singleOnly );
     std::unique_ptr< Ui::COutlookSetup > fImpl;
 };
 

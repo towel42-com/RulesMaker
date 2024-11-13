@@ -3,6 +3,7 @@
 #include "OutlookHelpers.h"
 
 #include <QPushButton>
+#include <QTimer>
 #include "MSOUTL.h"
 
 COutlookSetup::COutlookSetup( QWidget *parent ) :
@@ -12,12 +13,11 @@ COutlookSetup::COutlookSetup( QWidget *parent ) :
     fImpl->setupUi( this );
     connect( fImpl->accountBtn, &QPushButton::clicked, this, &COutlookSetup::slotSelectAccount );
     connect( fImpl->inboxBtn, &QPushButton::clicked, this, &COutlookSetup::slotSelectInbox );
-    connect( fImpl->contactsBtn, &QPushButton::clicked, this, &COutlookSetup::slotSelectContacts );
 
     setWindowTitle( QObject::tr( "Setup" ) );
 
     fImpl->inboxBtn->setEnabled( false );
-    fImpl->contactsBtn->setEnabled( false );
+    QTimer::singleShot( 0, [ = ]() { slotSelectAccount(); } );
 }
 
 COutlookSetup::~COutlookSetup()
@@ -31,9 +31,7 @@ void COutlookSetup::slotSelectAccount()
         return;
     fImpl->account->setText( account->DisplayName() );
     fImpl->inbox->clear();
-    fImpl->contacts->clear();
     selectInbox( true );
-    selectContacts( true );
 }
 
 void COutlookSetup::slotSelectInbox()
@@ -52,18 +50,18 @@ void COutlookSetup::selectInbox( bool singleOnly )
     fImpl->inbox->setText( folder->FullFolderPath() );
 }
 
-void COutlookSetup::slotSelectContacts()
-{
-    selectContacts( false );
-}
-
-void COutlookSetup::selectContacts( bool singleOnly )
-{
-    auto && [ folder, hadMultiple ] = COutlookHelpers::getInstance()->selectContacts( dynamic_cast< QWidget * >( parent() ), singleOnly );
-    fImpl->contactsBtn->setEnabled( hadMultiple );
-
-    if ( !folder )
-        return;
-
-    fImpl->contacts->setText( folder->FullFolderPath() );
-}
+//void COutlookSetup::slotSelectContacts()
+//{
+//    selectContacts( false );
+//}
+//
+//void COutlookSetup::selectContacts( bool singleOnly )
+//{
+//    auto && [ folder, hadMultiple ] = COutlookHelpers::getInstance()->selectContacts( dynamic_cast< QWidget * >( parent() ), singleOnly );
+//    fImpl->contactsBtn->setEnabled( hadMultiple );
+//
+//    if ( !folder )
+//        return;
+//
+//    fImpl->contacts->setText( folder->FullFolderPath() );
+//}

@@ -19,9 +19,12 @@ public:
     explicit CFoldersView( QWidget *parent = nullptr );
     ~CFoldersView();
 
+    void reload();
+
+Q_SIGNALS:
+    void sigFinishedLoading();
+
 protected slots:
-    void addEntry();
-    void changeEntry();
     void itemSelected( const QModelIndex &index );
 
 protected:

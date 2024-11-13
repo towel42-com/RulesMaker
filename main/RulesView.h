@@ -19,13 +19,13 @@ public:
     explicit CRulesView( QWidget *parent = nullptr );
     ~CRulesView();
 
+    void reload();
+
+Q_SIGNALS:
+    void sigFinishedLoading();
+
 protected slots:
-    void addEntry();
-    void changeEntry();
     void itemSelected( const QModelIndex &index );
-
-    void updateOutlook();
-
 protected:
     std::shared_ptr< CRulesModel > fModel;
     std::unique_ptr< Ui::CRulesView > fImpl;
