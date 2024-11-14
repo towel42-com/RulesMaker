@@ -22,12 +22,13 @@ public:
     ~CMainWindow();
 
 protected slots:
+    void slotSelectServerAndInbox();
     void slotSelectServer();
     void slotReload();
-
-    void clearViews();
+    void slotAddRule();
 
 protected:
+    void clearViews();
     std::unique_ptr< Ui::CMainWindow > fImpl;
 };
 

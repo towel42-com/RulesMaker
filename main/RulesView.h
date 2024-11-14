@@ -28,7 +28,8 @@ Q_SIGNALS:
     void sigFinishedLoading();
 
 protected slots:
-    void itemSelected( const QModelIndex &index );
+    void slotItemSelected( const QModelIndex &index );
+
 protected:
     std::shared_ptr< CRulesModel > fModel;
     std::unique_ptr< Ui::CRulesView > fImpl;

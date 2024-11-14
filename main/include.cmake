@@ -29,38 +29,36 @@ ADD_CUSTOM_COMMAND(
 )
 
 set(qtproject_UIS
-    FoldersView.ui
-    RulesView.ui
     EmailView.ui
+    FoldersView.ui
     MainWindow.ui
     OutlookSetup.ui
+    RulesView.ui
 )
 
 set(project_SRCS
+    GroupedEmailModel.cpp
     EmailView.cpp
-    EmailGroupingModel.cpp
     FoldersView.cpp
-    RulesView.cpp
-    OutlookHelpers.cpp
-    EmailModel.cpp
     FoldersModel.cpp
+    main.cpp
     MainWindow.cpp
+    OutlookHelpers.cpp
     OutlookSetup.cpp
     RulesModel.cpp
-    main.cpp
+    RulesView.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/MSOUTL.cpp
     ${MSOUTL_OLB}
 )
 
 set(qtproject_H
-    EmailGroupingModel.h
-    EmailModel.h
+    GroupedEmailModel.h
     EmailView.h
     FoldersModel.h
     FoldersView.h
     MainWindow.h
-    OutlookSetup.h
     OutlookHelpers.h
+    OutlookSetup.h
     RulesModel.h
     RulesView.h
 )

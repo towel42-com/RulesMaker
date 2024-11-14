@@ -5,6 +5,7 @@
 #include "ui_MainWindow.h"
 
 #include <QTimer>
+#include <QMessageBox>
 
 CMainWindow::CMainWindow( QWidget *parent ) :
     QMainWindow( parent ),
@@ -14,9 +15,15 @@ CMainWindow::CMainWindow( QWidget *parent ) :
 
     connect( fImpl->actionSelectServer, &QAction::triggered, [ = ]() { slotSelectServer(); } );
     connect( fImpl->actionReloadData, &QAction::triggered, [ = ]() { slotReload(); } );
+    connect( fImpl->actionSelectServerAndInbox, &QAction::triggered, [ = ]() { slotSelectServerAndInbox(); } );
+    connect( fImpl->actionAddRule, &QAction::triggered, [ = ]() { slotAddRule(); } );
+    connect( fImpl->actionOnlyGroupUnread, &QAction::changed, [ = ]() { fImpl->email->setOnlyGroupUnread( fImpl->actionOnlyGroupUnread->isChecked() ); } );
 
     connect( fImpl->folders, &CFoldersView::sigFinishedLoading, [ = ]() { fImpl->rules->reload(); } );
     connect( fImpl->rules, &CRulesView::sigFinishedLoading, [ = ]() { fImpl->email->reload(); } );
+
+    connect( fImpl->folders, &CFoldersView::sigFolderSelected, [ = ]() { slotUpdateActions(); } );
+    connect( fImpl->email, &CEmailView::sigRuleSelected, [ = ]() { slotUpdateActions(); } );
 
     setWindowTitle( QObject::tr( "Rules Maker" ) );
 
@@ -28,18 +35,34 @@ CMainWindow::CMainWindow( QWidget *parent ) :
             slotReload();
         } );
     slotUpdateActions();
-}
-
-void CMainWindow::slotUpdateActions()
-{
-    fImpl->actionReloadData->setEnabled( COutlookHelpers::getInstance()->accountSelected() );
-    fImpl->actionAddRule->setEnabled( COutlookHelpers::getInstance()->accountSelected() );
+    fImpl->actionOnlyGroupUnread->setChecked( fImpl->email->onlyGroupUnread() );
 }
 
 CMainWindow::~CMainWindow()
 {
     clearViews();
     COutlookHelpers::getInstance()->logout( false );
+}
+
+void CMainWindow::slotUpdateActions()
+{
+    fImpl->actionReloadData->setEnabled( COutlookHelpers::getInstance()->accountSelected() );
+    bool allowAddRule = COutlookHelpers::getInstance()->accountSelected();
+    allowAddRule &= !fImpl->folders->currentPath().isEmpty();
+    allowAddRule &= !fImpl->email->currentRule().isEmpty();
+    fImpl->actionAddRule->setEnabled( allowAddRule );
+}
+
+void CMainWindow::slotAddRule()
+{
+    auto destFolder = fImpl->folders->fullPath();
+    auto rules = fImpl->email->currentRule();
+
+    QStringList msgs;
+    if ( !COutlookHelpers::getInstance()->addRule( destFolder, rules, msgs ) )
+    {
+        QMessageBox::critical( this, "Error", "Could not create rule\n" + msgs.join( "\n" ) );
+    }
 }
 
 void CMainWindow::slotReload()
@@ -60,8 +83,17 @@ void CMainWindow::clearViews()
 void CMainWindow::slotSelectServer()
 {
     clearViews();
+    auto account = COutlookHelpers::getInstance()->selectAccount( false, this );
+    if ( !account )
+        return;
+    slotReload();
+}
+
+void CMainWindow::slotSelectServerAndInbox()
+{
+    clearViews();
     COutlookSetup dlg;
-    bool wasLoaded = ( COutlookHelpers::getInstance()->accountSelected() );
     if ( dlg.exec() == QDialog::Accepted )
         slotReload();
+    slotReload();
 }

@@ -21,7 +21,7 @@ void CRulesView::init()
 
     fModel = std::make_shared< CRulesModel >( this );
     fImpl->rules->setModel( fModel.get() );
-    connect( fImpl->rules->selectionModel(), &QItemSelectionModel::currentChanged, this, &CRulesView::itemSelected );
+    connect( fImpl->rules->selectionModel(), &QItemSelectionModel::currentChanged, this, &CRulesView::slotItemSelected );
     connect(
         fModel.get(), &CRulesModel::sigFinishedLoading,
         [ = ]()
@@ -49,7 +49,7 @@ void CRulesView::clear()
         fModel->clear();
 }
 
-void CRulesView::itemSelected( const QModelIndex &index )
+void CRulesView::slotItemSelected( const QModelIndex &index )
 {
     if ( !index.isValid() )
         return;

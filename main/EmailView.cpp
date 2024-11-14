@@ -1,6 +1,5 @@
 #include "EmailView.h"
-#include "EmailModel.h"
-#include "EmailGroupingModel.h"
+#include "GroupedEmailModel.h"
 
 #include "ui_EmailView.h"
 #include "MSOUTL.h"
@@ -21,19 +20,16 @@ void CEmailView::init()
 {
     fImpl->setupUi( this );
 
-    fModel = std::make_shared< CEmailModel >( this );
-    fImpl->emails->setModel( fModel.get() );
+    fGroupedModel = new CGroupedEmailModel( this );
+    fImpl->groupedEmails->setModel( fGroupedModel );
 
-    fGroupedModel = fModel->getGroupedEmailModel();
-    fImpl->fromGroupings->setModel( fGroupedModel );
-
-    connect( fImpl->fromGroupings, &QTreeView::doubleClicked, this, &CEmailView::slotGroupedItemDoubleClicked );
-    connect( fImpl->emails->selectionModel(), &QItemSelectionModel::currentChanged, this, &CEmailView::slotItemSelected );
+    connect( fImpl->groupedEmails, &QTreeView::doubleClicked, this, &CEmailView::slotItemDoubleClicked );
+    connect( fImpl->groupedEmails->selectionModel(), &QItemSelectionModel::currentChanged, this, &CEmailView::slotItemSelected );
     connect(
-        fModel.get(), &CEmailModel::sigFinishedLoading,
+        fGroupedModel, &CGroupedEmailModel::sigFinishedGrouping,
         [ = ]()
         {
-            slotLoadGrouped();
+            fImpl->groupedEmails->expandAll();
             emit sigFinishedLoading();
         } );
     setWindowTitle( QObject::tr( "Inbox Emails" ) );
@@ -45,8 +41,8 @@ CEmailView::~CEmailView()
 
 void CEmailView::clear()
 {
-    if ( fModel )
-        fModel->clear();
+    if ( fGroupedModel )
+        fGroupedModel->clear();
 }
 
 void CEmailView::slotItemSelected( const QModelIndex &index )
@@ -54,14 +50,12 @@ void CEmailView::slotItemSelected( const QModelIndex &index )
     if ( !index.isValid() )
         return;
 
-    QAbstractItemModel *model = fImpl->emails->model();
-    fImpl->from->setText( model->data( model->index( index.row(), 0 ) ).toString() );
-    fImpl->to->setText( model->data( model->index( index.row(), 1 ) ).toString() );
-    fImpl->cc->setText( model->data( model->index( index.row(), 2 ) ).toString() );
-    fImpl->subject->setText( model->data( model->index( index.row(), 3 ) ).toString() );
+    auto rules = fGroupedModel->rulesForIndex( index );
+    fImpl->rule->setText( rules.join( " or " ) );
+    emit sigRuleSelected();
 }
 
-void CEmailView::slotGroupedItemDoubleClicked( const QModelIndex &idx )
+void CEmailView::slotItemDoubleClicked( const QModelIndex &idx )
 {
     if ( !idx.isValid() )
         return;
@@ -73,16 +67,25 @@ void CEmailView::slotGroupedItemDoubleClicked( const QModelIndex &idx )
 
 void CEmailView::reload()
 {
-    fModel->reload();
+    fGroupedModel->reload();
 }
 
-void CEmailView::slotLoadGrouped()
+QStringList CEmailView::currentRule() const
 {
-    connect(
-        fModel.get(), &CEmailModel::sigFinishedGrouping,
-        [ = ]()
-        {
-            fImpl->fromGroupings->expandAll();
-            emit sigFinishedGrouping();
-        } );
+    auto idx = fImpl->groupedEmails->currentIndex();
+    if ( !idx.isValid() )
+        return {};
+    return fGroupedModel->rulesForIndex( idx );
 }
+
+void CEmailView::setOnlyGroupUnread( bool value )
+{
+    fGroupedModel->setOnlyGroupUnread( value );
+}
+
+bool CEmailView::onlyGroupUnread() const
+{
+    return fGroupedModel->onlyGroupUnread();
+}
+
+

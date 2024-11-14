@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>1185</width>
+    <height>727</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,7 +20,6 @@
       <property name="orientation">
        <enum>Qt::Vertical</enum>
       </property>
-      <widget class="CRulesView" name="rules" native="true"/>
       <widget class="QSplitter" name="splitter">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
@@ -28,6 +27,7 @@
        <widget class="CFoldersView" name="folders" native="true"/>
        <widget class="CEmailView" name="email" native="true"/>
       </widget>
+      <widget class="CRulesView" name="rules" native="true"/>
      </widget>
     </item>
    </layout>
@@ -37,7 +37,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
+     <width>1185</width>
      <height>21</height>
     </rect>
    </property>
@@ -46,6 +46,8 @@
      <string>&amp;File</string>
     </property>
     <addaction name="actionSelectServer"/>
+    <addaction name="actionSelectServerAndInbox"/>
+    <addaction name="separator"/>
     <addaction name="actionReloadData"/>
     <addaction name="separator"/>
     <addaction name="actionExit"/>
@@ -55,6 +57,7 @@
      <string>&amp;Edit</string>
     </property>
     <addaction name="actionAddRule"/>
+    <addaction name="actionOnlyGroupUnread"/>
    </widget>
    <addaction name="menu_File"/>
    <addaction name="menu_Edit"/>
@@ -71,6 +74,7 @@
     <bool>false</bool>
    </attribute>
    <addaction name="actionSelectServer"/>
+   <addaction name="actionSelectServerAndInbox"/>
    <addaction name="actionReloadData"/>
    <addaction name="actionAddRule"/>
   </widget>
@@ -98,6 +102,22 @@
   <action name="actionAddRule">
    <property name="text">
     <string>Add &amp;Rule...</string>
+   </property>
+  </action>
+  <action name="actionSelectServerAndInbox">
+   <property name="text">
+    <string>Select Server &amp;&amp; Inbox...</string>
+   </property>
+   <property name="toolTip">
+    <string>Select Server &amp;&amp; Inbox</string>
+   </property>
+  </action>
+  <action name="actionOnlyGroupUnread">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Only Group Unread?</string>
    </property>
   </action>
  </widget>

@@ -9,11 +9,11 @@
 #include <iostream>
 #include <oaidl.h>
 #include "MSOUTL.h"
-
+#include <QDebug>
 std::shared_ptr< COutlookHelpers > COutlookHelpers::sInstance;
 
 COutlookHelpers::COutlookHelpers() :
-    fOutlook( std::make_shared< Outlook::Application >() )
+    fOutlookApp( std::make_shared< Outlook::Application >() )
 {
 }
 
@@ -36,9 +36,9 @@ void COutlookHelpers::logout( bool andNotify )
     fContacts.reset();
     fRules.reset();
 
-    if ( fLoggedIn && fOutlook && !fOutlook->isNull() && fOutlook->Session() )
+    if ( fLoggedIn && fOutlookApp && !fOutlookApp->isNull() && fOutlookApp->Session() )
     {
-        Outlook::NameSpace( fOutlook->Session() ).Logoff();
+        Outlook::NameSpace( fOutlookApp->Session() ).Logoff();
         fLoggedIn = false;
         if ( andNotify )
             emit sigAccountChanged();
@@ -53,10 +53,10 @@ bool COutlookHelpers::accountSelected() const
 std::shared_ptr< Outlook::Account > COutlookHelpers::selectAccount( bool notifyOnChange, QWidget *parent )
 {
     logout( notifyOnChange );
-    if ( fOutlook->isNull() )
+    if ( fOutlookApp->isNull() )
         return {};
 
-    Outlook::NameSpace session( fOutlook->Session() );
+    Outlook::NameSpace session( fOutlookApp->Session() );
     session.Logon();
     fLoggedIn = true;
 
@@ -164,7 +164,7 @@ std::pair< std::shared_ptr< Outlook::MAPIFolder >, bool > COutlookHelpers::selec
 
             return true;
         },
-        singleOnly );
+        {}, singleOnly );
 }
 
 std::shared_ptr< Outlook::MAPIFolder > COutlookHelpers::getInbox( QWidget *parent )
@@ -192,7 +192,7 @@ std::pair< std::shared_ptr< Outlook::MAPIFolder >, bool > COutlookHelpers::selec
                 return false;
             return ( folder->Name() == "Inbox" );
         },
-        singleOnly );
+        {}, singleOnly );
 }
 
 std::shared_ptr< Outlook::Rules > COutlookHelpers::getRules( QWidget *parent )
@@ -210,7 +210,7 @@ std::shared_ptr< Outlook::Rules > COutlookHelpers::selectRules( QWidget *parent 
             return {};
     }
 
-    if ( fOutlook->isNull() )
+    if ( fOutlookApp->isNull() )
         return {};
     if ( fAccount->isNull() )
         return {};
@@ -223,9 +223,9 @@ std::shared_ptr< Outlook::Rules > COutlookHelpers::selectRules( QWidget *parent 
     return std::shared_ptr< Outlook::Rules >( rules );
 }
 
-std::pair< std::shared_ptr< Outlook::MAPIFolder >, bool > COutlookHelpers::selectFolder( QWidget *parent, const QString &folderName, std::function< bool( std::shared_ptr< Outlook::MAPIFolder > folder ) > acceptFolder, bool singleOnly )
+std::pair< std::shared_ptr< Outlook::MAPIFolder >, bool > COutlookHelpers::selectFolder( QWidget *parent, const QString &folderName, std::function< bool( std::shared_ptr< Outlook::MAPIFolder > folder ) > acceptFolder, std::function< bool( std::shared_ptr< Outlook::MAPIFolder > folder ) > checkChildFolders, bool singleOnly )
 {
-    auto folders = getFolders( acceptFolder );
+    auto folders = getFolders( false, acceptFolder, checkChildFolders );
     return selectFolder( parent, folderName, folders, singleOnly );
 }
 
@@ -246,7 +246,7 @@ std::pair< std::shared_ptr< Outlook::MAPIFolder >, bool > COutlookHelpers::selec
 
     for ( auto &&ii : folders )
     {
-        auto path = ii->FolderPath();
+        auto path = ii->FullFolderPath();
         folderNames << path;
         folderMap[ path ] = ii;
     }
@@ -260,9 +260,9 @@ std::pair< std::shared_ptr< Outlook::MAPIFolder >, bool > COutlookHelpers::selec
     return { ( *pos ).second, true };
 }
 
-std::list< std::shared_ptr< Outlook::MAPIFolder > > COutlookHelpers::getFolders( std::function< bool( std::shared_ptr< Outlook::MAPIFolder > folder ) > acceptFolder )
+std::list< std::shared_ptr< Outlook::MAPIFolder > > COutlookHelpers::getFolders( bool recursive, std::function< bool( std::shared_ptr< Outlook::MAPIFolder > folder ) > acceptFolder, std::function< bool( std::shared_ptr< Outlook::MAPIFolder > folder ) > checkChildFolders )
 {
-    if ( fOutlook->isNull() )
+    if ( fOutlookApp->isNull() )
         return {};
     if ( fAccount->isNull() )
         return {};
@@ -272,12 +272,12 @@ std::list< std::shared_ptr< Outlook::MAPIFolder > > COutlookHelpers::getFolders(
         return {};
 
     auto root = std::shared_ptr< Outlook::MAPIFolder >( store->GetRootFolder() );
-    auto retVal = getFolders( root, false, acceptFolder );
+    auto retVal = getFolders( root, recursive, acceptFolder, checkChildFolders );
 
     return retVal;
 }
 
-std::list< std::shared_ptr< Outlook::MAPIFolder > > COutlookHelpers::getFolders( std::shared_ptr< Outlook::MAPIFolder > parent, bool recursive, std::function< bool( std::shared_ptr< Outlook::MAPIFolder > folder ) > acceptFolder )
+std::list< std::shared_ptr< Outlook::MAPIFolder > > COutlookHelpers::getFolders( std::shared_ptr< Outlook::MAPIFolder > parent, bool recursive, std::function< bool( std::shared_ptr< Outlook::MAPIFolder > folder ) > acceptFolder, std::function< bool( std::shared_ptr< Outlook::MAPIFolder > folder ) > checkChildFolders )
 {
     if ( !parent )
         return {};
@@ -286,21 +286,128 @@ std::list< std::shared_ptr< Outlook::MAPIFolder > > COutlookHelpers::getFolders(
 
     auto folders = parent->Folders();
     auto folderCount = folders->Count();
-    for ( auto jj = 1; jj < folderCount; ++jj )
+    for ( auto jj = 1; jj <= folderCount; ++jj )
     {
         auto folder = std::shared_ptr< Outlook::MAPIFolder >( folders->Item( jj ) );
 
-        if ( acceptFolder && !acceptFolder( folder ) )
-            continue;
+        bool isMatch = !acceptFolder || ( acceptFolder && acceptFolder( folder ) );
+        bool cont = recursive && ( !checkChildFolders || ( checkChildFolders && checkChildFolders( folder ) ) );
 
-        retVal.push_back( folder );
-        if ( recursive )
+        if ( isMatch )
+            retVal.push_back( folder );
+        if ( cont )
         {
             auto subFolders = getFolders( folder, true, acceptFolder );
             retVal.insert( retVal.end(), subFolders.begin(), subFolders.end() );
         }
     }
     return retVal;
+}
+
+bool COutlookHelpers::addRule( const QString &destFolder, const QStringList &rules, QStringList &msgs )
+{
+    if ( destFolder.isEmpty() || rules.isEmpty() || !fRules )
+    {
+        msgs.push_back( "Parameters not set" );
+        return false;
+    }
+
+    auto folders = getFolders(
+        true,
+        [ = ]( std::shared_ptr< Outlook::MAPIFolder > folder )
+        {
+            if ( !folder )
+                return false;
+            auto curr = folder->FullFolderPath();
+            return ( curr == destFolder );
+        },
+        [ = ]( std::shared_ptr< Outlook::MAPIFolder > folder )
+        {
+            if ( !folder )
+                return false;
+            auto curr = folder->FullFolderPath();
+            return destFolder.startsWith( curr );
+        } );
+    if ( folders.empty() )
+    {
+        msgs.push_back( QString( "Could not find folder '%1'" ).arg( destFolder ) );
+        return false;
+    }
+    auto folder = folders.front();
+
+    bool hasWildcard = false;
+    for ( auto &&ii : rules )
+    {
+        hasWildcard = rules.indexOf( "*" );
+        if ( hasWildcard )
+            break;
+    }
+
+    auto pos = destFolder.lastIndexOf( R"(\)" );
+    QString ruleName;
+    if ( pos != -1 )
+        ruleName = destFolder.mid( pos + 1 );
+    else
+        ruleName = destFolder;
+    ruleName += "_" + rules.join( "_" );
+
+    auto rule = fRules->Create( ruleName, Outlook::OlRuleType::olRuleReceive );
+    if ( !rule )
+    {
+        msgs.push_back( QString( "Could not create rule '%1'" ).arg( ruleName ) );
+        return false;
+    }
+
+    auto moveAction = rule->Actions()->MoveToFolder();
+    if ( !moveAction )
+    {
+        msgs.push_back( QString( "Internal error" ) );
+        return false;
+    }
+    moveAction->SetEnabled( true );
+    moveAction->SetFolder( folder.get() );
+
+    rule->Actions()->Stop()->SetEnabled( true );
+
+    if ( hasWildcard )
+    {
+        auto cond = rule->Conditions()->SenderAddress();
+        if ( !cond )
+        {
+            msgs.push_back( QString( "Internal error" ) );
+            return false;
+        }
+
+        cond->SetAddress( rules );
+        cond->SetEnabled( true );
+    }
+    else
+    {
+        auto cond = rule->Conditions()->From();
+        if ( !cond )
+        {
+            msgs.push_back( QString( "Internal error" ) );
+            return false;
+        }
+        cond->SetEnabled( true );
+        for ( auto &&ii : rules )
+        {
+            auto curr = cond->Recipients()->Add( ii );
+            if ( !curr )
+            {
+                msgs.push_back( QString( "Could not add Sender '%1'" ).arg( ii ) );
+                return false;
+            }
+            if ( !curr->Resolve() )
+            {
+                msgs.push_back( QString( "Could not resolve contact '%1'" ).arg( ii ) );
+                return false;
+            }
+        }
+    }
+    fRules->Save( true );
+    rule->Execute( true );
+    return true;
 }
 
 bool hasProperty( QObject *item, const char *propName )
@@ -336,6 +443,8 @@ QString COutlookHelpers::getSenderEmailAddress( Outlook::MailItem *mailItem )
 
 QStringList COutlookHelpers::getEmailAddresses( Outlook::AddressEntry *address )
 {
+    if ( !address )
+        return {};
     auto type = address->AddressEntryUserType();
     QStringList retVal;
     switch ( type )
@@ -473,7 +582,7 @@ void COutlookHelpers::dumpSession( Outlook::NameSpace &session )
         if ( !store )
             continue;
         auto root = store->GetRootFolder();
-        qDebug() << root->FolderPath();
+        qDebug() << root->FullFolderPath();
         dumpFolder( root );
     }
 }
@@ -485,10 +594,10 @@ void COutlookHelpers::dumpFolder( Outlook::MAPIFolder *parent )
 
     auto folders = parent->Folders();
     auto folderCount = folders->Count();
-    for ( auto jj = 1; jj < folderCount; ++jj )
+    for ( auto jj = 1; jj <= folderCount; ++jj )
     {
         auto folder = folders->Item( jj );
-        qDebug() << folder->FolderPath() << toString( folder->DefaultItemType() );
+        qDebug() << folder->FullFolderPath() << toString( folder->DefaultItemType() );
         dumpFolder( folder );
     }
 }
@@ -644,4 +753,53 @@ QString toString( Outlook::OlMarkInterval markInterval )
     }
 
     return "<UNKNOWN>";
+}
+
+void dumpMetaMethods( QObject *object )
+{
+    if ( !object )
+        return;
+    auto metaObject = object->metaObject();
+
+    QStringList sigs;
+    QStringList slotList;
+    QStringList constructors;
+    QStringList methods;
+
+    for ( int methodIdx = metaObject->methodOffset(); methodIdx < metaObject->methodCount(); ++methodIdx )
+    {
+        auto mmTest = metaObject->method( methodIdx );
+        auto signature = QString( mmTest.methodSignature() );
+        switch ( mmTest.methodType() )
+        {
+            case QMetaMethod::Signal:
+                sigs << signature;
+                break;
+            case QMetaMethod::Slot:
+                slotList << signature;
+                break;
+            case QMetaMethod::Constructor:
+                constructors << signature;
+                break;
+            case QMetaMethod::Method:
+                methods << signature;
+                break;
+        }
+    }
+    qDebug() << object;
+    qDebug() << "Signals:";
+    for ( auto &&ii : sigs )
+        qDebug() << ii;
+
+    qDebug() << "Slots:";
+    for ( auto &&ii : slotList )
+        qDebug() << ii;
+
+    qDebug() << "Constructors:";
+    for ( auto &&ii : constructors )
+        qDebug() << ii;
+
+    qDebug() << "Methods:";
+    for ( auto &&ii : methods )
+        qDebug() << ii;
 }

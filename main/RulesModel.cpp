@@ -171,6 +171,18 @@ bool CRulesModel::addCondition( QStandardItem *parent, Outlook::ToOrFromRuleCond
     return true;
 }
 
+QString getValue( const QVariant &variant, const QString &joinSeparator )
+{
+    QString retVal;
+    if ( variant.type() == QVariant::Type::String )
+        retVal = variant.toString();
+    else if ( variant.type() == QVariant::Type::StringList )
+        retVal = variant.toStringList().join( joinSeparator );
+    else
+        int xyz = 0;
+    return retVal;
+}
+
 bool CRulesModel::addCondition( QStandardItem *parent, Outlook::TextRuleCondition *condition, const QString &ruleName )
 {
     if ( !condition )
@@ -179,8 +191,7 @@ bool CRulesModel::addCondition( QStandardItem *parent, Outlook::TextRuleConditio
     if ( !condition->Enabled() )
         return false;
 
-    auto textList = condition->Text().toStringList();
-    addAttribute( parent, ruleName, textList, " or "  );
+    addAttribute( parent, ruleName, getValue( condition->Text(), " or " ) );
     return true;
 }
 
@@ -192,7 +203,7 @@ bool CRulesModel::addCondition( QStandardItem *parent, Outlook::CategoryRuleCond
     if ( !condition->Enabled() )
         return false;
 
-    addAttribute( parent, ruleName, condition->Categories().toString() );
+    addAttribute( parent, ruleName, getValue( condition->Categories(), " or " ) );
     return true;
 }
 
@@ -204,7 +215,7 @@ bool CRulesModel::addCondition( QStandardItem *parent, Outlook::FormNameRuleCond
     if ( !condition->Enabled() )
         return false;
 
-    addAttribute( parent, "Form Name", condition->FormName().toString() );
+    addAttribute( parent, "Form Name", getValue( condition->FormName(), " or " ) );
     return true;
 }
 
@@ -216,7 +227,7 @@ bool CRulesModel::addCondition( QStandardItem *parent, Outlook::FromRssFeedRuleC
     if ( !condition->Enabled() )
         return false;
 
-    addAttribute( parent, "From RSS Feed", condition->FromRssFeed().toString() );
+    addAttribute( parent, "From RSS Feed", getValue( condition->FromRssFeed(), " or " ) );
     return true;
 }
 
@@ -240,7 +251,8 @@ bool CRulesModel::addCondition( QStandardItem *parent, Outlook::AddressRuleCondi
     if ( !condition->Enabled() )
         return false;
 
-    addAttribute( parent, "Address", condition->Address().toString() );
+    auto address = condition->Address();
+    addAttribute( parent, "Address", getValue( condition->Address(), " or " ) );
     return true;
 }
 
@@ -317,8 +329,8 @@ bool CRulesModel::addAction( QStandardItem *parent, Outlook::AssignToCategoryRul
         return false;
     if ( !action->Enabled() )
         return false;
-    auto categories = action->Categories().toStringList();
-    addAttribute( parent, "Set Categories To", categories, " and " );
+
+    addAttribute( parent, "Set Categories To", getValue( action->Categories(), " and " ) );
     return true;
 }
 
@@ -340,7 +352,7 @@ bool CRulesModel::addAction( QStandardItem *parent, Outlook::MoveOrCopyRuleActio
     if ( !action->Enabled() )
         return false;
 
-    addAttribute( parent, actionName, action->Folder()->FolderPath() );
+    addAttribute( parent, actionName, action->Folder()->FullFolderPath() );
     return true;
 }
 

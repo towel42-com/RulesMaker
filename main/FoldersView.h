@@ -24,11 +24,16 @@ public:
 
     void reload();
     void clear();
+
+    QString currentPath() const;
+    QString fullPath() const;
 Q_SIGNALS:
     void sigFinishedLoading();
+    void sigFolderSelected( const QString &folderPath );
 
 protected slots:
-    void itemSelected( const QModelIndex &index );
+    void slotItemSelected( const QModelIndex &index );
+    void slotAddFolder();
 
 protected:
     std::shared_ptr< CFoldersModel > fModel;

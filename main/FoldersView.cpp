@@ -22,7 +22,7 @@ void CFoldersView::init()
 
     fModel = std::make_shared< CFoldersModel >( this );
     fImpl->folders->setModel( fModel.get() );
-    connect( fImpl->folders->selectionModel(), &QItemSelectionModel::currentChanged, this, &CFoldersView::itemSelected );
+    connect( fImpl->folders->selectionModel(), &QItemSelectionModel::currentChanged, this, &CFoldersView::slotItemSelected );
     connect(
         fModel.get(), &CFoldersModel::sigFinishedLoading,
         [ = ]()
@@ -30,6 +30,7 @@ void CFoldersView::init()
             fImpl->folders->expandAll();
             emit sigFinishedLoading();
         } );
+    connect( fImpl->addFolder, &QPushButton::clicked, this, &CFoldersView::slotAddFolder );
 }
 
 CFoldersView::~CFoldersView()
@@ -47,10 +48,37 @@ void CFoldersView::clear()
         fModel->clear();
 }
 
-void CFoldersView::itemSelected( const QModelIndex &index )
+void CFoldersView::slotItemSelected( const QModelIndex &index )
 {
     if ( !index.isValid() )
+    {
+        emit sigFolderSelected( QString() );
         return;
-    auto fullPath = fModel->fullPath( index );
-    fImpl->name->setText( fullPath );
+    }
+
+    auto currentPath = fModel->currentPath( index );
+    fImpl->name->setText( currentPath );
+    emit sigFolderSelected( currentPath );
+}
+
+void CFoldersView::slotAddFolder()
+{
+    auto idx = fImpl->folders->currentIndex();
+    fModel->addFolder( idx, this );
+}
+
+QString CFoldersView::currentPath() const
+{
+    auto idx = fImpl->folders->currentIndex();
+    if ( !idx.isValid() )
+        return {};
+    return fModel->currentPath( idx );
+}
+
+QString CFoldersView::fullPath() const
+{
+    auto idx = fImpl->folders->currentIndex();
+    if ( !idx.isValid() )
+        return {};
+    return fModel->fullPath( idx );
 }

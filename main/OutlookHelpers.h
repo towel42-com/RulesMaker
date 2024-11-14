@@ -51,12 +51,13 @@ public:
     std::shared_ptr< Outlook::MAPIFolder > getContacts( QWidget *parent );
     std::shared_ptr< Outlook::Rules > getRules( QWidget *parent );
 
-    std::pair< std::shared_ptr< Outlook::MAPIFolder >, bool > selectFolder( QWidget *parent, const QString &folderName, std::function< bool( std::shared_ptr< Outlook::MAPIFolder > folder ) > acceptFolder, bool singleOnly );
+    std::pair< std::shared_ptr< Outlook::MAPIFolder >, bool > selectFolder( QWidget *parent, const QString &folderName, std::function< bool( std::shared_ptr< Outlook::MAPIFolder > folder ) > acceptFolder, std::function< bool( std::shared_ptr< Outlook::MAPIFolder > folder ) > checkChildFolders, bool singleOnly );
     std::pair< std::shared_ptr< Outlook::MAPIFolder >, bool > selectFolder( QWidget *parent, const QString &folderName, const std::list< std::shared_ptr< Outlook::MAPIFolder > > &folders, bool singleOnly );
 
-    std::list< std::shared_ptr< Outlook::MAPIFolder > > getFolders( std::function< bool( std::shared_ptr< Outlook::MAPIFolder > folder ) > acceptFolder = {} );
-    std::list< std::shared_ptr< Outlook::MAPIFolder > > getFolders( std::shared_ptr< Outlook::MAPIFolder > parent, bool recursive, std::function< bool( std::shared_ptr< Outlook::MAPIFolder > folder ) > acceptFolder = {} );
+    std::list< std::shared_ptr< Outlook::MAPIFolder > > getFolders( bool recursive, std::function< bool( std::shared_ptr< Outlook::MAPIFolder > folder ) > acceptFolder = {}, std::function< bool( std::shared_ptr< Outlook::MAPIFolder > folder ) > checkChildFolders = {} );
+    std::list< std::shared_ptr< Outlook::MAPIFolder > > getFolders( std::shared_ptr< Outlook::MAPIFolder > parent, bool recursive, std::function< bool( std::shared_ptr< Outlook::MAPIFolder > folder ) > acceptFolder = {}, std::function< bool( std::shared_ptr< Outlook::MAPIFolder > folder ) > checkChildFolders = {} );
 
+    bool addRule( const QString &destFolder, const QStringList &rules, QStringList &msg );
     template< typename T >
     static Outlook::OlObjectClass getObjectClass( T *item )
     {
@@ -78,7 +79,7 @@ public:
     void dumpSession( Outlook::NameSpace &session );
     void dumpFolder( Outlook::MAPIFolder *root );
 
-    std::shared_ptr< Outlook::Application > outlook() { return fOutlook; }
+    std::shared_ptr< Outlook::Application > outlookApp() { return fOutlookApp; }
 
 Q_SIGNALS:
     void sigAccountChanged();
@@ -88,7 +89,7 @@ private:
     std::pair< std::shared_ptr< Outlook::MAPIFolder >, bool > selectContacts( QWidget *parent, bool singleOnly );
     std::shared_ptr< Outlook::Rules > selectRules( QWidget *parent );
 
-    std::shared_ptr< Outlook::Application > fOutlook;
+    std::shared_ptr< Outlook::Application > fOutlookApp;
     std::shared_ptr< Outlook::Account > fAccount;
     std::shared_ptr< Outlook::MAPIFolder > fInbox;
     std::shared_ptr< Outlook::MAPIFolder > fContacts;
@@ -105,5 +106,6 @@ QString toString( Outlook::OlImportance importance );
 QString toString( Outlook::OlSensitivity sensitivity );
 QString toString( Outlook::OlMarkInterval markInterval );
 
+void dumpMetaMethods( QObject *object );
 
 #endif
