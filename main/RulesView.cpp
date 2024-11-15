@@ -11,7 +11,7 @@ CRulesView::CRulesView( QWidget *parent ) :
     init();
     
     if ( !parent )
-        QTimer::singleShot( 0, [ = ]() { reload(); } );
+        QTimer::singleShot( 0, [ = ]() { reload( true ); } );
 
 }
 
@@ -28,7 +28,10 @@ void CRulesView::init()
         {
             fImpl->rules->expandAll();
             fImpl->rules->resizeColumnToContents( 0 );
-            emit sigFinishedLoading();
+            fImpl->rules->collapseAll();
+            if ( fNotifyOnFinish )
+                emit sigFinishedLoading();
+            fNotifyOnFinish = true;
         } );
 
     setWindowTitle( QObject::tr( "Rules" ) );
@@ -38,8 +41,9 @@ CRulesView::~CRulesView()
 {
 }
 
-void CRulesView::reload()
+void CRulesView::reload( bool notifyOnFinished )
 {
+    fNotifyOnFinish = notifyOnFinished;
     fModel->reload();
 }
 
@@ -49,17 +53,35 @@ void CRulesView::clear()
         fModel->clear();
 }
 
+bool CRulesView::ruleSelected() const
+{
+    auto idx = fImpl->rules->currentIndex();
+    return fModel->getRuleItem( idx ) != nullptr;
+}
+
+std::shared_ptr< Outlook::Rule > CRulesView::currentRule() const
+{
+    auto idx = fImpl->rules->currentIndex();
+    return fModel->getRule( idx );
+}
+
+void CRulesView::runSelectedRule() const
+{
+    auto idx = fImpl->rules->currentIndex();
+    return fModel->runRule( idx );
+}
+
 void CRulesView::slotItemSelected( const QModelIndex &index )
 {
     if ( !index.isValid() )
         return;
 
     fImpl->name->clear();
-    auto item = fModel->itemFromIndex( index );
+    auto item = fModel->getRuleItem( index );
     if ( !item )
         return;
-    while ( item->parent() )
-        item = item->parent();
-
+    auto row = item->row();
+    auto col = item->column();
     fImpl->name->setText( item->text() );
+    emit sigRuleSelected();
 }

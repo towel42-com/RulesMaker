@@ -46,18 +46,26 @@
      <string>&amp;File</string>
     </property>
     <addaction name="actionSelectServer"/>
-    <addaction name="actionSelectServerAndInbox"/>
+    <addaction name="actionSelectServerAndRootFolder"/>
     <addaction name="separator"/>
-    <addaction name="actionReloadData"/>
+    <addaction name="actionReloadEmail"/>
+    <addaction name="actionReloadFolders"/>
+    <addaction name="actionReloadRules"/>
+    <addaction name="separator"/>
+    <addaction name="actionReloadAllData"/>
     <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menu_Edit">
     <property name="title">
-     <string>&amp;Edit</string>
+     <string>&amp;Rules</string>
     </property>
     <addaction name="actionAddRule"/>
+    <addaction name="actionRunRule"/>
+    <addaction name="actionAddToCurrentRule"/>
     <addaction name="actionOnlyGroupUnread"/>
+    <addaction name="actionRenameRules"/>
+    <addaction name="actionSortRules"/>
    </widget>
    <addaction name="menu_File"/>
    <addaction name="menu_Edit"/>
@@ -74,18 +82,26 @@
     <bool>false</bool>
    </attribute>
    <addaction name="actionSelectServer"/>
-   <addaction name="actionSelectServerAndInbox"/>
-   <addaction name="actionReloadData"/>
+   <addaction name="actionSelectServerAndRootFolder"/>
+   <addaction name="separator"/>
+   <addaction name="actionReloadAllData"/>
+   <addaction name="separator"/>
+   <addaction name="actionReloadEmail"/>
+   <addaction name="actionReloadFolders"/>
+   <addaction name="actionReloadRules"/>
+   <addaction name="separator"/>
    <addaction name="actionAddRule"/>
+   <addaction name="actionAddToCurrentRule"/>
+   <addaction name="actionRunRule"/>
   </widget>
   <action name="actionSelectServer">
    <property name="text">
     <string>Select Server...</string>
    </property>
   </action>
-  <action name="actionReloadData">
+  <action name="actionReloadAllData">
    <property name="text">
-    <string>Reload Data</string>
+    <string>Reload All Data</string>
    </property>
   </action>
   <action name="actionExit">
@@ -104,9 +120,9 @@
     <string>Add &amp;Rule...</string>
    </property>
   </action>
-  <action name="actionSelectServerAndInbox">
+  <action name="actionSelectServerAndRootFolder">
    <property name="text">
-    <string>Select Server &amp;&amp; Inbox...</string>
+    <string>Select Server &amp;&amp; Root Folder...</string>
    </property>
    <property name="toolTip">
     <string>Select Server &amp;&amp; Inbox</string>
@@ -120,18 +136,53 @@
     <string>Only Group Unread?</string>
    </property>
   </action>
+  <action name="actionReloadEmail">
+   <property name="text">
+    <string>Reload Email</string>
+   </property>
+  </action>
+  <action name="actionRunRule">
+   <property name="text">
+    <string>Run Rule</string>
+   </property>
+  </action>
+  <action name="actionAddToCurrentRule">
+   <property name="text">
+    <string>Add to Current Rule</string>
+   </property>
+  </action>
+  <action name="actionReloadRules">
+   <property name="text">
+    <string>Reload Rules</string>
+   </property>
+  </action>
+  <action name="actionReloadFolders">
+   <property name="text">
+    <string>Reload Folders</string>
+   </property>
+  </action>
+  <action name="actionSortRules">
+   <property name="text">
+    <string>Sort Rules</string>
+   </property>
+  </action>
+  <action name="actionRenameRules">
+   <property name="text">
+    <string>Rename Rules</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
-  <customwidget>
-   <class>CEmailView</class>
-   <extends>QWidget</extends>
-   <header>EmailView.h</header>
-   <container>1</container>
-  </customwidget>
   <customwidget>
    <class>CFoldersView</class>
    <extends>QWidget</extends>
    <header>FoldersView.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>CEmailView</class>
+   <extends>QWidget</extends>
+   <header>EmailView.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>

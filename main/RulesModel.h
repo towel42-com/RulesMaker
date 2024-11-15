@@ -6,6 +6,7 @@
 
 #include <memory>
 #include <optional>
+#include <unordered_map>
 
 namespace Outlook
 {
@@ -44,10 +45,21 @@ public:
     virtual ~CRulesModel();
 
     void reload();
+    void clear();
 
     void changeItem( const QModelIndex &index, const QString &folderName );
     void addItem( const QString &folderName );
     void update();
+
+    QStandardItem *getRuleItem( const QModelIndex &index ) const;
+    QStandardItem *getRuleItem( QStandardItem *item ) const;
+
+    void runRule( const QModelIndex &index ) const;
+    void runRule( QStandardItem *item ) const;
+
+    std::shared_ptr< Outlook::Rule > getRule( const QModelIndex &index ) const;
+    std::shared_ptr< Outlook::Rule > getRule( QStandardItem *item ) const;
+
 Q_SIGNALS:
     void sigFinishedLoading();
 
@@ -55,7 +67,7 @@ private:
     void loadRules();
 
     void addAttribute( QStandardItem *parent, const QString &label, const QString &value );
-    void addAttribute( QStandardItem *parent, const QString &label, QStringList value, const QString & separator );
+    void addAttribute( QStandardItem *parent, const QString &label, QStringList value, const QString &separator );
     void addAttribute( QStandardItem *parent, const QString &label, bool value );
     void addAttribute( QStandardItem *parent, const QString &label, int value );
     void addAttribute( QStandardItem *parent, const QString &label, const char *value );
@@ -65,7 +77,7 @@ private:
     void addConditions( QStandardItem *parent, std::shared_ptr< Outlook::Rule > rule, bool exceptions );
 
     bool addCondition( QStandardItem *parent, Outlook::AccountRuleCondition *condition );
-    bool addCondition( QStandardItem *parent, Outlook::RuleCondition *condition, const QString & ruleName );
+    bool addCondition( QStandardItem *parent, Outlook::RuleCondition *condition, const QString &ruleName );
     bool addCondition( QStandardItem *parent, Outlook::TextRuleCondition *condition, const QString &ruleName );
     bool addCondition( QStandardItem *parent, Outlook::CategoryRuleCondition *condition, const QString &ruleName );
     bool addCondition( QStandardItem *parent, Outlook::ToOrFromRuleCondition *condition, bool from );
@@ -75,17 +87,18 @@ private:
     bool addCondition( QStandardItem *parent, Outlook::AddressRuleCondition *condition );
     bool addCondition( QStandardItem *parent, Outlook::SenderInAddressListRuleCondition *condition );
     bool addCondition( QStandardItem *parent, Outlook::SensitivityRuleCondition *condition );
-    
+
     void addActions( QStandardItem *parent, std::shared_ptr< Outlook::Rule > rule );
     bool addAction( QStandardItem *parent, Outlook::AssignToCategoryRuleAction *action );
     bool addAction( QStandardItem *parent, Outlook::MarkAsTaskRuleAction *action );
-    bool addAction( QStandardItem *parent, Outlook::MoveOrCopyRuleAction *action, const QString & actionName );
+    bool addAction( QStandardItem *parent, Outlook::MoveOrCopyRuleAction *action, const QString &actionName );
     bool addAction( QStandardItem *parent, Outlook::NewItemAlertRuleAction *action );
     bool addAction( QStandardItem *parent, Outlook::PlaySoundRuleAction *action );
     bool addAction( QStandardItem *parent, Outlook::RuleAction *action, const QString &actionName );
     bool addAction( QStandardItem *parent, Outlook::SendRuleAction *action, const QString &actionName );
 
     std::shared_ptr< Outlook::Rules > fRules{ nullptr };
+    std::unordered_map< QStandardItem *, std::shared_ptr< Outlook::Rule > > fRuleMap;
 };
 
 #endif

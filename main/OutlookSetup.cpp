@@ -1,6 +1,8 @@
 #include "OutlookSetup.h"
-#include "ui_OutlookSetup.h"
+#include "FoldersDlg.h"
 #include "OutlookHelpers.h"
+
+#include "ui_OutlookSetup.h"
 
 #include <QPushButton>
 #include <QTimer>
@@ -11,43 +13,47 @@ COutlookSetup::COutlookSetup( QWidget *parent ) :
     fImpl( new Ui::COutlookSetup )
 {
     fImpl->setupUi( this );
-    connect( fImpl->accountBtn, &QPushButton::clicked, this, &COutlookSetup::slotSelectAccount );
-    connect( fImpl->inboxBtn, &QPushButton::clicked, this, &COutlookSetup::slotSelectInbox );
+    connect( fImpl->accountBtn, &QToolButton::clicked, this, &COutlookSetup::slotSelectAccount );
+    connect( fImpl->folderBtn, &QToolButton::clicked, this, &COutlookSetup::slotSelectFolder );
 
     setWindowTitle( QObject::tr( "Setup" ) );
 
-    fImpl->inboxBtn->setEnabled( false );
-    QTimer::singleShot( 0, [ = ]() { slotSelectAccount(); } );
+    fImpl->folderBtn->setEnabled( true );
+    QTimer::singleShot( 0, [ = ]() { slotSelectAccount( true ); } );
 }
 
 COutlookSetup::~COutlookSetup()
 {
 }
 
-void COutlookSetup::slotSelectAccount()
+void COutlookSetup::slotSelectAccount( bool useInbox )
 {
     auto account = COutlookHelpers::getInstance()->selectAccount( false, dynamic_cast< QWidget * >( parent() ) );
     if ( !account )
         return;
     fImpl->account->setText( account->DisplayName() );
-    fImpl->inbox->clear();
-    selectInbox( true );
+    fImpl->rootFolder->clear();
+    slotSelectFolder( useInbox );
 }
 
-void COutlookSetup::slotSelectInbox()
+void COutlookSetup::slotSelectFolder( bool useInbox )
 {
-    selectInbox( false );
-}
-
-void COutlookSetup::selectInbox( bool singleOnly )
-{
-    auto &&[ folder, hadMultiple ] = COutlookHelpers::getInstance()->selectInbox( dynamic_cast< QWidget * >( parent() ), singleOnly );
-    fImpl->inboxBtn->setEnabled( hadMultiple );
-
+    auto folder = COutlookHelpers::getInstance()->selectInbox( dynamic_cast< QWidget * >( parent() ), false ).first;
     if ( !folder )
         return;
 
-    fImpl->inbox->setText( folder->FullFolderPath() );
+    if ( useInbox )
+    {
+        fImpl->rootFolder->setText( folder->FullFolderPath() );
+        COutlookHelpers::getInstance()->setRootFolder( folder );
+        return;
+    }
+    CFoldersDlg dlg( this );
+    if ( dlg.exec() == QDialog::Accepted )
+    {
+        fImpl->rootFolder->setText( dlg.fullPath() );
+        COutlookHelpers::getInstance()->setRootFolder( dlg.selectedFolder() );
+    }
 }
 
 void COutlookSetup::reject()

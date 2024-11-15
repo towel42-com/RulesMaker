@@ -8,6 +8,11 @@ namespace Ui
     class CRulesView;
 }
 
+ namespace Outlook
+{
+    class Rule;
+}
+
 class QModelIndex;
 class CRulesModel;
 
@@ -22,10 +27,15 @@ public:
 
     ~CRulesView();
 
-    void reload();
+    void reload( bool notifyOnFinished );
     void clear();
+
+    bool ruleSelected() const;;
+    void runSelectedRule() const;
+    std::shared_ptr< Outlook::Rule > currentRule() const;
 Q_SIGNALS:
     void sigFinishedLoading();
+    void sigRuleSelected();
 
 protected slots:
     void slotItemSelected( const QModelIndex &index );
@@ -33,6 +43,7 @@ protected slots:
 protected:
     std::shared_ptr< CRulesModel > fModel;
     std::unique_ptr< Ui::CRulesView > fImpl;
+    bool fNotifyOnFinish{ true };
 };
 
 #endif   // CRulesView_H

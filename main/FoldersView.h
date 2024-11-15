@@ -8,6 +8,11 @@ namespace Ui
     class CFoldersView;
 }
 
+namespace Outlook
+{
+    class Folder;
+}
+
 class QModelIndex;
 class CFoldersModel;
 
@@ -22,11 +27,12 @@ public:
 
     ~CFoldersView();
 
-    void reload();
+    void reload( bool notifyOnFinished );
     void clear();
 
-    QString currentPath() const;
-    QString fullPath() const;
+    QString selectedPath() const;
+    QString selectedFullPath() const;
+    std::shared_ptr< Outlook::Folder > selectedFolder() const;
 Q_SIGNALS:
     void sigFinishedLoading();
     void sigFolderSelected( const QString &folderPath );
@@ -38,6 +44,7 @@ protected slots:
 protected:
     std::shared_ptr< CFoldersModel > fModel;
     std::unique_ptr< Ui::CFoldersView > fImpl;
+    bool fNotifyOnFinish{ true };
 };
 
 #endif   // CFoldersView_H

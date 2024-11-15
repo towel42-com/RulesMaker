@@ -21,11 +21,10 @@ public:
 
     virtual void reject() override;
 protected slots:
-    void slotSelectAccount();
-    void slotSelectInbox();
+    void slotSelectAccount( bool useInbox = true );
+    void slotSelectFolder( bool useInbox = true );
 
 protected:
-    void selectInbox( bool singleOnly );
     std::unique_ptr< Ui::COutlookSetup > fImpl;
 };
 

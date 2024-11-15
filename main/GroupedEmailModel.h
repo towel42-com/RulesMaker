@@ -37,7 +37,6 @@ public:
     explicit CGroupedEmailModel( QObject *parent );
     virtual ~CGroupedEmailModel();
 
-    void addEmailAddress( std::shared_ptr< Outlook::MailItem >, const QString &email );
 
     void reload();
     void clear();
@@ -51,8 +50,11 @@ public:
     void sigFinishedGrouping();
 
 private:
+    void sortAll( QStandardItem *root );
     QString ruleForItem( QStandardItem *item ) const;
     void groupMailItemsBySender( QWidget *parent );
+    void addEmailAddresses( std::shared_ptr< Outlook::MailItem >, const QStringList &emails );
+    void addEmailAddress( std::shared_ptr< Outlook::MailItem > mailItem, const QString &email );
     CEmailAddressSection *findOrAddEmailAddressSection( const QStringRef &curr, const QVector< QStringRef > &remaining, CEmailAddressSection *parent );
 
     std::shared_ptr< Outlook::Items > fItems{ nullptr };

@@ -11,7 +11,7 @@
 #include <algorithm>
 
 #ifdef _DEBUG
-    // #define LIMIT_EMAIL_READ
+// #define LIMIT_EMAIL_READ
 #endif
 CGroupedEmailModel::CGroupedEmailModel( QObject *parent ) :
     QStandardItemModel( parent )
@@ -39,13 +39,25 @@ void CGroupedEmailModel::reload()
 {
     beginResetModel();
     clear();
-    auto folder = COutlookHelpers::getInstance()->getInbox( dynamic_cast< QWidget * >( parent() ) );
+    auto folder = COutlookHelpers::getInstance()->rootFolder();
     if ( !folder )
         return;
 
-    fItems = std::make_shared< Outlook::Items >( folder->Items() );
-    if ( fItems )
-        fCountCache = fItems->Count();
+    auto items = folder->Items();
+    if ( items )
+    {
+        if ( fOnlyGroupUnread )
+        {
+            auto subItems = items->Restrict( "[UNREAD]=TRUE" );
+            if ( subItems )
+                fItems = std::make_shared< Outlook::Items >( subItems );
+        }
+        if ( !fItems )
+            fItems = std::make_shared< Outlook::Items >( items );
+
+        if ( fItems )
+            fCountCache = fItems->Count();
+    }
 
     endResetModel();
     QTimer::singleShot( 0, [ = ]() { groupMailItemsBySender( dynamic_cast< QWidget * >( parent() ) ); } );
@@ -54,7 +66,8 @@ void CGroupedEmailModel::reload()
 void CGroupedEmailModel::setOnlyGroupUnread( bool value )
 {
     fOnlyGroupUnread = value;
-    reload();
+    if ( COutlookHelpers::getInstance()->accountSelected() )
+        reload();
 }
 
 CGroupedEmailModel::~CGroupedEmailModel()
@@ -94,25 +107,49 @@ void CGroupedEmailModel::groupMailItemsBySender( QWidget *parent )
 
         auto mail = std::make_shared< Outlook::MailItem >( item );
         if ( COutlookHelpers::getObjectClass( mail.get() ) == Outlook::OlObjectClass::olMail )
-            addEmailAddress( mail, COutlookHelpers::getSenderEmailAddress( mail.get() ) );
+            addEmailAddresses( mail, COutlookHelpers::getSenderEmailAddresses( mail.get() ) );
 #ifdef LIMIT_EMAIL_READ
         if ( ii >= 100 )
             break;
 #endif
     }
+    sortAll( nullptr );
     emit sigFinishedGrouping();
     auto end = QDateTime::currentDateTime();
     auto diff = start.secsTo( end );
     qDebug() << "It took " << diff << " seconds to group emails.";
 }
 
-void CGroupedEmailModel::addEmailAddress( std::shared_ptr< Outlook::MailItem > mailItem, const QString &emailAddress )
+void CGroupedEmailModel::sortAll( QStandardItem *root )
+{
+    if ( root )
+        root->sortChildren( 0 );
+    else
+        sort( 0 );
+
+    int count = root ? root->rowCount() : rowCount();
+    for( int ii = 0; ii < count; ++ii )
+    {
+        auto child = root ? root->child( ii ) : item( ii );
+        sortAll( child );
+    }
+}
+
+void CGroupedEmailModel::addEmailAddresses( std::shared_ptr< Outlook::MailItem > mailItem, const QStringList &emailAddresses )
 {
     if ( !mailItem )
         return;
     if ( fOnlyGroupUnread && !mailItem->UnRead() )
         return;
 
+    for ( auto &&emailAddress : emailAddresses )
+    {
+        addEmailAddress( mailItem, emailAddress );
+    }
+}
+
+void CGroupedEmailModel::addEmailAddress( std::shared_ptr< Outlook::MailItem > mailItem, const QString &emailAddress )
+{
     auto pos = fCache.find( emailAddress );
     if ( pos != fCache.end() )
         return;
@@ -190,30 +227,23 @@ QStringList CGroupedEmailModel::rulesForIndex( const QModelIndex &idx ) const
 
 QStringList CGroupedEmailModel::rulesForItem( QStandardItem *item ) const
 {
-    QString prefix1;
-    QString prefix2;
-
-    auto colZeroItem = itemFromIndex( index( item->index().row(), 0, item->index().parent() ) );
-    if ( colZeroItem && colZeroItem->hasChildren() )   // not a user name
-    {
-        prefix1 = "@";
-        //if ( maxDepth( colZeroItem ) > 1 )
-        //    prefix2 = prefix1 + "*";
-        //if ( !hasSingleLevelChild( colZeroItem ) )
-        //{
-        //    std::swap( prefix1, prefix2 );
-        //    prefix2.clear();
-        //}
-    }
+    QStringList retVal;
 
     auto rule = ruleForItem( item );
-    QStringList retVal;
-    retVal.push_back( prefix1 + rule );
-    if ( !prefix2.isEmpty() )
-        retVal.push_back( prefix2 + rule );
+    if ( ( item->column() == 0 ) && ( rule.indexOf( '@' ) == -1 ) ) 
+        rule = "@" + rule;
+    retVal.push_back( rule );
+    for ( auto &&ii = 0; ii < item->rowCount(); ++ii )
+    {
+        auto child = item->child( ii, 0 );
+        if ( !child || child->text().isEmpty() )
+            continue;
+        //retVal.push_back( "@" + ruleForItem( child ) );
+        auto curr = rulesForItem( child );
+        retVal << curr;
+    }
     return retVal;
 }
-
 
 QString CGroupedEmailModel::ruleForItem( QStandardItem *item ) const
 {

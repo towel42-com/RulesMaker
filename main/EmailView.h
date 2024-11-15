@@ -23,9 +23,9 @@ public:
     ~CEmailView();
 
     void clear();
-    void reload();
+    void reload( bool notifyOnFinished );
 
-    QStringList currentRule() const;
+    QStringList getRulesForSelection() const;
 
     void setOnlyGroupUnread( bool value );
     bool onlyGroupUnread() const;
@@ -36,12 +36,13 @@ Q_SIGNALS:
     void sigRuleSelected();
 
 protected slots:
-    void slotItemSelected( const QModelIndex &index );
+    void slotSelectionChanged();
     void slotItemDoubleClicked( const QModelIndex &idx );
 
 protected:
     CGroupedEmailModel *fGroupedModel;
     std::unique_ptr< Ui::CEmailView > fImpl;
+    bool fNotifyOnFinish{ true };
 };
 
 #endif   // CONTACTSVIEW_H

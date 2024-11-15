@@ -14,6 +14,7 @@ CRulesModel::CRulesModel( QObject *parent ) :
 
 void CRulesModel::reload()
 {
+    clear();
     fRules = COutlookHelpers::getInstance()->getRules( dynamic_cast< QWidget * >( parent() ) );
     if ( !fRules )
         return;
@@ -25,14 +26,22 @@ CRulesModel::~CRulesModel()
 {
 }
 
-void CRulesModel::loadRules()
+void CRulesModel::clear()
 {
-    clear();
+    QStandardItemModel::clear();
     setHorizontalHeaderLabels( { "Name", "Value" } );
     setColumnCount( 2 );
+    fRuleMap.clear();
+    fRules.reset();
+}
 
+void CRulesModel::loadRules()
+{
     if ( !fRules )
+    {
+        emit sigFinishedLoading();
         return;
+    }
 
     auto numRules = fRules->Count();
     QProgressDialog dlg( dynamic_cast< QWidget * >( parent() ) );
@@ -54,13 +63,12 @@ void CRulesModel::loadRules()
             break;
         }
 
-        if ( ii == 7 )
-            int xyz = 0;
         auto rule = std::make_shared< Outlook::Rule >( fRules->Item( ii ) );
         if ( !rule )
             continue;
 
         auto ruleItem = new QStandardItem( rule->Name() );
+        fRuleMap[ ruleItem ] = rule;
         this->appendRow( ruleItem );
 
         addAttribute( ruleItem, "Enabled", rule->Enabled() );
@@ -171,18 +179,6 @@ bool CRulesModel::addCondition( QStandardItem *parent, Outlook::ToOrFromRuleCond
     return true;
 }
 
-QString getValue( const QVariant &variant, const QString &joinSeparator )
-{
-    QString retVal;
-    if ( variant.type() == QVariant::Type::String )
-        retVal = variant.toString();
-    else if ( variant.type() == QVariant::Type::StringList )
-        retVal = variant.toStringList().join( joinSeparator );
-    else
-        int xyz = 0;
-    return retVal;
-}
-
 bool CRulesModel::addCondition( QStandardItem *parent, Outlook::TextRuleCondition *condition, const QString &ruleName )
 {
     if ( !condition )
@@ -265,7 +261,7 @@ bool CRulesModel::addCondition( QStandardItem *parent, Outlook::SenderInAddressL
         return false;
 
     auto addresses = COutlookHelpers::getInstance()->getEmailAddresses( condition->AddressList() );
-    addAttribute( parent, "Sender in Address List", addresses, " or "  );
+    addAttribute( parent, "Sender in Address List", addresses, " or " );
 
     return true;
 }
@@ -462,4 +458,58 @@ void CRulesModel::update()
     beginResetModel();
     loadRules();
     endResetModel();
+}
+
+QStandardItem *CRulesModel::getRuleItem( const QModelIndex &index ) const
+{
+    auto item = itemFromIndex( index );
+    return getRuleItem( item );
+}
+
+QStandardItem *CRulesModel::getRuleItem( QStandardItem *item ) const
+{
+    if ( !item )
+        return nullptr;
+    if ( item->column() != 0 )
+    {
+        if ( item->parent() )
+            item = item->parent()->child( item->row(), 0 );
+        else
+            item = this->item( item->row(), 0 );
+    }
+    while ( item->parent() )
+        item = item->parent();
+    return item;
+}
+
+void CRulesModel::runRule( const QModelIndex &index ) const
+{
+    auto item = itemFromIndex( index );
+    return runRule( item );
+}
+
+void CRulesModel::runRule( QStandardItem *item ) const
+{
+    auto rule = getRule( item );
+    if ( !rule )
+        return;
+    COutlookHelpers::getInstance()->execute( rule );
+}
+
+std::shared_ptr< Outlook::Rule > CRulesModel::getRule( const QModelIndex &index ) const
+{
+    auto item = itemFromIndex( index );
+    return getRule( item );
+}
+
+std::shared_ptr< Outlook::Rule > CRulesModel::getRule( QStandardItem *item ) const
+{
+    auto ruleItem = getRuleItem( item );
+    if ( !ruleItem )
+        return {};
+
+    auto pos = fRuleMap.find( ruleItem );
+    if ( pos == fRuleMap.end() )
+        return {};
+    return ( *pos ).second;
 }

@@ -10,7 +10,7 @@
 class QProgressDialog;
 namespace Outlook
 {
-    class MAPIFolder;
+    class Folder;
     class Folders;
 }
 
@@ -25,11 +25,14 @@ public:
 
     void reload();
 
-    QString fullPath( const QModelIndex &index ) const;
-    QString fullPath( QStandardItem *item ) const;
+    QString fullPathForItem( const QModelIndex &index ) const;
+    QString fullPathForItem( QStandardItem *item ) const;
 
-    QString currentPath( const QModelIndex &index ) const;
-    QString currentPath( QStandardItem *item ) const;
+    std::shared_ptr< Outlook::Folder > folderForItem( const QModelIndex &index ) const;
+    std::shared_ptr< Outlook::Folder > folderForItem( QStandardItem *item ) const;
+
+    QString pathForItem( const QModelIndex &index ) const;
+    QString pathForItem( QStandardItem *item ) const;
 
     void clear();
 
@@ -40,13 +43,13 @@ Q_SIGNALS:
 
 private slots:
     void slotReload();
-    void slotAddFolder( Outlook::MAPIFolder *folder );
-    void slotFolderChanged( Outlook::MAPIFolder *folder );
+    void slotAddFolder( Outlook::Folder *folder );
+    void slotFolderChanged( Outlook::Folder *folder );
 
 private:
-    void addSubFolders( std::shared_ptr< Outlook::MAPIFolder > rootFolder );
-    bool addSubFolders( QStandardItem *item, std::shared_ptr< Outlook::MAPIFolder > parentFolder, QProgressDialog *progress );   // returns true if progress cancelled
-    std::unordered_map< QStandardItem *, std::shared_ptr< Outlook::MAPIFolder > > fFolderMap;
+    void addSubFolders( std::shared_ptr< Outlook::Folder > rootFolder );
+    bool addSubFolders( QStandardItem *item, std::shared_ptr< Outlook::Folder > parentFolder, QProgressDialog *progress );   // returns true if progress cancelled
+    std::unordered_map< QStandardItem *, std::shared_ptr< Outlook::Folder > > fFolderMap;
 };
 
 #endif

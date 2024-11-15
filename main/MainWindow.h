@@ -24,8 +24,15 @@ public:
 protected slots:
     void slotSelectServerAndInbox();
     void slotSelectServer();
-    void slotReload();
+    void slotReloadAll();
+    void slotReloadEmail();
+    void slotReloadFolders();
+    void slotReloadRules();
     void slotAddRule();
+    void slotRunRule();
+    void slotAddToCurrentRule();
+    void slotRenameRules();
+    void slotSortRules();
 
 protected:
     void clearViews();

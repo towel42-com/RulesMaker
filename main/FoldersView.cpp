@@ -11,7 +11,7 @@ CFoldersView::CFoldersView( QWidget *parent ) :
     init();
 
     if ( !parent )
-        QTimer::singleShot( 0, [ = ]() { reload(); } );
+        QTimer::singleShot( 0, [ = ]() { reload( true ); } );
 
 }
 
@@ -28,7 +28,12 @@ void CFoldersView::init()
         [ = ]()
         {
             fImpl->folders->expandAll();
-            emit sigFinishedLoading();
+            fImpl->folders->resizeColumnToContents( 0 );
+            fImpl->folders->collapseAll();
+            fImpl->folders->expand( fImpl->folders->model()->index( 0, 0 ) );
+            if ( fNotifyOnFinish )
+                emit sigFinishedLoading();
+            fNotifyOnFinish = true;
         } );
     connect( fImpl->addFolder, &QPushButton::clicked, this, &CFoldersView::slotAddFolder );
 }
@@ -37,8 +42,9 @@ CFoldersView::~CFoldersView()
 {
 }
 
-void CFoldersView::reload()
+void CFoldersView::reload( bool notifyOnFinish )
 {
+    fNotifyOnFinish = notifyOnFinish;
     fModel->reload();
 }
 
@@ -56,7 +62,7 @@ void CFoldersView::slotItemSelected( const QModelIndex &index )
         return;
     }
 
-    auto currentPath = fModel->currentPath( index );
+    auto currentPath = fModel->pathForItem( index );
     fImpl->name->setText( currentPath );
     emit sigFolderSelected( currentPath );
 }
@@ -65,20 +71,29 @@ void CFoldersView::slotAddFolder()
 {
     auto idx = fImpl->folders->currentIndex();
     fModel->addFolder( idx, this );
+    reload( false );
 }
 
-QString CFoldersView::currentPath() const
+QString CFoldersView::selectedPath() const
 {
     auto idx = fImpl->folders->currentIndex();
     if ( !idx.isValid() )
         return {};
-    return fModel->currentPath( idx );
+    return fModel->pathForItem( idx );
 }
 
-QString CFoldersView::fullPath() const
+QString CFoldersView::selectedFullPath() const
 {
     auto idx = fImpl->folders->currentIndex();
     if ( !idx.isValid() )
         return {};
-    return fModel->fullPath( idx );
+    return fModel->fullPathForItem( idx );
+}
+
+std::shared_ptr< Outlook::Folder >  CFoldersView::selectedFolder() const
+{
+    auto idx = fImpl->folders->currentIndex();
+    if ( !idx.isValid() )
+        return {};
+    return fModel->folderForItem( idx );
 }

@@ -31,6 +31,7 @@ ADD_CUSTOM_COMMAND(
 set(qtproject_UIS
     EmailView.ui
     FoldersView.ui
+    FoldersDlg.ui
     MainWindow.ui
     OutlookSetup.ui
     RulesView.ui
@@ -39,6 +40,7 @@ set(qtproject_UIS
 set(project_SRCS
     GroupedEmailModel.cpp
     EmailView.cpp
+    FoldersDlg.cpp
     FoldersView.cpp
     FoldersModel.cpp
     main.cpp
@@ -54,6 +56,7 @@ set(project_SRCS
 set(qtproject_H
     GroupedEmailModel.h
     EmailView.h
+    FoldersDlg.h
     FoldersModel.h
     FoldersView.h
     MainWindow.h
