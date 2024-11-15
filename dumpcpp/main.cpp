@@ -1171,8 +1171,6 @@ bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &n
                 QMetaObject *metaObject = 0;
 
                 QByteArray className = classNameFromTypeInfo( typeinfo );
-                if ( className.endsWith( "OlExchange" ) )
-                    int xyz = 0;
                 // trigger meta object to collect references to other type libraries
                 switch ( typekind )
                 {
