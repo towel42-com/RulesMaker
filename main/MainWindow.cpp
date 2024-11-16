@@ -22,6 +22,7 @@ CMainWindow::CMainWindow( QWidget *parent ) :
 
     connect( fImpl->actionSortRules, &QAction::triggered, this, &CMainWindow::slotSortRules );
     connect( fImpl->actionRenameRules, &QAction::triggered, this, &CMainWindow::slotRenameRules );
+    connect( fImpl->actionMoveFromToAddress, &QAction::triggered, this, &CMainWindow::slotMoveFromToAddress );
 
     connect( fImpl->actionSelectServerAndRootFolder, &QAction::triggered, this, &CMainWindow::slotSelectServerAndInbox );
     connect( fImpl->actionAddRule, &QAction::triggered, this, &CMainWindow::slotAddRule );
@@ -65,6 +66,7 @@ void CMainWindow::slotUpdateActions()
     fImpl->actionReloadRules->setEnabled( accountSelected );
     fImpl->actionSortRules->setEnabled( accountSelected );
     fImpl->actionRenameRules->setEnabled( accountSelected );
+    fImpl->actionMoveFromToAddress->setEnabled( accountSelected );
 
     bool emailSelected = !fImpl->email->getRulesForSelection().isEmpty();
     bool ruleSelected = fImpl->rules->ruleSelected();
@@ -86,6 +88,7 @@ void CMainWindow::slotAddRule()
         QMessageBox::critical( this, "Error", "Could not create rule\n" + msgs.join( "\n" ) );
     }
     fImpl->rules->reload( false );
+    slotReloadEmail();
 }
 
 void CMainWindow::slotAddToCurrentRule()
@@ -99,6 +102,7 @@ void CMainWindow::slotAddToCurrentRule()
         QMessageBox::critical( this, "Error", "Could not create rule\n" + msgs.join( "\n" ) );
     }
     fImpl->rules->reload( false );
+    slotReloadEmail();
 }
 
 void CMainWindow::slotRenameRules()
@@ -113,10 +117,16 @@ void CMainWindow::slotSortRules()
     slotReloadRules();
 }
 
+void CMainWindow::slotMoveFromToAddress()
+{
+    COutlookHelpers::getInstance()->moveFromToAddress();
+    slotReloadRules();
+}
+
 void CMainWindow::slotRunRule()
 {
     fImpl->rules->runSelectedRule();
-    fImpl->email->reload( false );
+    slotReloadEmail();
 }
 
 void CMainWindow::slotReloadAll()

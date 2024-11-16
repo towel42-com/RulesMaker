@@ -954,3 +954,36 @@ void COutlookHelpers::sortRules()
     if ( changed )
         fRules->Save();
 }
+
+void COutlookHelpers::moveFromToAddress()
+{
+    if ( !fRules )
+        return;
+
+    auto numRules = fRules->Count();
+    bool changed = false;
+    for ( int ii = 1; ii <= numRules; ++ii )
+    {
+        auto rule = std::make_shared< Outlook::Rule >( fRules->Item( ii ) );
+        if ( !rule )
+            continue;
+
+        auto conditions = rule->Conditions();
+        if ( !conditions )
+            continue;
+
+        auto from = conditions->From();
+        if ( !from->Enabled() )
+            continue;
+
+        from->SetEnabled( false );
+        changed = true;
+        auto fromEmails = getRecipientEmails( from->Recipients(), {} );
+        QStringList msgs;
+        if ( !addRecipientsToRule( rule.get(), fromEmails, msgs ) )
+            return;
+
+    }
+    if ( changed )
+        fRules->Save();
+}

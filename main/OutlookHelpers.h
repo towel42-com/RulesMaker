@@ -68,6 +68,7 @@ public:
 
     void renameRules();
     void sortRules();
+    void moveFromToAddress();
 
     bool execute( std::shared_ptr< Outlook::Rule > rule );
     bool execute( Outlook::Rule *rule );

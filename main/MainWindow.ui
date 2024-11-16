@@ -66,6 +66,7 @@
     <addaction name="actionOnlyGroupUnread"/>
     <addaction name="actionRenameRules"/>
     <addaction name="actionSortRules"/>
+    <addaction name="actionMoveFromToAddress"/>
    </widget>
    <addaction name="menu_File"/>
    <addaction name="menu_Edit"/>
@@ -169,6 +170,11 @@
   <action name="actionRenameRules">
    <property name="text">
     <string>Rename Rules</string>
+   </property>
+  </action>
+  <action name="actionMoveFromToAddress">
+   <property name="text">
+    <string>Move &quot;From&quot; to &quot;Address&quot;</string>
    </property>
   </action>
  </widget>

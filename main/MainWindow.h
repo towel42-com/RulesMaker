@@ -33,6 +33,7 @@ protected slots:
     void slotAddToCurrentRule();
     void slotRenameRules();
     void slotSortRules();
+    void slotMoveFromToAddress();
 
 protected:
     void clearViews();
