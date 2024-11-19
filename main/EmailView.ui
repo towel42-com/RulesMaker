@@ -34,7 +34,7 @@
    <item row="1" column="0" colspan="2">
     <widget class="QTreeView" name="groupedEmails">
      <property name="selectionMode">
-      <enum>QAbstractItemView::MultiSelection</enum>
+      <enum>QAbstractItemView::ExtendedSelection</enum>
      </property>
      <property name="uniformRowHeights">
       <bool>true</bool>
