@@ -32,7 +32,7 @@ public:
 
     bool ruleSelected() const;;
     void runSelectedRule() const;
-    std::shared_ptr< Outlook::Rule > currentRule() const;
+    std::shared_ptr< Outlook::Rule > selectedRule() const;
 Q_SIGNALS:
     void sigFinishedLoading();
     void sigRuleSelected();

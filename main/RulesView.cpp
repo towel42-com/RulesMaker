@@ -59,7 +59,7 @@ bool CRulesView::ruleSelected() const
     return fModel->getRuleItem( idx ) != nullptr;
 }
 
-std::shared_ptr< Outlook::Rule > CRulesView::currentRule() const
+std::shared_ptr< Outlook::Rule > CRulesView::selectedRule() const
 {
     auto idx = fImpl->rules->currentIndex();
     return fModel->getRule( idx );
