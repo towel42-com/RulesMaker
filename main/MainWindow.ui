@@ -62,14 +62,27 @@
     </property>
     <addaction name="actionAddRule"/>
     <addaction name="actionRunRule"/>
-    <addaction name="actionAddToCurrentRule"/>
-    <addaction name="actionOnlyGroupUnread"/>
+    <addaction name="actionAddToSelectedRule"/>
+   </widget>
+   <widget class="QMenu" name="menuTool">
+    <property name="title">
+     <string>Tools</string>
+    </property>
     <addaction name="actionRenameRules"/>
     <addaction name="actionSortRules"/>
     <addaction name="actionMoveFromToAddress"/>
+    <addaction name="actionMergeRules"/>
+   </widget>
+   <widget class="QMenu" name="menuSettings">
+    <property name="title">
+     <string>Settings</string>
+    </property>
+    <addaction name="actionOnlyGroupUnread"/>
    </widget>
    <addaction name="menu_File"/>
+   <addaction name="menuSettings"/>
    <addaction name="menu_Edit"/>
+   <addaction name="menuTool"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
@@ -92,7 +105,7 @@
    <addaction name="actionReloadRules"/>
    <addaction name="separator"/>
    <addaction name="actionAddRule"/>
-   <addaction name="actionAddToCurrentRule"/>
+   <addaction name="actionAddToSelectedRule"/>
    <addaction name="actionRunRule"/>
   </widget>
   <action name="actionSelectServer">
@@ -147,9 +160,9 @@
     <string>Run Rule</string>
    </property>
   </action>
-  <action name="actionAddToCurrentRule">
+  <action name="actionAddToSelectedRule">
    <property name="text">
-    <string>Add to Current Rule</string>
+    <string>Add to Selected Rule</string>
    </property>
   </action>
   <action name="actionReloadRules">
@@ -175,6 +188,11 @@
   <action name="actionMoveFromToAddress">
    <property name="text">
     <string>Move &quot;From&quot; to &quot;Address&quot;</string>
+   </property>
+  </action>
+  <action name="actionMergeRules">
+   <property name="text">
+    <string>Merge Rules</string>
    </property>
   </action>
  </widget>

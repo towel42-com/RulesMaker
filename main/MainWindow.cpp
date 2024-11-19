@@ -22,12 +22,13 @@ CMainWindow::CMainWindow( QWidget *parent ) :
 
     connect( fImpl->actionSortRules, &QAction::triggered, this, &CMainWindow::slotSortRules );
     connect( fImpl->actionRenameRules, &QAction::triggered, this, &CMainWindow::slotRenameRules );
+    connect( fImpl->actionMergeRules, &QAction::triggered, this, &CMainWindow::slotMergeRules );
     connect( fImpl->actionMoveFromToAddress, &QAction::triggered, this, &CMainWindow::slotMoveFromToAddress );
 
     connect( fImpl->actionSelectServerAndRootFolder, &QAction::triggered, this, &CMainWindow::slotSelectServerAndInbox );
     connect( fImpl->actionAddRule, &QAction::triggered, this, &CMainWindow::slotAddRule );
     connect( fImpl->actionRunRule, &QAction::triggered, this, &CMainWindow::slotRunRule );
-    connect( fImpl->actionAddToCurrentRule, &QAction::triggered, this, &CMainWindow::slotAddToCurrentRule );
+    connect( fImpl->actionAddToSelectedRule, &QAction::triggered, this, &CMainWindow::slotAddToSelectedRule );
 
     connect( fImpl->actionOnlyGroupUnread, &QAction::changed, [ = ]() { fImpl->email->setOnlyGroupUnread( fImpl->actionOnlyGroupUnread->isChecked() ); } );
 
@@ -73,7 +74,7 @@ void CMainWindow::slotUpdateActions()
     bool folderSelected = !fImpl->folders->selectedPath().isEmpty();
 
     fImpl->actionRunRule->setEnabled( ruleSelected );
-    fImpl->actionAddToCurrentRule->setEnabled( emailSelected && ruleSelected );
+    fImpl->actionAddToSelectedRule->setEnabled( emailSelected && ruleSelected );
     fImpl->actionAddRule->setEnabled( accountSelected && folderSelected && emailSelected );
 }
 
@@ -91,9 +92,9 @@ void CMainWindow::slotAddRule()
     slotReloadEmail();
 }
 
-void CMainWindow::slotAddToCurrentRule()
+void CMainWindow::slotAddToSelectedRule()
 {
-    auto rule = fImpl->rules->currentRule();
+    auto rule = fImpl->rules->selectedRule();
     auto rules = fImpl->email->getRulesForSelection();
 
     QStringList msgs;
@@ -105,8 +106,14 @@ void CMainWindow::slotAddToCurrentRule()
     slotReloadEmail();
 }
 
-void CMainWindow::slotRenameRules()
+void CMainWindow::slotMergeRules()
 {
+    COutlookHelpers::getInstance()->mergeRules();
+    slotReloadRules();
+}
+
+void CMainWindow::slotRenameRules()
+    {
     COutlookHelpers::getInstance()->renameRules();
     slotReloadRules();
 }

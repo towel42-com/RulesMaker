@@ -56,7 +56,6 @@ public:
     std::shared_ptr< Outlook::Folder > rootFolder();
     void setRootFolder( std::shared_ptr< Outlook::Folder > folder ) { fRootFolder = folder; }
 
-    
     std::pair< std::shared_ptr< Outlook::Folder >, bool > selectFolder( QWidget *parent, const QString &folderName, std::function< bool( std::shared_ptr< Outlook::Folder > folder ) > acceptFolder, std::function< bool( std::shared_ptr< Outlook::Folder > folder ) > checkChildFolders, bool singleOnly );
     std::pair< std::shared_ptr< Outlook::Folder >, bool > selectFolder( QWidget *parent, const QString &folderName, const std::list< std::shared_ptr< Outlook::Folder > > &folders, bool singleOnly );
 
@@ -69,6 +68,7 @@ public:
     void renameRules();
     void sortRules();
     void moveFromToAddress();
+    void mergeRules();
 
     bool execute( std::shared_ptr< Outlook::Rule > rule );
     bool execute( Outlook::Rule *rule );
@@ -105,6 +105,10 @@ Q_SIGNALS:
 private:
     bool addRecipientsToRule( Outlook::Rule *rule, const QStringList &recipients, QStringList &msgs );
 
+    std::optional< QStringList > mergeRecipients( Outlook::Rule *lhs, Outlook::Rule *rhs, QStringList *msgs );
+    std::optional< QStringList > mergeRecipients( Outlook::Rule *lhs, const QStringList & rhs, QStringList *msgs );
+    std::optional< QStringList > getRecipients( Outlook::Rule *rule, QStringList *msgs );
+
     std::pair< std::shared_ptr< Outlook::Folder >, bool > selectInbox( QWidget *parent, bool singleOnly );
     std::pair< std::shared_ptr< Outlook::Folder >, bool > selectContacts( QWidget *parent, bool singleOnly );
     std::shared_ptr< Outlook::Rules > selectRules( QWidget *parent );
@@ -112,7 +116,7 @@ private:
     std::shared_ptr< Outlook::Application > fOutlookApp;
     std::shared_ptr< Outlook::Account > fAccount;
     std::shared_ptr< Outlook::Folder > fInbox;
-    std::shared_ptr< Outlook::Folder > fRootFolder; // used for loading emails
+    std::shared_ptr< Outlook::Folder > fRootFolder;   // used for loading emails
     std::shared_ptr< Outlook::Folder > fContacts;
     std::shared_ptr< Outlook::Rules > fRules;
 

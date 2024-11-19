@@ -30,8 +30,9 @@ protected slots:
     void slotReloadRules();
     void slotAddRule();
     void slotRunRule();
-    void slotAddToCurrentRule();
+    void slotAddToSelectedRule();
     void slotRenameRules();
+    void slotMergeRules();
     void slotSortRules();
     void slotMoveFromToAddress();
 

@@ -450,11 +450,37 @@ bool COutlookHelpers::execute( Outlook::Rule *rule )
 
 bool COutlookHelpers::addRecipientsToRule( Outlook::Rule *rule, const QStringList &recipients, QStringList &msgs )
 {
+    if ( !rule || !rule->Conditions() )
+        return {};
+
     auto cond = rule->Conditions()->SenderAddress();
     if ( !cond )
     {
         msgs.push_back( QString( "Internal error" ) );
+        return {};
+    }
+
+    auto addresses = mergeRecipients( rule, recipients, &msgs );
+    if ( !addresses.has_value() )
         return false;
+
+    cond->SetAddress( addresses.value() );
+    cond->SetEnabled( true );
+
+    return true;
+}
+
+std::optional< QStringList > COutlookHelpers::getRecipients( Outlook::Rule *rule, QStringList *msgs )
+{
+    if ( !rule || !rule->Conditions() )
+        return {};
+
+    auto cond = rule->Conditions()->SenderAddress();
+    if ( !cond )
+    {
+        if ( msgs )
+            msgs->push_back( QString( "Internal error" ) );
+        return {};
     }
 
     QStringList addresses;
@@ -465,15 +491,35 @@ bool COutlookHelpers::addRecipientsToRule( Outlook::Rule *rule, const QStringLis
             addresses << variant.toString();
         else if ( variant.type() == QVariant::Type::StringList )
             addresses << variant.toStringList();
-        addresses << recipients;
     }
-    else
-        addresses = recipients;
-    addresses.removeDuplicates();
-    cond->SetAddress( addresses );
-    cond->SetEnabled( true );
+    return addresses;
+}
 
-    return true;
+std::optional< QStringList > COutlookHelpers::mergeRecipients( Outlook::Rule *lhs, const QStringList &rhs, QStringList *msgs )
+{
+    auto lhsRecipients = getRecipients( lhs, msgs );
+    if ( !lhsRecipients.has_value() )
+        return {};
+    if ( !lhsRecipients )
+        return rhs;
+    lhsRecipients.value() << rhs;
+    lhsRecipients.value().removeDuplicates();
+    return lhsRecipients;
+}
+
+std::optional< QStringList > COutlookHelpers::mergeRecipients( Outlook::Rule *lhs, Outlook::Rule *rhs, QStringList *msgs )
+{
+    auto lhsRecipients = getRecipients( lhs, msgs );
+    auto rhsRecipients = getRecipients( rhs, msgs );
+    if ( !lhsRecipients.has_value() && !rhsRecipients.has_value() )
+        return {};
+    if ( lhsRecipients && !rhsRecipients )
+        return lhsRecipients;
+    if ( !lhsRecipients && rhsRecipients )
+        return rhsRecipients;
+    lhsRecipients.value() << rhsRecipients.value();
+    lhsRecipients.value().removeDuplicates();
+    return lhsRecipients;
 }
 
 bool hasProperty( QObject *item, const char *propName )
@@ -982,8 +1028,50 @@ void COutlookHelpers::moveFromToAddress()
         QStringList msgs;
         if ( !addRecipientsToRule( rule.get(), fromEmails, msgs ) )
             return;
-
     }
     if ( changed )
         fRules->Save();
+}
+
+void COutlookHelpers::mergeRules()
+{
+    if ( !fRules )
+        return;
+
+    auto numRules = fRules->Count();
+    bool changed = false;
+    std::map< QString, std::shared_ptr< Outlook::Rule > > rules;
+    std::list< int > toRemove;
+    for ( int ii = 1; ii <= numRules; ++ii )
+    {
+        auto rule = std::make_shared< Outlook::Rule >( fRules->Item( ii ) );
+        if ( !rule || !rule->Enabled() )
+            continue;
+
+        auto from = rule->Conditions()->SenderAddress();
+        if ( !from || !from->Enabled() )
+            continue;
+
+        auto moveAction = rule->Actions()->MoveToFolder();
+        if ( !moveAction || !moveAction->Enabled() )
+            continue;
+
+        auto pos = rules.find( rule->Name() );
+        if ( pos == rules.end() )
+        {
+            rules[ rule->Name() ] = rule;
+        }
+        else
+        {
+            auto mergedRecipients = mergeRecipients( ( *pos ).second.get(), rule.get(), nullptr );
+            if ( !mergedRecipients.has_value() )
+                continue;
+
+            rule->SetEnabled( false );
+            ( *pos ).second->Conditions()->SenderAddress()->SetAddress( mergedRecipients.value() );
+            toRemove.push_front( ii );
+        }
+    }
+    for ( auto &&ii : toRemove )
+        fRules->Remove( ii );
 }
