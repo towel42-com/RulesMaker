@@ -33,6 +33,10 @@ public:
     bool ruleSelected() const;;
     void runSelectedRule() const;
     std::shared_ptr< Outlook::Rule > selectedRule() const;
+
+    bool addRule( const QString &destFolder, const QStringList &rules, QStringList &msgs );
+    bool addToSelectedRule( const QStringList &rules, QStringList &msgs );
+
 Q_SIGNALS:
     void sigFinishedLoading();
     void sigRuleSelected();

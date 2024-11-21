@@ -12,7 +12,6 @@ CFoldersView::CFoldersView( QWidget *parent ) :
 
     if ( !parent )
         QTimer::singleShot( 0, [ = ]() { reload( true ); } );
-
 }
 
 void CFoldersView::init()
@@ -71,7 +70,7 @@ void CFoldersView::slotAddFolder()
 {
     auto idx = fImpl->folders->currentIndex();
     fModel->addFolder( idx, this );
-    reload( false );
+    //reload( false );
 }
 
 QString CFoldersView::selectedPath() const
@@ -90,7 +89,7 @@ QString CFoldersView::selectedFullPath() const
     return fModel->fullPathForItem( idx );
 }
 
-std::shared_ptr< Outlook::Folder >  CFoldersView::selectedFolder() const
+std::shared_ptr< Outlook::Folder > CFoldersView::selectedFolder() const
 {
     auto idx = fImpl->folders->currentIndex();
     if ( !idx.isValid() )

@@ -47,8 +47,6 @@ public:
     void reload();
     void clear();
 
-    void changeItem( const QModelIndex &index, const QString &folderName );
-    void addItem( const QString &folderName );
     void update();
 
     QStandardItem *getRuleItem( const QModelIndex &index ) const;
@@ -60,11 +58,20 @@ public:
     std::shared_ptr< Outlook::Rule > getRule( const QModelIndex &index ) const;
     std::shared_ptr< Outlook::Rule > getRule( QStandardItem *item ) const;
 
+    bool addRule( const QString &destFolder, const QStringList &rules, QStringList &msgs );
+    bool addToRule( std::shared_ptr< Outlook::Rule > rule, const QStringList &rules, QStringList &msgs );
+
 Q_SIGNALS:
     void sigFinishedLoading();
 
 private:
     void loadRules();
+
+    bool loadRule( std::shared_ptr< Outlook::Rule > rule );
+
+    void loadRuleData( QStandardItem *ruleItem, std::shared_ptr< Outlook::Rule > rule );
+
+    bool updateRule( std::shared_ptr< Outlook::Rule > rule );
 
     void addAttribute( QStandardItem *parent, const QString &label, const QString &value );
     void addAttribute( QStandardItem *parent, const QString &label, QStringList value, const QString &separator );

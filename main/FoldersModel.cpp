@@ -27,9 +27,9 @@ void CFoldersModel::reload()
     //dumpMetaMethods( folder.get() );
     //dumpMetaMethods( folders );
 
-    connect( folders, SIGNAL( FolderAdd( Outlook::Folder * ) ), this, SLOT( slotAddFolder( Folder * ) ) );
-    connect( folders, SIGNAL( FolderChange( Folder * ) ), this, SLOT( slotFolderChanged( Folder * ) ) );
-    connect( folders, SIGNAL( FolderRemove() ), this, SLOT( slotReload() ) );
+    //connect( folders, SIGNAL( FolderAdd( Outlook::Folder * ) ), this, SLOT( slotAddFolder( Folder * ) ) );
+    //connect( folders, SIGNAL( FolderChange( Folder * ) ), this, SLOT( slotFolderChanged( Folder * ) ) );
+    //connect( folders, SIGNAL( FolderRemove() ), this, SLOT( slotReload() ) );
 
     QTimer::singleShot( 0, [ = ]() { slotReload(); } );
 }

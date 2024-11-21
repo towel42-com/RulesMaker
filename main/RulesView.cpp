@@ -85,3 +85,18 @@ void CRulesView::slotItemSelected( const QModelIndex &index )
     fImpl->name->setText( item->text() );
     emit sigRuleSelected();
 }
+
+
+bool CRulesView::addRule( const QString &destFolder, const QStringList &rules, QStringList &msgs )
+{
+    return fModel->addRule( destFolder, rules, msgs );
+}
+
+bool CRulesView::addToSelectedRule( const QStringList &rules, QStringList &msgs )
+{
+    auto rule = selectedRule();
+    if ( !rule )
+        return false;
+
+    return fModel->addToRule( rule, rules, msgs );
+}

@@ -84,25 +84,22 @@ void CMainWindow::slotAddRule()
     auto rules = fImpl->email->getRulesForSelection();
 
     QStringList msgs;
-    if ( !COutlookHelpers::getInstance()->addRule( destFolder, rules, msgs ) )
+    if ( !fImpl->rules->addRule( destFolder, rules, msgs ) )
     {
         QMessageBox::critical( this, "Error", "Could not create rule\n" + msgs.join( "\n" ) );
     }
-    fImpl->rules->reload( false );
     slotReloadEmail();
 }
 
 void CMainWindow::slotAddToSelectedRule()
 {
-    auto rule = fImpl->rules->selectedRule();
     auto rules = fImpl->email->getRulesForSelection();
 
     QStringList msgs;
-    if ( !COutlookHelpers::getInstance()->addToRule( rule, rules, msgs ) )
+    if ( !fImpl->rules->addToSelectedRule( rules, msgs ) )
     {
         QMessageBox::critical( this, "Error", "Could not create rule\n" + msgs.join( "\n" ) );
     }
-    fImpl->rules->reload( false );
     slotReloadEmail();
 }
 

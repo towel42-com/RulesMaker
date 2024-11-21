@@ -67,21 +67,59 @@ void CRulesModel::loadRules()
         if ( !rule )
             continue;
 
-        auto ruleItem = new QStandardItem( rule->Name() );
-        fRuleMap[ ruleItem ] = rule;
-        this->appendRow( ruleItem );
-
-        addAttribute( ruleItem, "Enabled", rule->Enabled() );
-        addAttribute( ruleItem, "Execution Order", rule->ExecutionOrder() );
-        addAttribute( ruleItem, "Is Local", rule->IsLocalRule() );
-        addAttribute( ruleItem, "Rule Type", ( rule->RuleType() == Outlook::OlRuleType::olRuleReceive ) ? "Recieve" : "Send" );
-
-        addConditions( ruleItem, rule );
-        addExceptions( ruleItem, rule );
-        addActions( ruleItem, rule );
+        loadRule( rule );
     }
 
     emit sigFinishedLoading();
+}
+
+bool CRulesModel::loadRule( std::shared_ptr< Outlook::Rule > rule )
+{
+    if ( !rule )
+        return false;
+
+    auto ruleItem = new QStandardItem( rule->Name() );
+    fRuleMap[ ruleItem ] = rule;
+
+    this->appendRow( ruleItem );
+
+    loadRuleData( ruleItem, rule );
+
+    return true;
+}
+
+void CRulesModel::loadRuleData( QStandardItem *ruleItem, std::shared_ptr< Outlook::Rule > rule )
+{
+    addAttribute( ruleItem, "Enabled", rule->Enabled() );
+    addAttribute( ruleItem, "Execution Order", rule->ExecutionOrder() );
+    addAttribute( ruleItem, "Is Local", rule->IsLocalRule() );
+    addAttribute( ruleItem, "Rule Type", ( rule->RuleType() == Outlook::OlRuleType::olRuleReceive ) ? "Recieve" : "Send" );
+
+    addConditions( ruleItem, rule );
+    addExceptions( ruleItem, rule );
+    addActions( ruleItem, rule );
+}
+
+bool CRulesModel::updateRule( std::shared_ptr< Outlook::Rule > rule )
+{
+    QStandardItem *ruleItem = nullptr;
+    for ( auto &&ii = fRuleMap.begin(); ii != fRuleMap.end(); ++ii )
+    {
+        if ( ( *ii ).second == rule )
+        {
+            ruleItem = ( *ii ).first;
+            for ( auto jj = 0; jj < ruleItem->rowCount(); ++jj )
+            {
+                ruleItem->removeRow( jj );
+            }
+            break;
+        }
+    }
+    if ( !ruleItem )
+        loadRule( rule );
+    else
+        loadRuleData( ruleItem, rule );
+    return true;
 }
 
 void CRulesModel::addConditions( QStandardItem *parent, std::shared_ptr< Outlook::Rule > rule )
@@ -430,29 +468,6 @@ void CRulesModel::addAttribute( QStandardItem *parent, const QString &label, con
     parent->appendRow( { keyItem, valueItem } );
 }
 
-void CRulesModel::changeItem( const QModelIndex & /*index*/, const QString & /*folderName*/ )
-{
-    if ( !fRules )
-        return;
-
-    //Outlook::Folder item( fItems->Item( index.row() + 1 ) );
-
-    //item.SetName( folderName );
-    ////item.Save();
-
-    //fCache.take( index );
-}
-
-void CRulesModel::addItem( const QString & /*folderName*/ )
-{
-    //Outlook::Folder item( COutlookHelpers::getInstance()->outlook()->CreateItem( Outlook::OlItemType::olContactItem ) );
-    //if ( !item.isNull() )
-    //{
-    //    item.SetName( folderName );
-    //    item.Save();
-    //}
-}
-
 void CRulesModel::update()
 {
     beginResetModel();
@@ -512,4 +527,21 @@ std::shared_ptr< Outlook::Rule > CRulesModel::getRule( QStandardItem *item ) con
     if ( pos == fRuleMap.end() )
         return {};
     return ( *pos ).second;
+}
+
+bool CRulesModel::addRule( const QString &destFolder, const QStringList &rules, QStringList &msgs )
+{
+    auto retVal = COutlookHelpers::getInstance()->addRule( destFolder, rules, msgs );
+    if ( !retVal.second )
+        return retVal.second;
+    loadRule( retVal.first );
+    return true;
+}
+
+bool CRulesModel::addToRule( std::shared_ptr< Outlook::Rule > rule, const QStringList &rules, QStringList &msgs )
+{
+    auto retVal = COutlookHelpers::getInstance()->addToRule( rule, rules, msgs );
+    if ( retVal )
+        updateRule( rule );
+    return true;
 }
