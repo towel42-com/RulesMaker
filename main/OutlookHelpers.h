@@ -35,6 +35,69 @@ namespace Outlook
     enum class OlMarkInterval;
 }
 
+namespace NWrappers
+{
+    class CAccount
+    {
+    public:
+        CAccount( Outlook::Account *item );
+        virtual ~CAccount();
+
+    private:
+        Outlook::Account *fImpl{ nullptr };
+    };
+
+    class CApplication
+    {
+    public:
+        CApplication( Outlook::Application *item );
+        virtual ~CApplication();
+
+    private:
+        Outlook::Application *fImpl{ nullptr };
+    };
+
+    class CFolder
+    {
+    public:
+        CFolder( Outlook::Folder *item );
+        virtual ~CFolder();
+
+    private:
+        Outlook::Folder *fImpl{ nullptr };
+    };
+
+    class CMailItem
+    {
+    public:
+        CMailItem( Outlook::MailItem *item );
+        virtual ~CMailItem();
+
+    private:
+        Outlook::MailItem *fImpl{ nullptr };
+    };
+
+    class CRules
+    {
+    public:
+        CRules( Outlook::Rules *item );
+        virtual ~CRules();
+
+    private:
+        Outlook::Rules *fImpl;
+    };
+
+    class CRule
+    {
+    public:
+        CRule( Outlook::Rule *item );
+        virtual ~CRule();
+
+    private:
+        Outlook::Rule *fImpl{ nullptr };
+    };
+}
+
 class COutlookHelpers : public QObject
 {
     Q_OBJECT;
@@ -62,10 +125,11 @@ public:
     std::list< std::shared_ptr< Outlook::Folder > > getFolders( bool recursive, std::function< bool( std::shared_ptr< Outlook::Folder > folder ) > acceptFolder = {}, std::function< bool( std::shared_ptr< Outlook::Folder > folder ) > checkChildFolders = {} );
     std::list< std::shared_ptr< Outlook::Folder > > getFolders( std::shared_ptr< Outlook::Folder > parent, bool recursive, std::function< bool( std::shared_ptr< Outlook::Folder > folder ) > acceptFolder = {}, std::function< bool( std::shared_ptr< Outlook::Folder > folder ) > checkChildFolders = {} );
 
-    bool addRule( const QString &destFolder, const QStringList &rules, QStringList &msg );
+    std::pair< std::shared_ptr< Outlook::Rule >, bool > addRule( const QString &destFolder, const QStringList &rules, QStringList &msg );
     bool addToRule( std::shared_ptr< Outlook::Rule > rule, const QStringList &rules, QStringList &msg );
 
     void renameRules();
+
     void sortRules();
     void moveFromToAddress();
     void mergeRules();
@@ -103,10 +167,12 @@ Q_SIGNALS:
     void sigAccountChanged();
 
 private:
+    std::optional< QString > ruleNameForRule( std::shared_ptr< Outlook::Rule > rule );
+    std::optional< QString > ruleNameForRule( Outlook::Rule *rule );
     bool addRecipientsToRule( Outlook::Rule *rule, const QStringList &recipients, QStringList &msgs );
 
     std::optional< QStringList > mergeRecipients( Outlook::Rule *lhs, Outlook::Rule *rhs, QStringList *msgs );
-    std::optional< QStringList > mergeRecipients( Outlook::Rule *lhs, const QStringList & rhs, QStringList *msgs );
+    std::optional< QStringList > mergeRecipients( Outlook::Rule *lhs, const QStringList &rhs, QStringList *msgs );
     std::optional< QStringList > getRecipients( Outlook::Rule *rule, QStringList *msgs );
 
     std::pair< std::shared_ptr< Outlook::Folder >, bool > selectInbox( QWidget *parent, bool singleOnly );

@@ -357,12 +357,13 @@ QString COutlookHelpers::ruleNameForFolder( Outlook::Folder *folder )
     return ruleName;
 }
 
-bool COutlookHelpers::addRule( const QString &destFolder, const QStringList &rules, QStringList &msgs )
+std::pair< std::shared_ptr< Outlook::Rule >, bool > COutlookHelpers::addRule( const QString &destFolder, const QStringList &rules, QStringList &msgs )
 {
+    auto retVal = std::make_pair( std::shared_ptr< Outlook::Rule >(), false );
     if ( destFolder.isEmpty() || rules.isEmpty() || !fRules )
     {
         msgs.push_back( "Parameters not set" );
-        return false;
+        return retVal;
     }
 
     auto folders = getFolders(
@@ -384,34 +385,41 @@ bool COutlookHelpers::addRule( const QString &destFolder, const QStringList &rul
     if ( folders.empty() )
     {
         msgs.push_back( QString( "Could not find folder '%1'" ).arg( destFolder ) );
-        return false;
+        return retVal;
     }
     auto folder = folders.front();
     auto ruleName = ruleNameForFolder( folder );
 
-    auto rule = fRules->Create( ruleName, Outlook::OlRuleType::olRuleReceive );
-    if ( !rule )
+    auto rulePtr = fRules->Create( ruleName, Outlook::OlRuleType::olRuleReceive );
+    if ( !rulePtr )
     {
         msgs.push_back( QString( "Could not create rule '%1'" ).arg( ruleName ) );
-        return false;
+        return retVal;
     }
 
+    auto rule = std::shared_ptr< Outlook::Rule >( rulePtr );
     auto moveAction = rule->Actions()->MoveToFolder();
     if ( !moveAction )
     {
         msgs.push_back( QString( "Internal error" ) );
-        return false;
+        return retVal;
     }
+    retVal.first = rule;
     moveAction->SetEnabled( true );
     moveAction->SetFolder( reinterpret_cast< Outlook::MAPIFolder * >( folder.get() ) );
 
     rule->Actions()->Stop()->SetEnabled( true );
 
-    if ( !addRecipientsToRule( rule, rules, msgs ) )
-        return false;
+    if ( !addRecipientsToRule( rule.get(), rules, msgs ) )
+        return retVal;
+
+    auto name = ruleNameForRule( rule );
+    if ( name.has_value() && ( rule->Name() != name ) )
+        rule->SetName( name.value() );
 
     fRules->Save( true );
-    return execute( rule );
+    retVal.second = execute( rule );
+    return retVal;
 }
 
 bool COutlookHelpers::addToRule( std::shared_ptr< Outlook::Rule > rule, const QStringList &rules, QStringList &msgs )
@@ -932,34 +940,57 @@ void COutlookHelpers::renameRules()
 
     auto numRules = fRules->Count();
     bool changed = false;
+
     for ( int ii = 1; ii <= numRules; ++ii )
     {
         auto rule = fRules->Item( ii );
         if ( !rule )
             continue;
 
-        auto actions = rule->Actions();
-        if ( !actions )
+        auto ruleName = ruleNameForRule( std::make_shared< Outlook::Rule >( rule ) );
+        if ( !ruleName.has_value() )
             continue;
 
-        auto action = actions->MoveToFolder();
-        if ( !action )
-            continue;
-
-        auto folder = action->Folder();
-        if ( !folder )
-            continue;
-
-        auto ruleName = ruleNameForFolder( reinterpret_cast< Outlook::Folder * >( folder ) );
         auto currName = rule->Name();
-        if ( ruleName != currName )
+        if ( ruleName.value() != currName )
         {
             changed = true;
-            rule->SetName( ruleName );
+            rule->SetName( ruleName.value() );
         }
     }
     if ( changed )
         fRules->Save();
+}
+
+std::optional< QString > COutlookHelpers::ruleNameForRule( std::shared_ptr< Outlook::Rule > rule )
+{
+    if ( !rule->Enabled() )
+        return {};
+
+    auto actions = rule->Actions();
+    if ( !actions )
+        return {};
+
+    auto action = actions->MoveToFolder();
+    if ( !action || !action->Enabled() )
+        return {};
+
+    auto folder = action->Folder();
+    if ( !folder )
+        return {};
+
+    auto ruleName = ruleNameForFolder( reinterpret_cast< Outlook::Folder * >( folder ) );
+    if ( rule->Conditions() )
+    {
+        if ( rule->Conditions()->From() && rule->Conditions()->From()->Enabled() )
+            ruleName += " (From)";
+
+        if ( rule->Conditions()->SentTo() && rule->Conditions()->SentTo()->Enabled() )
+            ruleName += " (SentTo)";
+    }
+
+    ruleName = ruleName.replace( "%2F", "/" );
+    return ruleName;
 }
 
 void COutlookHelpers::sortRules()
