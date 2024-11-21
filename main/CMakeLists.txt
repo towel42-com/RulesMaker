@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.22)
 
 find_package(IncludeProjectSettings REQUIRED)
+find_package(Deploy REQUIRED)
+
 include( ${CMAKE_CURRENT_LIST_DIR}/include.cmake )
 project( ${_PROJECT_NAME} )
 IncludeProjectSettings()
@@ -9,6 +11,7 @@ add_executable( ${PROJECT_NAME} WIN32
                 ${_PROJECT_DEPENDENCIES} 
                 ${_CMAKE_MODULE_FILES}
           )
+
 set ( DEBUG_PATH 
         "%PATH%;C:/Qt/Qt5.12.12/5.12.12/msvc2017_64/bin"
         )
@@ -35,4 +38,6 @@ target_link_libraries( ${PROJECT_NAME}
        ${project_pri_DEPS}
 )
 
-
+DeploySystem( ${PROJECT_NAME} . INSTALL_ONLY 1 )
+INSTALL( TARGETS ${PROJECT_NAME} RUNTIME DESTINATION . )
+INSTALL( FILES ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/${PROJECT_NAME}.pdb DESTINATION . CONFIGURATIONS Debug RelWithDebInfo )
