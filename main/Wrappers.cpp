@@ -17,23 +17,27 @@ namespace NWrappers
         fApplication.reset();
     }
 
+    std::shared_ptr< Outlook::Account > getAccount( Outlook::_Account *accountItem )
+    {
+        if ( !accountItem )
+            return {};
+
+        return std::make_shared< Outlook::Account >( accountItem );
+    }
+
+    void clearAccountCache()
+    {
+    }
+
     std::shared_ptr< Outlook::MailItem > getMailItem( IDispatch *item )
     {
         return std::make_shared< Outlook::MailItem >( item );
     }
 
-    std::unordered_map< Outlook::Folder *, std::weak_ptr< Outlook::Folder > > sFolderMap;
     std::shared_ptr< Outlook::Folder > getFolder( Outlook::Folder *item )
     {
-        auto pos = sFolderMap.find( item );
-        if ( ( pos == sFolderMap.end() ) || ( *pos ).second.expired() )
-        {
-            auto retVal = std::shared_ptr< Outlook::Folder >( item );
-            sFolderMap[ item ].operator=( retVal );
-            return retVal;
-        }
-        else
-            return ( *pos ).second.lock();
+        auto retVal = std::shared_ptr< Outlook::Folder >( item );
+        return retVal;
     }
 
     std::shared_ptr< Outlook::Folder > getFolder( Outlook::MAPIFolder *item )
@@ -41,39 +45,26 @@ namespace NWrappers
         return getFolder( reinterpret_cast< Outlook::Folder * >( item ) );
     }
 
-    void clearFolderCache()
-    {
-        sFolderMap.clear();
-    }
-
-    std::unordered_map< Outlook::_Items *, Outlook::Items * > sItemsMap1;
-    std::unordered_map< Outlook::Items *, std::weak_ptr< Outlook::Items > > sItemsMap2;
-
     std::shared_ptr< Outlook::Items > getItems( Outlook::Items *items )
     {
-        auto pos = sItemsMap2.find( items );
-        if ( ( pos == sItemsMap2.end() ) || ( ( *pos ).second.expired() ) )
-        {
-            auto retVal = std::shared_ptr< Outlook::Items >( items );
-            sItemsMap2[ items ].operator=( retVal );
-            return retVal;
-        }
-        else
-            return ( *pos ).second.lock();
+        auto retVal = std::shared_ptr< Outlook::Items >( items );
+        return retVal;
     }
 
     std::shared_ptr< Outlook::Items > getItems( Outlook::_Items *items )
     {
-        auto pos = sItemsMap1.find( items );
-        if ( pos == sItemsMap1.end() )
-            return getItems( new Outlook::Items( items ) );
-        else
-            return getItems( ( *pos ).second );
+        return std::make_shared< Outlook::Items >( items );
     }
 
-    void clearItemsCache()
+    std::shared_ptr< Outlook::Rules > getRules( Outlook::Rules *item )
     {
-        sItemsMap1.clear();
-        sItemsMap2.clear();
+        auto retVal = std::shared_ptr< Outlook::Rules >( item );
+        return retVal;
+    }
+
+    std::shared_ptr< Outlook::Rule > getRule( Outlook::_Rule *item )
+    {
+        auto retVal = std::make_shared< Outlook::Rule >( item );
+        return retVal;
     }
 }

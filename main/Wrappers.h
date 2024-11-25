@@ -1,8 +1,8 @@
 #ifndef WRAPPERS_H
 #define WRAPPERS_H
 
+#include <QString>
 #include <memory>
-#include <unordered_map>
 class QVariant;
 class QWidget;
 struct IDispatch;
@@ -42,32 +42,19 @@ namespace Outlook
 namespace NWrappers
 {
     std::shared_ptr< Outlook::Application > getApplication();
-    void clearApplication();
 
-    std::shared_ptr< Outlook::Account > getAccount( Outlook::Account *item );
-    std::shared_ptr< Outlook::Account > getAccount( Outlook::_Account *item );
-    void clearAccountCache();
+    std::shared_ptr< Outlook::Account > getAccount( Outlook::_Account *item );;
 
     std::shared_ptr< Outlook::MailItem > getMailItem( IDispatch *item );
-    std::shared_ptr< Outlook::MailItem > getMailItem( Outlook::MailItem *item );
-    std::shared_ptr< Outlook::MailItem > getMailItem( Outlook::_MailItem *item );
-    void clearMailItemCache();
 
     std::shared_ptr< Outlook::Rules > getRules( Outlook::Rules *item );
-    std::shared_ptr< Outlook::Rules > getRules( Outlook::_Rules *item );
-    void clearRulesCache();
 
-    std::shared_ptr< Outlook::Rule > getRule( Outlook::Rule *item );
     std::shared_ptr< Outlook::Rule > getRule( Outlook::_Rule *item );
-    void clearRuleCache();
 
     std::shared_ptr< Outlook::Folder > getFolder( Outlook::Folder *item );
     std::shared_ptr< Outlook::Folder > getFolder( Outlook::MAPIFolder *item );
-    void clearFolderCache();
 
-    std::shared_ptr< Outlook::Items > getItems( Outlook::Items *item );
     std::shared_ptr< Outlook::Items > getItems( Outlook::_Items *item );
-    void clearItemsCache();
 }
 
 #endif
