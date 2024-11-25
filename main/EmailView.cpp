@@ -102,12 +102,22 @@ void CEmailView::reload( bool notifyOnFinish )
     fGroupedModel->reload();
 }
 
-void CEmailView::setOnlyGroupUnread( bool value )
+void CEmailView::setOnlyProcessUnread( bool value )
 {
     fGroupedModel->setOnlyGroupUnread( value );
 }
 
-bool CEmailView::onlyGroupUnread() const
+bool CEmailView::onlyProcessUnread() const
 {
     return fGroupedModel->onlyGroupUnread();
+}
+
+void CEmailView::setProcessAllEmailWhenLessThan200Emails( bool value )
+{
+    fGroupedModel->setProcessAllEmailWhenLessThan200Emails( value );
+}
+
+bool CEmailView::processAllEmailWhenLessThan200Emails() const
+{
+    return fGroupedModel->processAllEmailWhenLessThan200Emails();
 }

@@ -27,8 +27,11 @@ public:
 
     QStringList getRulesForSelection() const;
 
-    void setOnlyGroupUnread( bool value );
-    bool onlyGroupUnread() const;
+    void setOnlyProcessUnread( bool value );
+    bool onlyProcessUnread() const;
+
+    void setProcessAllEmailWhenLessThan200Emails( bool value );
+    bool processAllEmailWhenLessThan200Emails() const;
 
 Q_SIGNALS:
     void sigFinishedLoading();
