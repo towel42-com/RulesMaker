@@ -46,7 +46,10 @@ public:
     QStringList rulesForItem( QStandardItem *item ) const;
     void setOnlyGroupUnread( bool value );
     bool onlyGroupUnread() const { return fOnlyGroupUnread; }
-    Q_SIGNALS:
+
+    void setProcessAllEmailWhenLessThan200Emails( bool value );
+    bool processAllEmailWhenLessThan200Emails() const { return fProcessAllEmailWhenLessThan200Emails; }
+Q_SIGNALS:
     void sigFinishedGrouping();
 
 private:
@@ -65,6 +68,7 @@ private:
     std::map< QStandardItem *, std::shared_ptr< Outlook::MailItem > > fEmailCache;
     mutable std::optional< int > fCountCache;
     bool fOnlyGroupUnread{ true };
+    bool fProcessAllEmailWhenLessThan200Emails{ true };
 };
 
 #endif

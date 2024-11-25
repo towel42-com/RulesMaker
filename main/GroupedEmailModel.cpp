@@ -1,5 +1,5 @@
 #include "GroupedEmailModel.h"
-#include "OutlookHelpers.h"
+#include "OutlookAPI.h"
 
 #include "MSOUTL.h"
 
@@ -39,22 +39,25 @@ void CGroupedEmailModel::reload()
 {
     beginResetModel();
     clear();
-    auto folder = COutlookHelpers::getInstance()->rootFolder();
+    auto folder = COutlookAPI::getInstance()->rootFolder();
     if ( !folder )
         return;
 
     auto items = folder->Items();
     if ( items )
     {
-        if ( fOnlyGroupUnread )
+        auto limitToUnread = fOnlyGroupUnread;
+        if ( limitToUnread && ( items->Count() < 200 ) )
+            limitToUnread = !fProcessAllEmailWhenLessThan200Emails;
+
+        if ( limitToUnread )
         {
             auto subItems = items->Restrict( "[UNREAD]=TRUE" );
             if ( subItems )
-                fItems = std::make_shared< Outlook::Items >( subItems );
+                fItems = NWrappers::getItems( subItems );
         }
         if ( !fItems )
-            fItems = std::make_shared< Outlook::Items >( items );
-
+            fItems = NWrappers::getItems( items );
         if ( fItems )
             fCountCache = fItems->Count();
     }
@@ -66,7 +69,14 @@ void CGroupedEmailModel::reload()
 void CGroupedEmailModel::setOnlyGroupUnread( bool value )
 {
     fOnlyGroupUnread = value;
-    if ( COutlookHelpers::getInstance()->accountSelected() )
+    if ( COutlookAPI::getInstance()->accountSelected() )
+        reload();
+}
+
+void CGroupedEmailModel::setProcessAllEmailWhenLessThan200Emails( bool value )
+{
+    fProcessAllEmailWhenLessThan200Emails = value;
+    if ( COutlookAPI::getInstance()->accountSelected() )
         reload();
 }
 
@@ -105,9 +115,11 @@ void CGroupedEmailModel::groupMailItemsBySender( QWidget *parent )
         if ( !item )
             continue;
 
-        auto mail = std::make_shared< Outlook::MailItem >( item );
-        if ( COutlookHelpers::getObjectClass( mail.get() ) == Outlook::OlObjectClass::olMail )
-            addEmailAddresses( mail, COutlookHelpers::getSenderEmailAddresses( mail.get() ) );
+        if ( COutlookAPI::getObjectClass( item ) == Outlook::OlObjectClass::olMail )
+        {
+            auto mail = NWrappers::getMailItem( item );
+            addEmailAddresses( mail, COutlookAPI::getSenderEmailAddresses( mail.get() ) );
+        }
 #ifdef LIMIT_EMAIL_READ
         if ( ii >= 100 )
             break;
@@ -138,8 +150,6 @@ void CGroupedEmailModel::sortAll( QStandardItem *root )
 void CGroupedEmailModel::addEmailAddresses( std::shared_ptr< Outlook::MailItem > mailItem, const QStringList &emailAddresses )
 {
     if ( !mailItem )
-        return;
-    if ( fOnlyGroupUnread && !mailItem->UnRead() )
         return;
 
     for ( auto &&emailAddress : emailAddresses )
