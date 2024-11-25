@@ -32,8 +32,6 @@ COutlookAPI::~COutlookAPI()
 
 void COutlookAPI::logout( bool andNotify )
 {
-    NWrappers::clearApplication();
-
     fAccount.reset();
     fInbox.reset();
     fContacts.reset();
@@ -256,7 +254,7 @@ std::shared_ptr< Outlook::Rules > COutlookAPI::selectRules( QWidget *parent )
 
 std::pair< std::shared_ptr< Outlook::Folder >, bool > COutlookAPI::selectFolder( QWidget *parent, const QString &folderName, std::function< bool( const std::shared_ptr< Outlook::Folder > &folder ) > acceptFolder, std::function< bool( const std::shared_ptr< Outlook::Folder > &folder ) > checkChildFolders, bool singleOnly )
 {
-    auto && folders = getFolders( false, acceptFolder, checkChildFolders );
+    auto &&folders = getFolders( false, acceptFolder, checkChildFolders );
     return selectFolder( parent, folderName, folders, singleOnly );
 }
 
@@ -328,7 +326,7 @@ std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( const s
             retVal.push_back( folder );
         if ( cont )
         {
-            auto && subFolders = getFolders( folder, true, acceptFolder );
+            auto &&subFolders = getFolders( folder, true, acceptFolder );
             retVal.insert( retVal.end(), subFolders.begin(), subFolders.end() );
         }
     }
@@ -415,7 +413,7 @@ std::pair< std::shared_ptr< Outlook::Rule >, bool > COutlookAPI::addRule( const 
         return retVal;
     }
 
-    auto && folders = getFolders(
+    auto &&folders = getFolders(
         true,
         [ = ]( std::shared_ptr< Outlook::Folder > folder )
         {
@@ -439,14 +437,13 @@ std::pair< std::shared_ptr< Outlook::Rule >, bool > COutlookAPI::addRule( const 
     auto folder = folders.front();
     auto ruleName = ruleNameForFolder( folder );
 
-    auto rulePtr = fRules->Create( ruleName, Outlook::OlRuleType::olRuleReceive );
-    if ( !rulePtr )
+    auto rule = std::shared_ptr< Outlook::Rule >( fRules->Create( ruleName, Outlook::OlRuleType::olRuleReceive ) );
+    if ( !rule )
     {
         msgs.push_back( QString( "Could not create rule '%1'" ).arg( ruleName ) );
         return retVal;
     }
 
-    auto rule = NWrappers::getRule( rulePtr );
     auto moveAction = rule->Actions()->MoveToFolder();
     if ( !moveAction )
     {
@@ -591,6 +588,24 @@ Outlook::OlObjectClass COutlookAPI::getObjectClass( IDispatch *item )
 {
     if ( !item )
         return {};
+
+    IDispatch *pdisp = (IDispatch *)NULL;
+    DISPID dispid;
+    OLECHAR *szMember = L"Class";
+    auto result = item->GetIDsOfNames( IID_NULL, &szMember, 1, LOCALE_SYSTEM_DEFAULT, &dispid );
+
+    if ( result == S_OK )
+    {
+        VARIANT resultant{};
+        DISPPARAMS params{ 0 };
+        EXCEPINFO excepInfo{};
+        UINT argErr{ 0 };
+        result = item->Invoke( dispid, IID_NULL, LOCALE_SYSTEM_DEFAULT, DISPATCH_METHOD | DISPATCH_PROPERTYGET, &params, &resultant, &excepInfo, &argErr );
+        if ( result == S_OK )
+        {
+            return static_cast< Outlook::OlObjectClass >( resultant.lVal );
+        }
+    }
 
     auto retVal = QAxObject( item ).property( "Class" );
 
