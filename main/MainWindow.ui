@@ -77,7 +77,8 @@
     <property name="title">
      <string>Settings</string>
     </property>
-    <addaction name="actionOnlyGroupUnread"/>
+    <addaction name="actionOnlyProcessUnread"/>
+    <addaction name="actionProcessAllEmailWhenLessThan200Emails"/>
    </widget>
    <addaction name="menu_File"/>
    <addaction name="menuSettings"/>
@@ -142,12 +143,15 @@
     <string>Select Server &amp;&amp; Inbox</string>
    </property>
   </action>
-  <action name="actionOnlyGroupUnread">
+  <action name="actionOnlyProcessUnread">
    <property name="checkable">
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Only Group Unread?</string>
+    <string>Only Process Unread?</string>
+   </property>
+   <property name="toolTip">
+    <string>Only Process Unread?</string>
    </property>
   </action>
   <action name="actionReloadEmail">
@@ -193,6 +197,17 @@
   <action name="actionMergeRules">
    <property name="text">
     <string>Merge Rules</string>
+   </property>
+  </action>
+  <action name="actionProcessAllEmailWhenLessThan200Emails">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Process All Email when less than 200 Emails?</string>
+   </property>
+   <property name="toolTip">
+    <string>Process All Email when less than 200 Emails?</string>
    </property>
   </action>
  </widget>

@@ -1,9 +1,10 @@
 #include "MainWindow.h"
-#include "OutlookHelpers.h"
+#include "OutlookAPI.h"
 #include "OutlookSetup.h"
 
 #include "ui_MainWindow.h"
 
+#include <QSettings>
 #include <QTimer>
 #include <QMessageBox>
 
@@ -30,7 +31,23 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     connect( fImpl->actionRunRule, &QAction::triggered, this, &CMainWindow::slotRunRule );
     connect( fImpl->actionAddToSelectedRule, &QAction::triggered, this, &CMainWindow::slotAddToSelectedRule );
 
-    connect( fImpl->actionOnlyGroupUnread, &QAction::changed, [ = ]() { fImpl->email->setOnlyGroupUnread( fImpl->actionOnlyGroupUnread->isChecked() ); } );
+    connect(
+        fImpl->actionProcessAllEmailWhenLessThan200Emails, &QAction::changed,
+        [ = ]()
+        {
+            QSettings settings;
+            settings.setValue( "ProcessAllEmailWhenLessThan200Emails", fImpl->actionProcessAllEmailWhenLessThan200Emails->isChecked() );
+            fImpl->email->setProcessAllEmailWhenLessThan200Emails( fImpl->actionProcessAllEmailWhenLessThan200Emails->isChecked() );
+        } );
+
+    connect(
+        fImpl->actionOnlyProcessUnread, &QAction::changed,
+        [ = ]()
+        {
+            QSettings settings;
+            settings.setValue( "OnlyProcessUnread", fImpl->actionOnlyProcessUnread->isChecked() );
+            fImpl->email->setOnlyProcessUnread( fImpl->actionOnlyProcessUnread->isChecked() );
+        } );
 
     connect( fImpl->folders, &CFoldersView::sigFolderSelected, this, &CMainWindow::slotUpdateActions );
     connect( fImpl->email, &CEmailView::sigRuleSelected, this, &CMainWindow::slotUpdateActions );
@@ -42,25 +59,33 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     setWindowTitle( QObject::tr( "Rules Maker" ) );
 
     connect(
-        COutlookHelpers::getInstance().get(), &COutlookHelpers::sigAccountChanged,
+        COutlookAPI::getInstance().get(), &COutlookAPI::sigAccountChanged,
         [ = ]()
         {
             slotUpdateActions();
             slotReloadAll();
         } );
     slotUpdateActions();
-    fImpl->actionOnlyGroupUnread->setChecked( fImpl->email->onlyGroupUnread() );
+
+    QSettings settings;
+    fImpl->email->setOnlyProcessUnread( settings.value( "OnlyProcessUnread", true ).toBool() );
+    fImpl->email->setProcessAllEmailWhenLessThan200Emails( settings.value( "ProcessAllEmailWhenLessThan200Emails", true ).toBool() );
+    settings.setValue( "ProcessAllEmailWhenLessThan200Emails", fImpl->actionProcessAllEmailWhenLessThan200Emails->isChecked() );
+    fImpl->actionProcessAllEmailWhenLessThan200Emails->setChecked( fImpl->email->processAllEmailWhenLessThan200Emails() );
+    fImpl->actionOnlyProcessUnread->setChecked( fImpl->email->onlyProcessUnread() );
+
+    QTimer::singleShot( 0, [ = ]() { slotSelectServer(); } );
 }
 
 CMainWindow::~CMainWindow()
 {
     clearViews();
-    COutlookHelpers::getInstance()->logout( false );
+    COutlookAPI::getInstance()->logout( false );
 }
 
 void CMainWindow::slotUpdateActions()
 {
-    bool accountSelected = COutlookHelpers::getInstance()->accountSelected();
+    bool accountSelected = COutlookAPI::getInstance()->accountSelected();
     fImpl->actionReloadAllData->setEnabled( accountSelected );
     fImpl->actionReloadEmail->setEnabled( accountSelected );
     fImpl->actionReloadFolders->setEnabled( accountSelected );
@@ -105,25 +130,25 @@ void CMainWindow::slotAddToSelectedRule()
 
 void CMainWindow::slotMergeRules()
 {
-    COutlookHelpers::getInstance()->mergeRules();
+    COutlookAPI::getInstance()->mergeRules();
     slotReloadRules();
 }
 
 void CMainWindow::slotRenameRules()
-    {
-    COutlookHelpers::getInstance()->renameRules();
+{
+    COutlookAPI::getInstance()->renameRules();
     slotReloadRules();
 }
 
 void CMainWindow::slotSortRules()
 {
-    COutlookHelpers::getInstance()->sortRules();
+    COutlookAPI::getInstance()->sortRules();
     slotReloadRules();
 }
 
 void CMainWindow::slotMoveFromToAddress()
 {
-    COutlookHelpers::getInstance()->moveFromToAddress();
+    COutlookAPI::getInstance()->moveFromToAddress();
     slotReloadRules();
 }
 
@@ -136,15 +161,18 @@ void CMainWindow::slotRunRule()
 void CMainWindow::slotReloadAll()
 {
     clearViews();
-    if ( COutlookHelpers::getInstance()->accountSelected() )
+    if ( COutlookAPI::getInstance()->accountSelected() )
+    {
         fImpl->folders->reload( true );
+        setWindowTitle( tr( "Outlook Rules Maker - %1" ).arg( COutlookAPI::getInstance()->accountName() ) );
+    }
     slotUpdateActions();
 }
 
 void CMainWindow::slotReloadEmail()
 {
     fImpl->email->clear();
-    if ( COutlookHelpers::getInstance()->accountSelected() )
+    if ( COutlookAPI::getInstance()->accountSelected() )
         fImpl->email->reload( false );
     slotUpdateActions();
 }
@@ -152,7 +180,7 @@ void CMainWindow::slotReloadEmail()
 void CMainWindow::slotReloadFolders()
 {
     fImpl->folders->clear();
-    if ( COutlookHelpers::getInstance()->accountSelected() )
+    if ( COutlookAPI::getInstance()->accountSelected() )
         fImpl->folders->reload( false );
     slotUpdateActions();
 }
@@ -160,7 +188,7 @@ void CMainWindow::slotReloadFolders()
 void CMainWindow::slotReloadRules()
 {
     fImpl->rules->clear();
-    if ( COutlookHelpers::getInstance()->accountSelected() )
+    if ( COutlookAPI::getInstance()->accountSelected() )
         fImpl->rules->reload( false );
     slotUpdateActions();
 }
@@ -175,7 +203,7 @@ void CMainWindow::clearViews()
 void CMainWindow::slotSelectServer()
 {
     clearViews();
-    auto account = COutlookHelpers::getInstance()->selectAccount( false, this );
+    auto account = COutlookAPI::getInstance()->selectAccount( false, this );
     if ( !account )
         return;
     slotReloadAll();
