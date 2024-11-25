@@ -45,7 +45,8 @@ set(project_SRCS
     FoldersModel.cpp
     main.cpp
     MainWindow.cpp
-    OutlookHelpers.cpp
+    OutlookAPI.cpp
+    Wrappers.cpp
     OutlookSetup.cpp
     RulesModel.cpp
     RulesView.cpp
@@ -60,7 +61,7 @@ set(qtproject_H
     FoldersModel.h
     FoldersView.h
     MainWindow.h
-    OutlookHelpers.h
+    OutlookAPI.h
     OutlookSetup.h
     RulesModel.h
     RulesView.h
@@ -68,6 +69,7 @@ set(qtproject_H
 
 set(project_H
     ${CMAKE_CURRENT_BINARY_DIR}/MSOUTL.h
+    Wrappers.h
 )
 
 set( project_pub_LIB_DIRS 
