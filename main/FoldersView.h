@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include <memory>
+#include "Wrappers.h"
 namespace Ui
 {
     class CFoldersView;

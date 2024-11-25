@@ -1,6 +1,7 @@
 #ifndef FOLDERSDLG_H
 #define FOLDERSDLG_H
 
+#include "Wrappers.h"
 #include <QDialog>
 #include <memory>
 namespace Ui

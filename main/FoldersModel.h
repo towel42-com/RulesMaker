@@ -1,6 +1,7 @@
 #ifndef FOLDERSMODEL_H
 #define FOLDERSMODEL_H
 
+#include "Wrappers.h"
 #include <QString>
 #include <QStandardItemModel>
 
@@ -47,8 +48,8 @@ private slots:
     void slotFolderChanged( Outlook::Folder *folder );
 
 private:
-    void addSubFolders( std::shared_ptr< Outlook::Folder > rootFolder );
-    bool addSubFolders( QStandardItem *item, std::shared_ptr< Outlook::Folder > parentFolder, QProgressDialog *progress );   // returns true if progress cancelled
+    void addSubFolders( const std::shared_ptr< Outlook::Folder > & rootFolder );
+    bool addSubFolders( QStandardItem *item, const std::shared_ptr< Outlook::Folder > & parentFolder, QProgressDialog *progress );   // returns true if progress cancelled
     std::unordered_map< QStandardItem *, std::shared_ptr< Outlook::Folder > > fFolderMap;
 };
 

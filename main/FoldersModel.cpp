@@ -1,5 +1,5 @@
 #include "FoldersModel.h"
-#include "OutlookHelpers.h"
+#include "OutlookAPI.h"
 
 #include "MSOUTL.h"
 
@@ -18,18 +18,15 @@ CFoldersModel::CFoldersModel( QObject *parent ) :
 
 void CFoldersModel::reload()
 {
-    auto folder = COutlookHelpers::getInstance()->getInbox( dynamic_cast< QWidget * >( parent() ) );
+    auto folder = COutlookAPI::getInstance()->getInbox( dynamic_cast< QWidget * >( parent() ) );
     if ( !folder )
         return;
 
     auto folders = new Outlook::Folders( folder->Folders() );
+    delete folders;
 
     //dumpMetaMethods( folder.get() );
     //dumpMetaMethods( folders );
-
-    //connect( folders, SIGNAL( FolderAdd( Outlook::Folder * ) ), this, SLOT( slotAddFolder( Folder * ) ) );
-    //connect( folders, SIGNAL( FolderChange( Folder * ) ), this, SLOT( slotFolderChanged( Folder * ) ) );
-    //connect( folders, SIGNAL( FolderRemove() ), this, SLOT( slotReload() ) );
 
     QTimer::singleShot( 0, [ = ]() { slotReload(); } );
 }
@@ -43,7 +40,7 @@ void CFoldersModel::slotAddFolder( Outlook::Folder *folder )
     if ( !folder )
         return;
 
-    auto sharedFolder = std::shared_ptr< Outlook::Folder >( folder );
+    auto sharedFolder = NWrappers::getFolder( folder );
     auto child = new QStandardItem( folder->Name() );
     fFolderMap[ child ] = sharedFolder;
 
@@ -85,16 +82,16 @@ void CFoldersModel::slotFolderChanged( Outlook::Folder * /*folder*/ )
 void CFoldersModel::slotReload()
 {
     clear();
-    auto folder = COutlookHelpers::getInstance()->getInbox( dynamic_cast< QWidget * >( parent() ) );
+    auto folder = COutlookAPI::getInstance()->getInbox( dynamic_cast< QWidget * >( parent() ) );
     if ( !folder )
         return;
 
     QTimer::singleShot( 0, [ = ]() { addSubFolders( folder ); } );
 }
 
-void CFoldersModel::addSubFolders( std::shared_ptr< Outlook::Folder > rootFolder )
+void CFoldersModel::addSubFolders( const std::shared_ptr< Outlook::Folder > & rootFolder )
 {
-    auto subFoldersSize = static_cast< int >( COutlookHelpers::getInstance()->getFolders( rootFolder, false ).size() );
+    auto subFoldersSize = COutlookAPI::getInstance()->subFolderCount( rootFolder );
 
     QProgressDialog dlg( dynamic_cast< QWidget * >( parent() ) );
     auto bar = new QProgressBar;
@@ -119,10 +116,10 @@ void CFoldersModel::addSubFolders( std::shared_ptr< Outlook::Folder > rootFolder
     emit sigFinishedLoading();
 }
 
-bool CFoldersModel::addSubFolders( QStandardItem *parent, std::shared_ptr< Outlook::Folder > parentFolder, QProgressDialog *progress )
+bool CFoldersModel::addSubFolders( QStandardItem *parent, const std::shared_ptr< Outlook::Folder > & parentFolder, QProgressDialog *progress )
 {
-    auto subFolders = COutlookHelpers::getInstance()->getFolders( parentFolder, false );
-    for ( auto &&ii : subFolders )
+    auto && subFolders = COutlookAPI::getInstance()->getFolders( parentFolder, false );
+    for ( auto &&folder : subFolders )
     {
         if ( progress )
         {
@@ -132,8 +129,7 @@ bool CFoldersModel::addSubFolders( QStandardItem *parent, std::shared_ptr< Outlo
                 return false;
             }
         }
-        auto folder = ii;
-        auto child = new QStandardItem( ii->Name() );
+        auto child = new QStandardItem( folder->Name() );
         fFolderMap[ child ] = folder;
         parent->appendRow( child );
         addSubFolders( child, folder, nullptr );
@@ -203,7 +199,7 @@ void CFoldersModel::clear()
 
 void CFoldersModel::addFolder( const QModelIndex &idx, QWidget *parent )
 {
-    auto parentFolder = COutlookHelpers::getInstance()->getInbox( parent );
+    auto parentFolder = COutlookAPI::getInstance()->getInbox( parent );
 
     auto folderName = QInputDialog::getText( parent, "New Folder Name", "Folder Name" );
     if ( folderName.isEmpty() )
