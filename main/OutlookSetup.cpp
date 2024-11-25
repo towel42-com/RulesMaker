@@ -1,6 +1,6 @@
 #include "OutlookSetup.h"
 #include "FoldersDlg.h"
-#include "OutlookHelpers.h"
+#include "OutlookAPI.h"
 
 #include "ui_OutlookSetup.h"
 
@@ -28,7 +28,7 @@ COutlookSetup::~COutlookSetup()
 
 void COutlookSetup::slotSelectAccount( bool useInbox )
 {
-    auto account = COutlookHelpers::getInstance()->selectAccount( false, dynamic_cast< QWidget * >( parent() ) );
+    auto account = COutlookAPI::getInstance()->selectAccount( false, dynamic_cast< QWidget * >( parent() ) );
     if ( !account )
         return;
     fImpl->account->setText( account->DisplayName() );
@@ -38,26 +38,26 @@ void COutlookSetup::slotSelectAccount( bool useInbox )
 
 void COutlookSetup::slotSelectFolder( bool useInbox )
 {
-    auto folder = COutlookHelpers::getInstance()->selectInbox( dynamic_cast< QWidget * >( parent() ), false ).first;
+    auto folder = COutlookAPI::getInstance()->selectInbox( dynamic_cast< QWidget * >( parent() ), false ).first;
     if ( !folder )
         return;
 
     if ( useInbox )
     {
         fImpl->rootFolder->setText( folder->FullFolderPath() );
-        COutlookHelpers::getInstance()->setRootFolder( folder );
+        COutlookAPI::getInstance()->setRootFolder( folder );
         return;
     }
     CFoldersDlg dlg( this );
     if ( dlg.exec() == QDialog::Accepted )
     {
         fImpl->rootFolder->setText( dlg.fullPath() );
-        COutlookHelpers::getInstance()->setRootFolder( dlg.selectedFolder() );
+        COutlookAPI::getInstance()->setRootFolder( dlg.selectedFolder() );
     }
 }
 
 void COutlookSetup::reject()
 {
-    COutlookHelpers::getInstance()->logout( false );
+    COutlookAPI::getInstance()->logout( false );
     QDialog::reject();
 }
