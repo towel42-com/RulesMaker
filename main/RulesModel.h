@@ -7,6 +7,7 @@
 #include <memory>
 #include <optional>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace Outlook
 {
@@ -61,10 +62,18 @@ public:
     bool addRule( const QString &destFolder, const QStringList &rules, QStringList &msgs );
     bool addToRule( std::shared_ptr< Outlook::Rule > rule, const QStringList &rules, QStringList &msgs );
 
+    virtual bool hasChildren( const QModelIndex &parent ) const override;
+    virtual void fetchMore( const QModelIndex &parent ) override;
+    virtual bool canFetchMore( const QModelIndex &parent ) const override;
+
+
 Q_SIGNALS:
     void sigFinishedLoading();
 
 private:
+    bool beenLoaded( const QModelIndex &parent ) const;
+    bool beenLoaded( QStandardItem *parent ) const;
+
     void loadRules();
 
     bool loadRule( std::shared_ptr< Outlook::Rule > rule );
@@ -106,6 +115,7 @@ private:
 
     std::shared_ptr< Outlook::Rules > fRules{ nullptr };
     std::unordered_map< QStandardItem *, std::shared_ptr< Outlook::Rule > > fRuleMap;
+    std::unordered_set< QStandardItem * > fBeenLoaded;
 };
 
 #endif

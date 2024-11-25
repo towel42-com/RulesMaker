@@ -1,5 +1,5 @@
 #include "RulesModel.h"
-#include "OutlookHelpers.h"
+#include "OutlookAPI.h"
 
 #include <QTimer>
 #include <QProgressDialog>
@@ -15,7 +15,7 @@ CRulesModel::CRulesModel( QObject *parent ) :
 void CRulesModel::reload()
 {
     clear();
-    fRules = COutlookHelpers::getInstance()->getRules( dynamic_cast< QWidget * >( parent() ) );
+    fRules = COutlookAPI::getInstance()->getRules( dynamic_cast< QWidget * >( parent() ) );
     if ( !fRules )
         return;
 
@@ -63,7 +63,7 @@ void CRulesModel::loadRules()
             break;
         }
 
-        auto rule = std::make_shared< Outlook::Rule >( fRules->Item( ii ) );
+        auto rule = NWrappers::getRule( fRules->Item( ii ) );
         if ( !rule )
             continue;
 
@@ -83,13 +83,63 @@ bool CRulesModel::loadRule( std::shared_ptr< Outlook::Rule > rule )
 
     this->appendRow( ruleItem );
 
-    loadRuleData( ruleItem, rule );
+    //loadRuleData( ruleItem, rule );
 
     return true;
 }
 
+bool CRulesModel::hasChildren( const QModelIndex &parent ) const
+{
+    if ( QStandardItemModel::hasChildren( parent ) )
+        return true;
+
+    auto loaded = beenLoaded( parent );
+    return !loaded;
+}
+
+bool CRulesModel::canFetchMore( const QModelIndex &parent ) const
+{
+    return ( parent.isValid() && hasChildren( parent ) && !beenLoaded( parent ) );
+}
+
+void CRulesModel::fetchMore( const QModelIndex &parent )
+{
+    if ( !parent.isValid() )
+        return;
+
+    auto ruleItem = getRuleItem( parent );
+    if ( !ruleItem )
+        return;
+    auto rule = fRuleMap.find( ruleItem );
+    if ( rule == fRuleMap.end() )
+        return;
+
+    loadRuleData( ruleItem, ( *rule ).second );
+}
+
+bool CRulesModel::beenLoaded( const QModelIndex &parent ) const
+{
+    if ( !parent.isValid() )
+        return false;
+
+    return beenLoaded( itemFromIndex( parent ) );
+}
+
+bool CRulesModel::beenLoaded( QStandardItem * parent ) const
+{
+    auto ruleItem = getRuleItem( parent );
+    if ( !ruleItem )
+        return false;
+
+    auto pos = fBeenLoaded.find( ruleItem );
+    return pos != fBeenLoaded.end();
+}
+
 void CRulesModel::loadRuleData( QStandardItem *ruleItem, std::shared_ptr< Outlook::Rule > rule )
 {
+    if ( beenLoaded( ruleItem ) )
+        return;
+
     addAttribute( ruleItem, "Enabled", rule->Enabled() );
     addAttribute( ruleItem, "Execution Order", rule->ExecutionOrder() );
     addAttribute( ruleItem, "Is Local", rule->IsLocalRule() );
@@ -98,6 +148,7 @@ void CRulesModel::loadRuleData( QStandardItem *ruleItem, std::shared_ptr< Outloo
     addConditions( ruleItem, rule );
     addExceptions( ruleItem, rule );
     addActions( ruleItem, rule );
+    fBeenLoaded.insert( ruleItem );
 }
 
 bool CRulesModel::updateRule( std::shared_ptr< Outlook::Rule > rule )
@@ -212,7 +263,7 @@ bool CRulesModel::addCondition( QStandardItem *parent, Outlook::ToOrFromRuleCond
     if ( !condition->Enabled() )
         return false;
 
-    auto recipients = COutlookHelpers::getRecipientEmails( condition->Recipients(), {} );
+    auto recipients = COutlookAPI::getRecipientEmails( condition->Recipients(), {} );
     addAttribute( parent, ( from ? "From" : "To" ), recipients, " or " );
     return true;
 }
@@ -298,7 +349,7 @@ bool CRulesModel::addCondition( QStandardItem *parent, Outlook::SenderInAddressL
     if ( !condition->Enabled() )
         return false;
 
-    auto addresses = COutlookHelpers::getInstance()->getEmailAddresses( condition->AddressList() );
+    auto addresses = COutlookAPI::getInstance()->getEmailAddresses( condition->AddressList() );
     addAttribute( parent, "Sender in Address List", addresses, " or " );
 
     return true;
@@ -429,7 +480,7 @@ bool CRulesModel::addAction( QStandardItem *parent, Outlook::SendRuleAction *act
     if ( !action->Enabled() )
         return false;
 
-    auto recipients = COutlookHelpers::getRecipientEmails( action->Recipients(), {} );
+    auto recipients = COutlookAPI::getRecipientEmails( action->Recipients(), {} );
 
     addAttribute( parent, actionName, recipients, " and " );
     return true;
@@ -508,7 +559,7 @@ void CRulesModel::runRule( QStandardItem *item ) const
     auto rule = getRule( item );
     if ( !rule )
         return;
-    COutlookHelpers::getInstance()->execute( rule );
+    COutlookAPI::getInstance()->execute( rule );
 }
 
 std::shared_ptr< Outlook::Rule > CRulesModel::getRule( const QModelIndex &index ) const
@@ -531,7 +582,7 @@ std::shared_ptr< Outlook::Rule > CRulesModel::getRule( QStandardItem *item ) con
 
 bool CRulesModel::addRule( const QString &destFolder, const QStringList &rules, QStringList &msgs )
 {
-    auto retVal = COutlookHelpers::getInstance()->addRule( destFolder, rules, msgs );
+    auto retVal = COutlookAPI::getInstance()->addRule( destFolder, rules, msgs );
     if ( !retVal.second )
         return retVal.second;
     loadRule( retVal.first );
@@ -540,7 +591,7 @@ bool CRulesModel::addRule( const QString &destFolder, const QStringList &rules, 
 
 bool CRulesModel::addToRule( std::shared_ptr< Outlook::Rule > rule, const QStringList &rules, QStringList &msgs )
 {
-    auto retVal = COutlookHelpers::getInstance()->addToRule( rule, rules, msgs );
+    auto retVal = COutlookAPI::getInstance()->addToRule( rule, rules, msgs );
     if ( retVal )
         updateRule( rule );
     return true;
