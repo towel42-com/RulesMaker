@@ -26,9 +26,7 @@ void CRulesView::init()
         fModel.get(), &CRulesModel::sigFinishedLoading,
         [ = ]()
         {
-            fImpl->rules->expandAll();
             fImpl->rules->resizeColumnToContents( 0 );
-            fImpl->rules->collapseAll();
             if ( fNotifyOnFinish )
                 emit sigFinishedLoading();
             fNotifyOnFinish = true;
