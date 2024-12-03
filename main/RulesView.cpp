@@ -1,7 +1,7 @@
 #include "RulesView.h"
 #include "RulesModel.h"
 #include "ui_RulesView.h"
-
+#include "MSOUTL.h"
 #include <QTimer>
 
 CRulesView::CRulesView( QWidget *parent ) :
@@ -9,10 +9,9 @@ CRulesView::CRulesView( QWidget *parent ) :
     fImpl( new Ui::CRulesView )
 {
     init();
-    
+
     if ( !parent )
         QTimer::singleShot( 0, [ = ]() { reload( true ); } );
-
 }
 
 void CRulesView::init()
@@ -58,6 +57,20 @@ bool CRulesView::ruleSelected() const
     return fModel->getRuleItem( idx ) != nullptr;
 }
 
+QString CRulesView::folderForSelectedRule() const
+{
+    auto rule = selectedRule();
+    if ( !rule )
+        return {};
+
+    auto moveAction = rule->Actions()->MoveToFolder();
+    if ( !moveAction || !moveAction->Enabled() || !moveAction->Folder() )
+        return {};
+
+    auto folderName = moveAction->Folder()->FolderPath();
+    return folderName;
+}
+
 std::shared_ptr< Outlook::Rule > CRulesView::selectedRule() const
 {
     auto idx = fImpl->rules->currentIndex();
@@ -84,7 +97,6 @@ void CRulesView::slotItemSelected( const QModelIndex &index )
     fImpl->name->setText( item->text() );
     emit sigRuleSelected();
 }
-
 
 bool CRulesView::addRule( const QString &destFolder, const QStringList &rules, QStringList &msgs )
 {

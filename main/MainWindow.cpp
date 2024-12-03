@@ -2,6 +2,7 @@
 #include "OutlookAPI.h"
 #include "OutlookSetup.h"
 #include "StatusProgress.h"
+#include "MSOUTL.h"
 
 #include "ui_MainWindow.h"
 
@@ -139,7 +140,21 @@ void CMainWindow::slotUpdateActions()
     bool folderSelected = !fImpl->folders->selectedPath().isEmpty();
 
     fImpl->actionRunRule->setEnabled( ruleSelected );
-    fImpl->actionAddToSelectedRule->setEnabled( emailSelected && ruleSelected );
+    bool folderSame = false;
+    if ( emailSelected && ruleSelected )
+    {
+        auto selectedFolder = fImpl->folders->selectedFolder();
+        if ( selectedFolder )
+        {
+            auto ruleFolder = fImpl->rules->folderForSelectedRule();
+            auto selectedFolderPath = selectedFolder->FullFolderPath();
+            folderSame = ruleFolder == selectedFolderPath;
+        }
+        else
+            folderSame = true;
+    }
+
+    fImpl->actionAddToSelectedRule->setEnabled( emailSelected && ruleSelected && folderSame );
     fImpl->actionAddRule->setEnabled( accountSelected && folderSelected && emailSelected );
 }
 

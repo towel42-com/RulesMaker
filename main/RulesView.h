@@ -30,7 +30,8 @@ public:
     void reload( bool notifyOnFinished );
     void clear();
 
-    bool ruleSelected() const;;
+    bool ruleSelected() const;
+    QString folderForSelectedRule() const;
     void runSelectedRule() const;
     std::shared_ptr< Outlook::Rule > selectedRule() const;
 
