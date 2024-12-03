@@ -8,6 +8,8 @@ namespace Ui
     class CMainWindow;
 }
 
+class QPushButton;
+class CStatusProgress;
 class QModelIndex;
 
 class CMainWindow : public QMainWindow
@@ -21,7 +23,7 @@ public:
 
     ~CMainWindow();
 
-protected slots:
+protected Q_SLOTS:
     void slotSelectServerAndInbox();
     void slotSelectServer();
     void slotReloadAll();
@@ -35,10 +37,17 @@ protected slots:
     void slotMergeRules();
     void slotSortRules();
     void slotMoveFromToAddress();
+    void slotHandleProgressToggle();
 
 protected:
+    void setupStatusBar();
+
+    CStatusProgress * addStatusBar( const QString &label, QObject *object, bool hasInc );
+
     void clearViews();
     std::unique_ptr< Ui::CMainWindow > fImpl;
+    std::map< QString, CStatusProgress * > fProgressBars;
+    QPushButton *fCancelButton{ nullptr };
 };
 
 #endif

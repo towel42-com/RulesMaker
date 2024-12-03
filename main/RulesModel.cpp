@@ -2,8 +2,6 @@
 #include "OutlookAPI.h"
 
 #include <QTimer>
-#include <QProgressDialog>
-#include <QProgressBar>
 
 #include "MSOUTL.h"
 
@@ -15,10 +13,8 @@ CRulesModel::CRulesModel( QObject *parent ) :
 void CRulesModel::reload()
 {
     clear();
+    COutlookAPI::getInstance()->slotClearCanceled();
     fRules = COutlookAPI::getInstance()->getRules( dynamic_cast< QWidget * >( parent() ) );
-    if ( !fRules )
-        return;
-
     QTimer::singleShot( 0, [ = ]() { loadRules(); } );
 }
 
@@ -44,26 +40,17 @@ void CRulesModel::loadRules()
     }
 
     auto numRules = fRules->Count();
-    QProgressDialog dlg( dynamic_cast< QWidget * >( parent() ) );
-    auto bar = new QProgressBar;
-    bar->setFormat( "(%v of %m - %p%)" );
-    dlg.setBar( bar );
-    dlg.setMinimum( 0 );
-    dlg.setMaximum( numRules );
-    dlg.setLabelText( "Loading Rules" );
-    dlg.setMinimumDuration( 0 );
-    dlg.setWindowModality( Qt::WindowModal );
-
     for ( int ii = 1; ii <= numRules; ++ii )
     {
-        dlg.setValue( ii );
-        if ( dlg.wasCanceled() )
+        emit sigSetStatus( ii, numRules );
+        if ( COutlookAPI::getInstance()->canceled() )
         {
             clear();
+            emit sigFinishedLoading();
             break;
         }
 
-        auto rule = NWrappers::getRule( fRules->Item( ii ) );
+        auto rule = COutlookAPI::getInstance()->getRule( fRules->Item( ii ) );
         if ( !rule )
             continue;
 
@@ -82,8 +69,6 @@ bool CRulesModel::loadRule( std::shared_ptr< Outlook::Rule > rule )
     fRuleMap[ ruleItem ] = rule;
 
     this->appendRow( ruleItem );
-
-    //loadRuleData( ruleItem, rule );
 
     return true;
 }

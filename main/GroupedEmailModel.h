@@ -51,11 +51,12 @@ public:
     bool processAllEmailWhenLessThan200Emails() const { return fProcessAllEmailWhenLessThan200Emails; }
 Q_SIGNALS:
     void sigFinishedGrouping();
+    void sigSetStatus( int curr, int max );
 
 private:
     void sortAll( QStandardItem *root );
     QString ruleForItem( QStandardItem *item ) const;
-    void groupMailItemsBySender( QWidget *parent );
+    void groupNextMailItemBySender();
     void addEmailAddresses( std::shared_ptr< Outlook::MailItem >, const QStringList &emails );
     void addEmailAddress( std::shared_ptr< Outlook::MailItem > mailItem, const QString &email );
     CEmailAddressSection *findOrAddEmailAddressSection( const QStringRef &curr, const QVector< QStringRef > &remaining, CEmailAddressSection *parent );
@@ -69,6 +70,7 @@ private:
     mutable std::optional< int > fCountCache;
     bool fOnlyGroupUnread{ true };
     bool fProcessAllEmailWhenLessThan200Emails{ true };
+    int fCurrPos{ 1 };
 };
 
 #endif

@@ -4,7 +4,7 @@ set(FOLDER_NAME Apps)
 
 if( NOT DUMPCPP_EXECUTABLE )
     find_program(DUMPCPP_EXECUTABLE NAMES dumpcpp
-      PATHS ${CMAKE_BINARY_DIR}/dumpcpp/RelWithDebInfo  ${CMAKE_BINARY_DIR}/dumpcpp/Release ${CMAKE_BINARY_DIR}/dumpcpp/Debug
+      PATHS ${CMAKE_BINARY_DIR}/dumpcpp/RelWithDebInfo ${CMAKE_BINARY_DIR}/dumpcpp/Release ${CMAKE_BINARY_DIR}/dumpcpp/Debug
         DOC "path to the dumpcpp executable (from build area)" 
         NO_DEFAULT_PATH
         )
@@ -35,6 +35,7 @@ set(qtproject_UIS
     MainWindow.ui
     OutlookSetup.ui
     RulesView.ui
+    StatusProgress.ui
 )
 
 set(project_SRCS
@@ -46,14 +47,14 @@ set(project_SRCS
     main.cpp
     MainWindow.cpp
     OutlookAPI.cpp
-    Wrappers.cpp
     OutlookSetup.cpp
     RulesModel.cpp
     RulesView.cpp
+    StatusProgress.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/MSOUTL.cpp
     ${MSOUTL_OLB}
 )
-
+ 
 set(qtproject_H
     GroupedEmailModel.h
     EmailView.h
@@ -65,11 +66,11 @@ set(qtproject_H
     OutlookSetup.h
     RulesModel.h
     RulesView.h
+    StatusProgress.h
 )
 
 set(project_H
     ${CMAKE_CURRENT_BINARY_DIR}/MSOUTL.h
-    Wrappers.h
 )
 
 set( project_pub_LIB_DIRS 

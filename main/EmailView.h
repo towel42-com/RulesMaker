@@ -37,8 +37,9 @@ Q_SIGNALS:
     void sigFinishedLoading();
     void sigFinishedGrouping();
     void sigRuleSelected();
+    void sigSetStatus( int curr, int max );
 
-protected slots:
+protected Q_SLOTS:
     void slotSelectionChanged();
     void slotItemDoubleClicked( const QModelIndex &idx );
 

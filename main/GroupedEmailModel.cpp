@@ -4,10 +4,6 @@
 #include "MSOUTL.h"
 
 #include <QTimer>
-#include <QProgressDialog>
-#include <QProgressBar>
-#include <QDateTime>
-#include <QDebug>
 #include <algorithm>
 
 #ifdef _DEBUG
@@ -32,11 +28,14 @@ void CGroupedEmailModel::clear()
     fDomainCache.clear();
     fEmailCache.clear();
     fCountCache.reset();
+    fCurrPos = 1;
     endResetModel();
 }
 
 void CGroupedEmailModel::reload()
 {
+    COutlookAPI::getInstance()->slotClearCanceled();
+
     beginResetModel();
     clear();
     auto folder = COutlookAPI::getInstance()->rootFolder();
@@ -54,16 +53,58 @@ void CGroupedEmailModel::reload()
         {
             auto subItems = items->Restrict( "[UNREAD]=TRUE" );
             if ( subItems )
-                fItems = NWrappers::getItems( subItems );
+                fItems = COutlookAPI::getInstance()->getItems( subItems );
         }
         if ( !fItems )
-            fItems = NWrappers::getItems( items );
+            fItems = COutlookAPI::getInstance()->getItems( items );
         if ( fItems )
             fCountCache = fItems->Count();
     }
 
     endResetModel();
-    QTimer::singleShot( 0, [ = ]() { groupMailItemsBySender( dynamic_cast< QWidget * >( parent() ) ); } );
+    fCurrPos = 1;
+    QTimer::singleShot( 0, [ = ]() { groupNextMailItemBySender(); } );
+}
+
+void CGroupedEmailModel::groupNextMailItemBySender()
+{
+    if ( !fItems || !fCountCache.has_value() )
+        return;
+
+    if ( fCurrPos > fCountCache.value() )
+        return;
+
+    emit sigSetStatus( fCurrPos, fCountCache.value() );
+    if ( COutlookAPI::getInstance()->canceled() )
+    {
+        clear();
+        emit sigFinishedGrouping();
+        return;
+    }
+
+    auto item = fItems->Item( fCurrPos );
+    if ( !item )
+        return;
+
+    if ( COutlookAPI::getObjectClass( item ) == Outlook::OlObjectClass::olMail )
+    {
+        auto mail = COutlookAPI::getInstance()->getMailItem( item );
+        addEmailAddresses( mail, COutlookAPI::getSenderEmailAddresses( mail.get() ) );
+    }
+#ifdef LIMIT_EMAIL_READ
+    if ( fCurrPos >= 100 )
+        return;
+#endif
+    if ( fCurrPos == fCountCache.value() )
+    {
+        sortAll( nullptr );
+        emit sigFinishedGrouping();
+    }
+    else
+    {
+        fCurrPos++;
+        QTimer::singleShot( 0, [ = ]() { groupNextMailItemBySender(); } );
+    }
 }
 
 void CGroupedEmailModel::setOnlyGroupUnread( bool value )
@@ -84,54 +125,6 @@ CGroupedEmailModel::~CGroupedEmailModel()
 {
 }
 
-void CGroupedEmailModel::groupMailItemsBySender( QWidget *parent )
-{
-    if ( !fItems )
-        return;
-
-    auto start = QDateTime::currentDateTime();
-
-    auto itemCount = fItems->Count();
-    QProgressDialog dlg( parent );
-    auto bar = new QProgressBar;
-    bar->setFormat( "(%v of %m - %p%)" );
-    dlg.setBar( bar );
-    dlg.setMinimum( 0 );
-    dlg.setMaximum( itemCount );
-    dlg.setLabelText( "Grouping Emails" );
-    dlg.setMinimumDuration( 0 );
-    dlg.setWindowModality( Qt::WindowModal );
-
-    for ( int ii = 1; ii <= itemCount; ++ii )
-    {
-        dlg.setValue( ii );
-        if ( dlg.wasCanceled() )
-        {
-            clear();
-            break;
-        }
-
-        auto item = fItems->Item( ii );
-        if ( !item )
-            continue;
-
-        if ( COutlookAPI::getObjectClass( item ) == Outlook::OlObjectClass::olMail )
-        {
-            auto mail = NWrappers::getMailItem( item );
-            addEmailAddresses( mail, COutlookAPI::getSenderEmailAddresses( mail.get() ) );
-        }
-#ifdef LIMIT_EMAIL_READ
-        if ( ii >= 100 )
-            break;
-#endif
-    }
-    sortAll( nullptr );
-    emit sigFinishedGrouping();
-    auto end = QDateTime::currentDateTime();
-    auto diff = start.secsTo( end );
-    qDebug() << "It took " << diff << " seconds to group emails.";
-}
-
 void CGroupedEmailModel::sortAll( QStandardItem *root )
 {
     if ( root )
@@ -140,7 +133,7 @@ void CGroupedEmailModel::sortAll( QStandardItem *root )
         sort( 0 );
 
     int count = root ? root->rowCount() : rowCount();
-    for( int ii = 0; ii < count; ++ii )
+    for ( int ii = 0; ii < count; ++ii )
     {
         auto child = root ? root->child( ii ) : item( ii );
         sortAll( child );
@@ -240,7 +233,7 @@ QStringList CGroupedEmailModel::rulesForItem( QStandardItem *item ) const
     QStringList retVal;
 
     auto rule = ruleForItem( item );
-    if ( ( item->column() == 0 ) && ( rule.indexOf( '@' ) == -1 ) ) 
+    if ( ( item->column() == 0 ) && ( rule.indexOf( '@' ) == -1 ) )
         rule = "@" + rule;
     retVal.push_back( rule );
     for ( auto &&ii = 0; ii < item->rowCount(); ++ii )

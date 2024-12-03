@@ -1,8 +1,6 @@
 #ifndef OUTLOOKHELPERS_H
 #define OUTLOOKHELPERS_H
 
-#include "Wrappers.h"
-
 #include <QObject>
 #include <memory>
 #include <list>
@@ -13,6 +11,38 @@
 class QVariant;
 class QWidget;
 struct IDispatch;
+
+namespace Outlook
+{
+    class Application;
+    class _Application;
+    class NameSpace;
+    class Account;
+    class _Account;
+    class Folder;
+    class MAPIFolder;
+    class MailItem;
+    class _MailItem;
+    class AddressEntry;
+    class AddressEntries;
+    class Recipient;
+    class Rules;
+    class _Rules;
+    class Rule;
+    class _Rule;
+    class Recipients;
+    class AddressList;
+    class Items;
+    class _Items;
+
+    enum class OlImportance;
+    enum class OlItemType;
+    enum class OlMailRecipientType;
+    enum class OlObjectClass;
+    enum class OlRuleConditionType;
+    enum class OlSensitivity;
+    enum class OlMarkInterval;
+}
 
 class COutlookAPI : public QObject
 {
@@ -35,7 +65,7 @@ public:
     std::shared_ptr< Outlook::Rules > getRules( QWidget *parent );
 
     std::shared_ptr< Outlook::Folder > rootFolder();
-    void setRootFolder( const std::shared_ptr< Outlook::Folder > & folder ) { fRootFolder = folder; }
+    void setRootFolder( const std::shared_ptr< Outlook::Folder > &folder ) { fRootFolder = folder; }
 
     std::pair< std::shared_ptr< Outlook::Folder >, bool > selectFolder( QWidget *parent, const QString &folderName, std::function< bool( const std::shared_ptr< Outlook::Folder > &folder ) > acceptFolder, std::function< bool( const std::shared_ptr< Outlook::Folder > &folder ) > checkChildFolders, bool singleOnly );
     std::pair< std::shared_ptr< Outlook::Folder >, bool > selectFolder( QWidget *parent, const QString &folderName, const std::list< std::shared_ptr< Outlook::Folder > > &folders, bool singleOnly );
@@ -43,7 +73,7 @@ public:
     std::list< std::shared_ptr< Outlook::Folder > > getFolders( bool recursive, std::function< bool( const std::shared_ptr< Outlook::Folder > &folder ) > acceptFolder = {}, std::function< bool( const std::shared_ptr< Outlook::Folder > &folder ) > checkChildFolders = {} );
     std::list< std::shared_ptr< Outlook::Folder > > getFolders( const std::shared_ptr< Outlook::Folder > &parent, bool recursive, std::function< bool( const std::shared_ptr< Outlook::Folder > &folder ) > acceptFolder = {}, std::function< bool( const std::shared_ptr< Outlook::Folder > &folder ) > checkChildFolders = {} );
 
-    int subFolderCount( const std::shared_ptr< Outlook::Folder > &parent, std::function< bool( Outlook::Folder * folder ) > acceptFolder = {} );
+    int subFolderCount( const std::shared_ptr< Outlook::Folder > &parent, std::function< bool( Outlook::Folder *folder ) > acceptFolder = {} );
     std::pair< std::shared_ptr< Outlook::Rule >, bool > addRule( const QString &destFolder, const QStringList &rules, QStringList &msg );
     bool addToRule( std::shared_ptr< Outlook::Rule > rule, const QStringList &rules, QStringList &msg );
 
@@ -82,12 +112,33 @@ public:
     QString ruleNameForFolder( Outlook::Folder *folder );
     QString ruleNameForFolder( const std::shared_ptr< Outlook::Folder > &folder );
 
+    QString folderName( Outlook::Folder *folder );
+    QString folderName( const std::shared_ptr< Outlook::Folder > &folder );
+
+    std::shared_ptr< Outlook::Rule > getRule( Outlook::_Rule *item );
+    std::shared_ptr< Outlook::Items > getItems( Outlook::_Items *item );
+    std::shared_ptr< Outlook::MailItem > getMailItem( IDispatch *item );
+    std::shared_ptr< Outlook::Folder > getFolder( Outlook::Folder *item );
+
+    bool canceled() const { return fCanceled; }
 Q_SIGNALS:
     void sigAccountChanged();
+    void sigInitStatus( const QString & label, int max );
+    void sigSetStatus( const QString &label, int curr, int max );
+    void sigIncStatusValue( const QString &label );
+
+public Q_SLOTS:
+    void slotHandleException( int code, const QString &source, const QString &desc, const QString &help );
+    void slotCanceled() { fCanceled = true; }
+    void slotClearCanceled() { fCanceled = false; }
 
 private:
+    std::shared_ptr< Outlook::Application > getApplication();
+    std::shared_ptr< Outlook::Account > getAccount( Outlook::_Account *item );
+    std::shared_ptr< Outlook::Rules > getRules( Outlook::Rules *item );
+    std::shared_ptr< Outlook::Folder > getFolder( Outlook::MAPIFolder *item );
+
     std::optional< QString > ruleNameForRule( std::shared_ptr< Outlook::Rule > rule );
-    std::optional< QString > ruleNameForRule( Outlook::Rule *rule );
     bool addRecipientsToRule( Outlook::Rule *rule, const QStringList &recipients, QStringList &msgs );
 
     std::optional< QStringList > mergeRecipients( Outlook::Rule *lhs, Outlook::Rule *rhs, QStringList *msgs );
@@ -98,16 +149,31 @@ private:
     std::pair< std::shared_ptr< Outlook::Folder >, bool > selectContacts( QWidget *parent, bool singleOnly );
     std::shared_ptr< Outlook::Rules > selectRules( QWidget *parent );
 
-    std::shared_ptr< Outlook::Application > fOutlookApp;
-    std::shared_ptr< Outlook::Account > fAccount;
-    std::shared_ptr< Outlook::Folder > fInbox;
-    std::shared_ptr< Outlook::Folder > fRootFolder;   // used for loading emails
-    std::shared_ptr< Outlook::Folder > fContacts;
-    std::shared_ptr< Outlook::Rules > fRules;
+    template< typename T >
+    T connectToException( T obj )
+    {
+        connect( obj, SIGNAL( exception( int, QString, QString, QString ) ), this, SLOT( slotHandleException( int, const QString &, const QString &, const QString & ) ) );
+        return obj;
+    }
+
+    template< typename T >
+    std::shared_ptr< T > connectToException( std::shared_ptr< T > obj )
+    {
+        connect( obj.get(), SIGNAL( exception( int, QString, QString, QString ) ), this, SLOT( slotHandleException( int, const QString &, const QString &, const QString & ) ) );
+        return obj;
+    }
+
+    std::shared_ptr< Outlook::Application > fOutlookApp{ nullptr };
+    std::shared_ptr< Outlook::Account > fAccount{ nullptr };
+    std::shared_ptr< Outlook::Folder > fInbox{ nullptr };
+    std::shared_ptr< Outlook::Folder > fRootFolder{ nullptr };   // used for loading emails
+    std::shared_ptr< Outlook::Folder > fContacts{ nullptr };
+    std::shared_ptr< Outlook::Rules > fRules{ nullptr };
 
     static std::shared_ptr< COutlookAPI > sInstance;
 
     bool fLoggedIn{ false };
+    bool fCanceled{ false };
 };
 
 QString toString( Outlook::OlItemType olItemType );

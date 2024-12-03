@@ -35,6 +35,8 @@ void CFoldersView::init()
             fNotifyOnFinish = true;
         } );
     connect( fImpl->addFolder, &QPushButton::clicked, this, &CFoldersView::slotAddFolder );
+    connect( fModel.get(), &CFoldersModel::sigIncStatusValue, this, &CFoldersView::sigIncStatusValue );
+    connect( fModel.get(), &CFoldersModel::sigSetStatus, this, &CFoldersView::sigSetStatus );
 }
 
 CFoldersView::~CFoldersView()

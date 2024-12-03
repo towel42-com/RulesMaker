@@ -20,7 +20,7 @@ public:
     ~COutlookSetup();
 
     virtual void reject() override;
-protected slots:
+protected Q_SLOTS:
     void slotSelectAccount( bool useInbox = true );
     void slotSelectFolder( bool useInbox = true );
 

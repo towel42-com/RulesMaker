@@ -1,7 +1,6 @@
 #ifndef FOLDERSDLG_H
 #define FOLDERSDLG_H
 
-#include "Wrappers.h"
 #include <QDialog>
 #include <memory>
 namespace Ui
@@ -30,7 +29,7 @@ public:
     std::shared_ptr< Outlook::Folder > selectedFolder();
 Q_SIGNALS:
 
-protected slots:
+protected Q_SLOTS:
 protected:
     std::unique_ptr< Ui::CFoldersDlg > fImpl;
 };

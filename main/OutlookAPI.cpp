@@ -13,9 +13,9 @@
 #include <QDebug>
 std::shared_ptr< COutlookAPI > COutlookAPI::sInstance;
 
-COutlookAPI::COutlookAPI() :
-    fOutlookApp( NWrappers::getApplication() )
+COutlookAPI::COutlookAPI()
 {
+    getApplication();
 }
 
 std::shared_ptr< COutlookAPI > COutlookAPI::getInstance()
@@ -91,7 +91,7 @@ std::shared_ptr< Outlook::Account > COutlookAPI::selectAccount( bool notifyOnCha
         if ( !item )
             continue;
 
-        auto account = NWrappers::getAccount( item );
+        auto account = getAccount( item );
 
         if ( account->AccountType() != Outlook::OlAccountType::olExchange )
             continue;
@@ -231,6 +231,17 @@ std::shared_ptr< Outlook::Folder > COutlookAPI::rootFolder()
     return fInbox;
 }
 
+void COutlookAPI::slotHandleException( int code, const QString &source, const QString &desc, const QString &help )
+{
+    auto msg = QString( "%1 - %2: %3" ).arg( source ).arg( code );
+    auto txt = "<br>" + desc + "</br>";
+    if ( !help.isEmpty() )
+        txt += "<br>" + help + "</br>";
+    msg = msg.arg( txt );
+
+    QMessageBox::critical( nullptr, "Exception Thrown", msg );
+}
+
 std::shared_ptr< Outlook::Rules > COutlookAPI::selectRules( QWidget *parent )
 {
     if ( !fAccount )
@@ -244,12 +255,12 @@ std::shared_ptr< Outlook::Rules > COutlookAPI::selectRules( QWidget *parent )
     if ( fAccount->isNull() )
         return {};
 
-    auto store = fAccount->DeliveryStore();
+    auto store = connectToException( fAccount->DeliveryStore() );
     if ( !store )
         return {};
 
     auto rules = store->GetRules();
-    return NWrappers::getRules( rules );
+    return getRules( rules );
 }
 
 std::pair< std::shared_ptr< Outlook::Folder >, bool > COutlookAPI::selectFolder( QWidget *parent, const QString &folderName, std::function< bool( const std::shared_ptr< Outlook::Folder > &folder ) > acceptFolder, std::function< bool( const std::shared_ptr< Outlook::Folder > &folder ) > checkChildFolders, bool singleOnly )
@@ -300,7 +311,7 @@ std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( bool re
     if ( !store )
         return {};
 
-    auto root = NWrappers::getFolder( store->GetRootFolder() );
+    auto root = getFolder( store->GetRootFolder() );
     auto retVal = getFolders( root, recursive, acceptFolder, checkChildFolders );
 
     return retVal;
@@ -317,7 +328,7 @@ std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( const s
     auto folderCount = folders->Count();
     for ( auto jj = 1; jj <= folderCount; ++jj )
     {
-        auto folder = NWrappers::getFolder( folders->Item( jj ) );
+        auto folder = getFolder( folders->Item( jj ) );
 
         bool isMatch = !acceptFolder || ( acceptFolder && acceptFolder( folder ) );
         bool cont = recursive && ( !checkChildFolders || ( checkChildFolders && checkChildFolders( folder ) ) );
@@ -401,7 +412,23 @@ QString COutlookAPI::ruleNameForFolder( Outlook::Folder *folder )
         else
             ruleName = path;
     }
+
+    ruleName = ruleName.replace( "%2F", "/" );
     return ruleName;
+}
+
+QString COutlookAPI::folderName( const std::shared_ptr< Outlook::Folder > &folder )
+{
+    return folderName( folder.get() );
+}
+
+QString COutlookAPI::folderName( Outlook::Folder *folder )
+{
+    if ( !folder )
+        return {};
+    auto retVal = folder->Name();
+    retVal = retVal.replace( "%2F", "/" );
+    return retVal;
 }
 
 std::pair< std::shared_ptr< Outlook::Rule >, bool > COutlookAPI::addRule( const QString &destFolder, const QStringList &rules, QStringList &msgs )
@@ -1003,15 +1030,22 @@ void COutlookAPI::renameRules()
         return;
 
     auto numRules = fRules->Count();
+
+    emit sigInitStatus( "Renaming Rules:", numRules );
+
     bool changed = false;
 
     for ( int ii = 1; ii <= numRules; ++ii )
     {
-        auto rule = fRules->Item( ii );
+        if ( canceled() )
+            return;
+
+        emit sigIncStatusValue( "Renaming Rules:" );
+        auto rule = getRule( fRules->Item( ii ) );
         if ( !rule )
             continue;
 
-        auto ruleName = ruleNameForRule( NWrappers::getRule( rule ) );
+        auto ruleName = ruleNameForRule( rule );
         if ( !ruleName.has_value() )
             continue;
 
@@ -1022,8 +1056,10 @@ void COutlookAPI::renameRules()
             rule->SetName( ruleName.value() );
         }
     }
+    if ( canceled() )
+        return;
     if ( changed )
-        fRules->Save();
+        fRules->Save( true );
 }
 
 std::optional< QString > COutlookAPI::ruleNameForRule( std::shared_ptr< Outlook::Rule > rule )
@@ -1053,7 +1089,6 @@ std::optional< QString > COutlookAPI::ruleNameForRule( std::shared_ptr< Outlook:
             ruleName += " (SentTo)";
     }
 
-    ruleName = ruleName.replace( "%2F", "/" );
     return ruleName;
 }
 
@@ -1062,15 +1097,23 @@ void COutlookAPI::sortRules()
     if ( !fRules )
         return;
 
-    std::list< Outlook::_Rule * > rules;
     auto numRules = fRules->Count();
+    emit sigInitStatus( "Sorting Rules:", numRules );
+
+    std::list< Outlook::_Rule * > rules;
     for ( int ii = 1; ii <= numRules; ++ii )
     {
+        if ( canceled() )
+            return;
         auto rule = fRules->Item( ii );
+        emit sigIncStatusValue( "Sorting Rules:" );
         if ( !rule )
             continue;
         rules.push_back( rule );
     }
+    if ( canceled() )
+        return;
+
     rules.sort(
         []( Outlook::_Rule *lhs, Outlook::_Rule *rhs )
         {
@@ -1085,15 +1128,26 @@ void COutlookAPI::sortRules()
             else
                 return lhsName < rhsName;
         } );
+
+    if ( canceled() )
+        return;
     bool changed = false;
     auto pos = 1;
+    emit sigSetStatus( "Sorting Rules:", pos, numRules );
+
     for ( auto &&ii : rules )
     {
+        if ( canceled() )
+            return;
+
         changed = changed || ( ii->ExecutionOrder() != pos );
         ii->SetExecutionOrder( pos++ );
+        emit sigIncStatusValue( "Sorting Rules:" );
     }
+    if ( canceled() )
+        return;
     if ( changed )
-        fRules->Save();
+        fRules->Save( true );
 }
 
 void COutlookAPI::moveFromToAddress()
@@ -1102,12 +1156,18 @@ void COutlookAPI::moveFromToAddress()
         return;
 
     auto numRules = fRules->Count();
+    emit sigInitStatus( "Fixing Rules:", numRules );
     bool changed = false;
     for ( int ii = 1; ii <= numRules; ++ii )
     {
-        auto rule = NWrappers::getRule( fRules->Item( ii ) );
+        if ( canceled() )
+            return;
+
+        auto rule = getRule( fRules->Item( ii ) );
         if ( !rule )
             continue;
+
+        emit sigIncStatusValue( "Fixing Rules:" );
 
         auto conditions = rule->Conditions();
         if ( !conditions )
@@ -1125,7 +1185,7 @@ void COutlookAPI::moveFromToAddress()
             return;
     }
     if ( changed )
-        fRules->Save();
+        fRules->Save( true );
 }
 
 void COutlookAPI::mergeRules()
@@ -1134,12 +1194,17 @@ void COutlookAPI::mergeRules()
         return;
 
     auto numRules = fRules->Count();
+    emit sigInitStatus( "Merging Rules:", numRules );
     bool changed = false;
     std::map< QString, std::shared_ptr< Outlook::Rule > > rules;
     std::list< int > toRemove;
     for ( int ii = 1; ii <= numRules; ++ii )
     {
-        auto rule = NWrappers::getRule( fRules->Item( ii ) );
+        emit sigIncStatusValue( "Merging Rules:" );
+        if ( canceled() )
+            return;
+
+        auto rule = getRule( fRules->Item( ii ) );
         if ( !rule || !rule->Enabled() )
             continue;
 
@@ -1167,6 +1232,72 @@ void COutlookAPI::mergeRules()
             toRemove.push_front( ii );
         }
     }
+    if ( canceled() )
+        return;
     for ( auto &&ii : toRemove )
+    {
+        if ( canceled() )
+            return;
         fRules->Remove( ii );
+    }
+
+    if ( !toRemove.empty() )
+        fRules->Save( true );
+}
+
+std::shared_ptr< Outlook::Application > COutlookAPI::getApplication()
+{
+    if ( !fOutlookApp )
+        fOutlookApp = connectToException( std::make_shared< Outlook::Application >() );
+    return fOutlookApp;
+}
+
+std::shared_ptr< Outlook::Account > COutlookAPI::getAccount( Outlook::_Account *item )
+{
+    if ( !item )
+        return {};
+
+    return connectToException( std::make_shared< Outlook::Account >( item ) );
+}
+
+std::shared_ptr< Outlook::MailItem > COutlookAPI::getMailItem( IDispatch *item )
+{
+    if ( !item )
+        return {};
+    return connectToException( std::make_shared< Outlook::MailItem >( item ) );
+}
+
+std::shared_ptr< Outlook::Folder > COutlookAPI::getFolder( Outlook::Folder *item )
+{
+    if ( !item )
+        return {};
+    return connectToException( std::shared_ptr< Outlook::Folder >( item ) );
+}
+
+std::shared_ptr< Outlook::Folder > COutlookAPI::getFolder( Outlook::MAPIFolder *item )
+{
+    if ( !item )
+        return {};
+    return getFolder( reinterpret_cast< Outlook::Folder * >( item ) );
+}
+
+std::shared_ptr< Outlook::Items > COutlookAPI::getItems( Outlook::_Items *item )
+{
+    if ( !item )
+        return {};
+    return connectToException( std::make_shared< Outlook::Items >( item ) );
+}
+
+std::shared_ptr< Outlook::Rules > COutlookAPI::getRules( Outlook::Rules *item )
+{
+    if ( !item )
+        return {};
+    return connectToException( std::shared_ptr< Outlook::Rules >( item ) );
+}
+
+std::shared_ptr< Outlook::Rule > COutlookAPI::getRule( Outlook::_Rule *item )
+{
+    if ( !item )
+        return {};
+    return connectToException( std::make_shared< Outlook::Rule >( item ) );
 }

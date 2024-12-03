@@ -37,6 +37,8 @@ void CEmailView::init()
                 emit sigFinishedLoading();
             fNotifyOnFinish = true;
         } );
+    connect( fGroupedModel, &CGroupedEmailModel::sigSetStatus, this, &CEmailView::sigSetStatus );
+
     setWindowTitle( QObject::tr( "Inbox Emails" ) );
 }
 

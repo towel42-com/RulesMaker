@@ -32,6 +32,7 @@ void CRulesView::init()
             fNotifyOnFinish = true;
         } );
 
+    connect( fModel.get(), &CRulesModel::sigSetStatus, this, &CRulesView::sigSetStatus );
     setWindowTitle( QObject::tr( "Rules" ) );
 }
 

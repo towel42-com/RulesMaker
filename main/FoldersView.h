@@ -3,7 +3,6 @@
 
 #include <QWidget>
 #include <memory>
-#include "Wrappers.h"
 namespace Ui
 {
     class CFoldersView;
@@ -34,11 +33,14 @@ public:
     QString selectedPath() const;
     QString selectedFullPath() const;
     std::shared_ptr< Outlook::Folder > selectedFolder() const;
+
 Q_SIGNALS:
     void sigFinishedLoading();
     void sigFolderSelected( const QString &folderPath );
+    void sigIncStatusValue();
+    void sigSetStatus( int curr, int max );
 
-protected slots:
+protected Q_SLOTS:
     void slotItemSelected( const QModelIndex &index );
     void slotAddFolder();
 

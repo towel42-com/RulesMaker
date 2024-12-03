@@ -40,8 +40,9 @@ public:
 Q_SIGNALS:
     void sigFinishedLoading();
     void sigRuleSelected();
+    void sigSetStatus( int curr, int max );
 
-protected slots:
+protected Q_SLOTS:
     void slotItemSelected( const QModelIndex &index );
 
 protected:

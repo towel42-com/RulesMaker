@@ -1,19 +1,19 @@
 #ifndef FOLDERSMODEL_H
 #define FOLDERSMODEL_H
 
-#include "Wrappers.h"
 #include <QString>
 #include <QStandardItemModel>
 
 #include <memory>
 #include <list>
 
-class QProgressDialog;
 namespace Outlook
 {
     class Folder;
     class Folders;
 }
+
+struct SCurrFolderInfo;
 
 class CFoldersModel : public QStandardItemModel
 {
@@ -41,15 +41,20 @@ public:
 
 Q_SIGNALS:
     void sigFinishedLoading();
+    void sigIncStatusValue();
+    void sigSetStatus( int curr, int max );
 
-private slots:
+private Q_SLOTS:
     void slotReload();
     void slotAddFolder( Outlook::Folder *folder );
     void slotFolderChanged( Outlook::Folder *folder );
+    void slotAddNextFolder( QStandardItem *parent );
 
 private:
-    void addSubFolders( const std::shared_ptr< Outlook::Folder > & rootFolder );
-    bool addSubFolders( QStandardItem *item, const std::shared_ptr< Outlook::Folder > & parentFolder, QProgressDialog *progress );   // returns true if progress cancelled
+    void addSubFolders( const std::shared_ptr< Outlook::Folder > &rootFolder );
+    void addSubFolders( QStandardItem *item, const std::shared_ptr< Outlook::Folder > &parentFolder, bool root );   // returns true if progress cancelled
+
+    std::unordered_map< QStandardItem *, std::unique_ptr< SCurrFolderInfo > > fFolders;
     std::unordered_map< QStandardItem *, std::shared_ptr< Outlook::Folder > > fFolderMap;
 };
 

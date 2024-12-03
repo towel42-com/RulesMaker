@@ -66,9 +66,9 @@ public:
     virtual void fetchMore( const QModelIndex &parent ) override;
     virtual bool canFetchMore( const QModelIndex &parent ) const override;
 
-
 Q_SIGNALS:
     void sigFinishedLoading();
+    void sigSetStatus( int curr, int max );
 
 private:
     bool beenLoaded( const QModelIndex &parent ) const;
