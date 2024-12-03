@@ -46,7 +46,6 @@
      <string>&amp;File</string>
     </property>
     <addaction name="actionSelectServer"/>
-    <addaction name="actionSelectServerAndRootFolder"/>
     <addaction name="separator"/>
     <addaction name="actionReloadEmail"/>
     <addaction name="actionReloadFolders"/>
@@ -61,7 +60,6 @@
      <string>&amp;Rules</string>
     </property>
     <addaction name="actionAddRule"/>
-    <addaction name="actionRunRule"/>
     <addaction name="actionAddToSelectedRule"/>
    </widget>
    <widget class="QMenu" name="menuTool">
@@ -72,6 +70,9 @@
     <addaction name="actionSortRules"/>
     <addaction name="actionMoveFromToAddress"/>
     <addaction name="actionMergeRules"/>
+    <addaction name="separator"/>
+    <addaction name="actionRunSelectedRule"/>
+    <addaction name="actionRunAllRules"/>
    </widget>
    <widget class="QMenu" name="menuSettings">
     <property name="title">
@@ -79,6 +80,7 @@
     </property>
     <addaction name="actionOnlyProcessUnread"/>
     <addaction name="actionProcessAllEmailWhenLessThan200Emails"/>
+    <addaction name="actionLoadEmailFromJunkFolder"/>
    </widget>
    <addaction name="menu_File"/>
    <addaction name="menuSettings"/>
@@ -97,7 +99,6 @@
     <bool>false</bool>
    </attribute>
    <addaction name="actionSelectServer"/>
-   <addaction name="actionSelectServerAndRootFolder"/>
    <addaction name="separator"/>
    <addaction name="actionReloadAllData"/>
    <addaction name="separator"/>
@@ -107,7 +108,8 @@
    <addaction name="separator"/>
    <addaction name="actionAddRule"/>
    <addaction name="actionAddToSelectedRule"/>
-   <addaction name="actionRunRule"/>
+   <addaction name="separator"/>
+   <addaction name="actionRunSelectedRule"/>
   </widget>
   <action name="actionSelectServer">
    <property name="text">
@@ -135,14 +137,6 @@
     <string>Add &amp;Rule...</string>
    </property>
   </action>
-  <action name="actionSelectServerAndRootFolder">
-   <property name="text">
-    <string>Select Server &amp;&amp; Root Folder...</string>
-   </property>
-   <property name="toolTip">
-    <string>Select Server &amp;&amp; Inbox</string>
-   </property>
-  </action>
   <action name="actionOnlyProcessUnread">
    <property name="checkable">
     <bool>true</bool>
@@ -159,9 +153,9 @@
     <string>Reload Email</string>
    </property>
   </action>
-  <action name="actionRunRule">
+  <action name="actionRunSelectedRule">
    <property name="text">
-    <string>Run Rule</string>
+    <string>Run Selected Rule</string>
    </property>
   </action>
   <action name="actionAddToSelectedRule">
@@ -204,10 +198,23 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Process All Email when less than 200 Emails?</string>
+    <string>Process all Email when less than 200 Emails?</string>
    </property>
    <property name="toolTip">
     <string>Process All Email when less than 200 Emails?</string>
+   </property>
+  </action>
+  <action name="actionRunAllRules">
+   <property name="text">
+    <string>Run All Rules</string>
+   </property>
+  </action>
+  <action name="actionLoadEmailFromJunkFolder">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Load Email from Junk Folder?</string>
    </property>
   </action>
  </widget>

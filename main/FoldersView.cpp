@@ -1,6 +1,7 @@
 #include "FoldersView.h"
 #include "FoldersModel.h"
 #include "ui_FoldersView.h"
+#include "OutlookAPI.h"
 
 #include <QTimer>
 
@@ -21,6 +22,8 @@ void CFoldersView::init()
 
     fModel = std::make_shared< CFoldersModel >( this );
     fImpl->folders->setModel( fModel.get() );
+    fImpl->setRootFolderBtn->setEnabled( false );
+    connect( fImpl->setRootFolderBtn, &QPushButton::clicked, this, &CFoldersView::slotSetRootFolder );
     connect( fImpl->folders->selectionModel(), &QItemSelectionModel::currentChanged, this, &CFoldersView::slotItemSelected );
     connect(
         fModel.get(), &CFoldersModel::sigFinishedLoading,
@@ -35,8 +38,17 @@ void CFoldersView::init()
             fNotifyOnFinish = true;
         } );
     connect( fImpl->addFolder, &QPushButton::clicked, this, &CFoldersView::slotAddFolder );
-    connect( fModel.get(), &CFoldersModel::sigIncStatusValue, this, &CFoldersView::sigIncStatusValue );
     connect( fModel.get(), &CFoldersModel::sigSetStatus, this, &CFoldersView::sigSetStatus );
+    connect(
+        fModel.get(), &CFoldersModel::sigSetStatus,
+        [ = ]( int curr, int max )
+        {
+            if ( ( max > 10 ) && ( curr == 1 ) || ( ( curr % 10 ) == 0 ) )
+            {
+                fImpl->folders->expand( fImpl->folders->model()->index( 0, 0 ) );
+                fImpl->folders->resizeColumnToContents( 0 );
+            }
+        } );
 }
 
 CFoldersView::~CFoldersView()
@@ -55,15 +67,28 @@ void CFoldersView::clear()
         fModel->clear();
 }
 
+void CFoldersView::clearSelection()
+{
+    fImpl->folders->clearSelection();
+    fImpl->folders->setCurrentIndex( {} );
+    slotItemSelected( {} );
+}
+
+void CFoldersView::slotSetRootFolder()
+{
+    auto idx = fImpl->folders->currentIndex();
+    if ( !idx.isValid() )
+        return;
+    auto folder = fModel->folderForItem( idx );
+    if ( !folder )
+        return;
+    COutlookAPI::getInstance()->setRootFolder( folder );
+}
+
 void CFoldersView::slotItemSelected( const QModelIndex &index )
 {
-    if ( !index.isValid() )
-    {
-        emit sigFolderSelected( QString() );
-        return;
-    }
-
-    auto currentPath = fModel->pathForItem( index );
+    auto currentPath = index.isValid() ? fModel->pathForItem( index ) : QString();
+    fImpl->setRootFolderBtn->setEnabled( index.isValid() );
     fImpl->name->setText( currentPath );
     emit sigFolderSelected( currentPath );
 }
@@ -72,7 +97,6 @@ void CFoldersView::slotAddFolder()
 {
     auto idx = fImpl->folders->currentIndex();
     fModel->addFolder( idx, this );
-    //reload( false );
 }
 
 QString CFoldersView::selectedPath() const

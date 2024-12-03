@@ -22,13 +22,13 @@ class CRulesView : public QWidget
 
 public:
     explicit CRulesView( QWidget *parent = nullptr );
+    ~CRulesView();
 
     void init();
 
-    ~CRulesView();
-
     void reload( bool notifyOnFinished );
     void clear();
+    void clearSelection();
 
     bool ruleSelected() const;
     QString folderForSelectedRule() const;

@@ -29,6 +29,7 @@ public:
 
     void reload( bool notifyOnFinished );
     void clear();
+    void clearSelection();
 
     QString selectedPath() const;
     QString selectedFullPath() const;
@@ -37,12 +38,12 @@ public:
 Q_SIGNALS:
     void sigFinishedLoading();
     void sigFolderSelected( const QString &folderPath );
-    void sigIncStatusValue();
     void sigSetStatus( int curr, int max );
 
 protected Q_SLOTS:
     void slotItemSelected( const QModelIndex &index );
     void slotAddFolder();
+    void slotSetRootFolder();
 
 protected:
     std::shared_ptr< CFoldersModel > fModel;

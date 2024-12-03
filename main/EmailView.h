@@ -17,22 +17,16 @@ class CEmailView : public QWidget
 
 public:
     explicit CEmailView( QWidget *parent = nullptr );
+    ~CEmailView();
 
     void init();
 
-    ~CEmailView();
-
     void clear();
+    void clearSelection();
     void reload( bool notifyOnFinished );
 
     QStringList getRulesForSelection() const;
-
-    void setOnlyProcessUnread( bool value );
-    bool onlyProcessUnread() const;
-
-    void setProcessAllEmailWhenLessThan200Emails( bool value );
-    bool processAllEmailWhenLessThan200Emails() const;
-
+    
 Q_SIGNALS:
     void sigFinishedLoading();
     void sigFinishedGrouping();

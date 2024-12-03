@@ -32,6 +32,16 @@ void CRulesView::init()
         } );
 
     connect( fModel.get(), &CRulesModel::sigSetStatus, this, &CRulesView::sigSetStatus );
+    connect(
+        fModel.get(), &CRulesModel::sigSetStatus,
+        [ = ]( int curr, int max )
+        {
+            if ( ( max > 10 ) && ( curr == 1 ) || ( ( curr % 10 ) == 0 ) )
+            {
+                fImpl->rules->resizeColumnToContents( 0 );
+            }
+        } );
+
     setWindowTitle( QObject::tr( "Rules" ) );
 }
 
@@ -49,6 +59,13 @@ void CRulesView::clear()
 {
     if ( fModel )
         fModel->clear();
+}
+
+void CRulesView::clearSelection()
+{
+    fImpl->rules->clearSelection();
+    fImpl->rules->setCurrentIndex( {} );
+    slotItemSelected( {} );
 }
 
 bool CRulesView::ruleSelected() const
@@ -85,16 +102,18 @@ void CRulesView::runSelectedRule() const
 
 void CRulesView::slotItemSelected( const QModelIndex &index )
 {
-    if ( !index.isValid() )
-        return;
-
     fImpl->name->clear();
-    auto item = fModel->getRuleItem( index );
-    if ( !item )
-        return;
-    auto row = item->row();
-    auto col = item->column();
-    fImpl->name->setText( item->text() );
+
+    if ( index.isValid() )
+    {
+        auto item = fModel->getRuleItem( index );
+        if ( item )
+        {
+            auto row = item->row();
+            auto col = item->column();
+            fImpl->name->setText( item->text() );
+        }
+    }
     emit sigRuleSelected();
 }
 

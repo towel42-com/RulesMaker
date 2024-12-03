@@ -14,7 +14,7 @@ void CRulesModel::reload()
 {
     clear();
     COutlookAPI::getInstance()->slotClearCanceled();
-    fRules = COutlookAPI::getInstance()->getRules( dynamic_cast< QWidget * >( parent() ) );
+    fRules = COutlookAPI::getInstance()->getRules();
     QTimer::singleShot( 0, [ = ]() { loadRules(); } );
 }
 
@@ -39,25 +39,32 @@ void CRulesModel::loadRules()
         return;
     }
 
-    auto numRules = fRules->Count();
-    for ( int ii = 1; ii <= numRules; ++ii )
+    fCurrPos = 1;
+    QTimer::singleShot( 0, this, &CRulesModel::slotLoadNextRule );
+}
+
+void CRulesModel::slotLoadNextRule()
+{
+    if ( COutlookAPI::getInstance()->canceled() )
     {
-        emit sigSetStatus( ii, numRules );
-        if ( COutlookAPI::getInstance()->canceled() )
-        {
-            clear();
-            emit sigFinishedLoading();
-            break;
-        }
-
-        auto rule = COutlookAPI::getInstance()->getRule( fRules->Item( ii ) );
-        if ( !rule )
-            continue;
-
-        loadRule( rule );
+        clear();
+        emit sigFinishedLoading();
+        return;
     }
 
-    emit sigFinishedLoading();
+    auto rule = COutlookAPI::getInstance()->getRule( fRules->Item( fCurrPos ) );
+    if ( rule )
+    {
+        loadRule( rule );
+        emit sigSetStatus( fCurrPos, fRules->Count() );
+    }
+    fCurrPos++;
+    if ( fCurrPos <= fRules->Count() )
+    {
+        QTimer::singleShot( 0, this, &CRulesModel::slotLoadNextRule );
+    }
+    else
+        emit sigFinishedLoading();
 }
 
 bool CRulesModel::loadRule( std::shared_ptr< Outlook::Rule > rule )
@@ -110,7 +117,7 @@ bool CRulesModel::beenLoaded( const QModelIndex &parent ) const
     return beenLoaded( itemFromIndex( parent ) );
 }
 
-bool CRulesModel::beenLoaded( QStandardItem * parent ) const
+bool CRulesModel::beenLoaded( QStandardItem *parent ) const
 {
     auto ruleItem = getRuleItem( parent );
     if ( !ruleItem )

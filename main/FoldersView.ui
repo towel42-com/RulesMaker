@@ -58,6 +58,13 @@
      </property>
     </spacer>
    </item>
+   <item row="2" column="5">
+    <widget class="QPushButton" name="setRootFolderBtn">
+     <property name="text">
+      <string>Set as Root Folder</string>
+     </property>
+    </widget>
+   </item>
   </layout>
  </widget>
  <tabstops>

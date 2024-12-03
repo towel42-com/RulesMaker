@@ -13,6 +13,7 @@ CGroupedEmailModel::CGroupedEmailModel( QObject *parent ) :
     QStandardItemModel( parent )
 {
     clear();
+    connect( COutlookAPI::getInstance().get(), &COutlookAPI::sigOptionChanged, this, &CGroupedEmailModel::reload );
 }
 
 void CGroupedEmailModel::clear()
@@ -38,16 +39,17 @@ void CGroupedEmailModel::reload()
 
     beginResetModel();
     clear();
-    auto folder = COutlookAPI::getInstance()->rootFolder();
+    auto folder = COutlookAPI::getInstance()->rootProcessFolder();
     if ( !folder )
         return;
+    auto fn = folder->FullFolderPath();
 
     auto items = folder->Items();
     if ( items )
     {
-        auto limitToUnread = fOnlyGroupUnread;
+        auto limitToUnread = COutlookAPI::getInstance()->onlyProcessUnread();
         if ( limitToUnread && ( items->Count() < 200 ) )
-            limitToUnread = !fProcessAllEmailWhenLessThan200Emails;
+            limitToUnread = !COutlookAPI::getInstance()->processAllEmailWhenLessThan200Emails();
 
         if ( limitToUnread )
         {
@@ -74,7 +76,6 @@ void CGroupedEmailModel::groupNextMailItemBySender()
     if ( fCurrPos > fCountCache.value() )
         return;
 
-    emit sigSetStatus( fCurrPos, fCountCache.value() );
     if ( COutlookAPI::getInstance()->canceled() )
     {
         clear();
@@ -91,6 +92,9 @@ void CGroupedEmailModel::groupNextMailItemBySender()
         auto mail = COutlookAPI::getInstance()->getMailItem( item );
         addEmailAddresses( mail, COutlookAPI::getSenderEmailAddresses( mail.get() ) );
     }
+
+    emit sigSetStatus( fCurrPos, fCountCache.value() );
+
 #ifdef LIMIT_EMAIL_READ
     if ( fCurrPos >= 100 )
         return;
@@ -105,20 +109,6 @@ void CGroupedEmailModel::groupNextMailItemBySender()
         fCurrPos++;
         QTimer::singleShot( 0, [ = ]() { groupNextMailItemBySender(); } );
     }
-}
-
-void CGroupedEmailModel::setOnlyGroupUnread( bool value )
-{
-    fOnlyGroupUnread = value;
-    if ( COutlookAPI::getInstance()->accountSelected() )
-        reload();
-}
-
-void CGroupedEmailModel::setProcessAllEmailWhenLessThan200Emails( bool value )
-{
-    fProcessAllEmailWhenLessThan200Emails = value;
-    if ( COutlookAPI::getInstance()->accountSelected() )
-        reload();
 }
 
 CGroupedEmailModel::~CGroupedEmailModel()
@@ -147,6 +137,8 @@ void CGroupedEmailModel::addEmailAddresses( std::shared_ptr< Outlook::MailItem >
 
     for ( auto &&emailAddress : emailAddresses )
     {
+        if ( emailAddress.indexOf( "bestdvibe" ) != -1 )
+            int xyz = 0;
         addEmailAddress( mailItem, emailAddress );
     }
 }

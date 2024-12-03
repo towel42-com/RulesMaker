@@ -70,6 +70,9 @@ Q_SIGNALS:
     void sigFinishedLoading();
     void sigSetStatus( int curr, int max );
 
+private Q_SLOTS:
+    void slotLoadNextRule();
+
 private:
     bool beenLoaded( const QModelIndex &parent ) const;
     bool beenLoaded( QStandardItem *parent ) const;
@@ -116,6 +119,7 @@ private:
     std::shared_ptr< Outlook::Rules > fRules{ nullptr };
     std::unordered_map< QStandardItem *, std::shared_ptr< Outlook::Rule > > fRuleMap;
     std::unordered_set< QStandardItem * > fBeenLoaded;
+    int fCurrPos{ 1 };
 };
 
 #endif

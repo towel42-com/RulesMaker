@@ -24,19 +24,25 @@ public:
     ~CMainWindow();
 
 protected Q_SLOTS:
-    void slotSelectServerAndInbox();
     void slotSelectServer();
     void slotReloadAll();
+
+    void updateWindowTitle();
+
     void slotReloadEmail();
     void slotReloadFolders();
     void slotReloadRules();
     void slotAddRule();
-    void slotRunRule();
+
+    void clearSelection();
+
+    void slotRunSelectedRule();
     void slotAddToSelectedRule();
     void slotRenameRules();
     void slotMergeRules();
     void slotSortRules();
     void slotMoveFromToAddress();
+    void slotRunAllRules();
     void slotHandleProgressToggle();
 
 protected:

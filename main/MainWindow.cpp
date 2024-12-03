@@ -1,12 +1,10 @@
 #include "MainWindow.h"
 #include "OutlookAPI.h"
-#include "OutlookSetup.h"
 #include "StatusProgress.h"
 #include "MSOUTL.h"
 
 #include "ui_MainWindow.h"
 
-#include <QSettings>
 #include <QTimer>
 #include <QMessageBox>
 #include <QPushButton>
@@ -17,6 +15,8 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     QMainWindow( parent ),
     fImpl( new Ui::CMainWindow )
 {
+    auto api = COutlookAPI::getInstance( this );
+
     fImpl->setupUi( this );
 
     connect( fImpl->actionSelectServer, &QAction::triggered, this, &CMainWindow::slotSelectServer );
@@ -31,28 +31,33 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     connect( fImpl->actionMergeRules, &QAction::triggered, this, &CMainWindow::slotMergeRules );
     connect( fImpl->actionMoveFromToAddress, &QAction::triggered, this, &CMainWindow::slotMoveFromToAddress );
 
-    connect( fImpl->actionSelectServerAndRootFolder, &QAction::triggered, this, &CMainWindow::slotSelectServerAndInbox );
     connect( fImpl->actionAddRule, &QAction::triggered, this, &CMainWindow::slotAddRule );
-    connect( fImpl->actionRunRule, &QAction::triggered, this, &CMainWindow::slotRunRule );
+    connect( fImpl->actionRunSelectedRule, &QAction::triggered, this, &CMainWindow::slotRunSelectedRule );
+    connect( fImpl->actionRunAllRules, &QAction::triggered, this, &CMainWindow::slotRunAllRules );
     connect( fImpl->actionAddToSelectedRule, &QAction::triggered, this, &CMainWindow::slotAddToSelectedRule );
 
     connect(
         fImpl->actionProcessAllEmailWhenLessThan200Emails, &QAction::changed,
         [ = ]()
         {
-            QSettings settings;
-            settings.setValue( "ProcessAllEmailWhenLessThan200Emails", fImpl->actionProcessAllEmailWhenLessThan200Emails->isChecked() );
-            fImpl->email->setProcessAllEmailWhenLessThan200Emails( fImpl->actionProcessAllEmailWhenLessThan200Emails->isChecked() );
+            api->setProcessAllEmailWhenLessThan200Emails( fImpl->actionProcessAllEmailWhenLessThan200Emails->isChecked() );
         } );
 
     connect(
         fImpl->actionOnlyProcessUnread, &QAction::changed,
         [ = ]()
         {
-            QSettings settings;
-            settings.setValue( "OnlyProcessUnread", fImpl->actionOnlyProcessUnread->isChecked() );
-            fImpl->email->setOnlyProcessUnread( fImpl->actionOnlyProcessUnread->isChecked() );
+            api->setOnlyProcessUnread( fImpl->actionOnlyProcessUnread->isChecked() );
         } );
+
+    connect(
+        fImpl->actionLoadEmailFromJunkFolder, &QAction::changed,
+        [ = ]()
+        {
+            api->setLoadEmailFromJunkFolder( fImpl->actionLoadEmailFromJunkFolder->isChecked() );
+        } );
+
+    connect( COutlookAPI::getInstance().get(), &COutlookAPI::sigOptionChanged, this, &CMainWindow::updateWindowTitle );
 
     connect( fImpl->folders, &CFoldersView::sigFolderSelected, this, &CMainWindow::slotUpdateActions );
     connect( fImpl->email, &CEmailView::sigRuleSelected, this, &CMainWindow::slotUpdateActions );
@@ -62,7 +67,6 @@ CMainWindow::CMainWindow( QWidget *parent ) :
 
     setWindowTitle( QObject::tr( "Rules Maker" ) );
 
-    auto api = COutlookAPI::getInstance();
     connect(
         api.get(), &COutlookAPI::sigAccountChanged,
         [ = ]()
@@ -108,12 +112,11 @@ CMainWindow::CMainWindow( QWidget *parent ) :
 
     slotUpdateActions();
 
-    QSettings settings;
-    fImpl->email->setOnlyProcessUnread( settings.value( "OnlyProcessUnread", true ).toBool() );
-    fImpl->email->setProcessAllEmailWhenLessThan200Emails( settings.value( "ProcessAllEmailWhenLessThan200Emails", true ).toBool() );
-    settings.setValue( "ProcessAllEmailWhenLessThan200Emails", fImpl->actionProcessAllEmailWhenLessThan200Emails->isChecked() );
-    fImpl->actionProcessAllEmailWhenLessThan200Emails->setChecked( fImpl->email->processAllEmailWhenLessThan200Emails() );
-    fImpl->actionOnlyProcessUnread->setChecked( fImpl->email->onlyProcessUnread() );
+    fImpl->actionProcessAllEmailWhenLessThan200Emails->setChecked( api->processAllEmailWhenLessThan200Emails() );
+    fImpl->actionOnlyProcessUnread->setChecked( api->onlyProcessUnread() );
+    fImpl->actionLoadEmailFromJunkFolder->setChecked( api->loadEmailFromJunkFolder() );
+
+    updateWindowTitle();
 
     QTimer::singleShot( 0, [ = ]() { slotSelectServer(); } );
 }
@@ -134,12 +137,13 @@ void CMainWindow::slotUpdateActions()
     fImpl->actionSortRules->setEnabled( accountSelected );
     fImpl->actionRenameRules->setEnabled( accountSelected );
     fImpl->actionMoveFromToAddress->setEnabled( accountSelected );
+    fImpl->actionRunAllRules->setEnabled( accountSelected );
 
     bool emailSelected = !fImpl->email->getRulesForSelection().isEmpty();
     bool ruleSelected = fImpl->rules->ruleSelected();
     bool folderSelected = !fImpl->folders->selectedPath().isEmpty();
 
-    fImpl->actionRunRule->setEnabled( ruleSelected );
+    fImpl->actionRunSelectedRule->setEnabled( ruleSelected );
     bool folderSame = false;
     if ( emailSelected && ruleSelected )
     {
@@ -169,8 +173,18 @@ void CMainWindow::slotAddRule()
     {
         QMessageBox::critical( this, "Error", "Could not create rule\n" + msgs.join( "\n" ) );
     }
+    clearSelection();
     slotReloadEmail();
+    slotReloadRules();
     qApp->restoreOverrideCursor();
+}
+
+void CMainWindow::clearSelection()
+{
+    fImpl->folders->clearSelection();
+    fImpl->email->clearSelection();
+    fImpl->rules->clearSelection();
+    slotUpdateActions();
 }
 
 void CMainWindow::slotAddToSelectedRule()
@@ -181,9 +195,11 @@ void CMainWindow::slotAddToSelectedRule()
     QStringList msgs;
     if ( !fImpl->rules->addToSelectedRule( rules, msgs ) )
     {
-        QMessageBox::critical( this, "Error", "Could not create rule\n" + msgs.join( "\n" ) );
+        QMessageBox::critical( this, "Error", "Could not modify rule\n" + msgs.join( "\n" ) );
     }
+    clearSelection();
     slotReloadEmail();
+    slotReloadRules();
     qApp->restoreOverrideCursor();
 }
 
@@ -219,7 +235,15 @@ void CMainWindow::slotMoveFromToAddress()
     qApp->restoreOverrideCursor();
 }
 
-void CMainWindow::slotRunRule()
+void CMainWindow::slotRunAllRules()
+{
+    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    COutlookAPI::getInstance()->runRulesOnSPAM();
+    slotReloadEmail();
+    qApp->restoreOverrideCursor();
+}
+
+void CMainWindow::slotRunSelectedRule()
 {
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
     fImpl->rules->runSelectedRule();
@@ -230,16 +254,26 @@ void CMainWindow::slotRunRule()
 void CMainWindow::slotReloadAll()
 {
     clearViews();
-    auto windowTitle = tr( "Outlook Rules Maker" );
+    updateWindowTitle();
     if ( COutlookAPI::getInstance()->accountSelected() )
     {
         fImpl->folders->reload( true );
         fImpl->rules->reload( true );
         fImpl->email->reload( true );
+    }
+
+    slotUpdateActions();
+}
+
+void CMainWindow::updateWindowTitle()
+{
+    auto windowTitle = tr( "Outlook Rules Maker" );
+    if ( COutlookAPI::getInstance()->accountSelected() )
+    {
         windowTitle += tr( " - %1" ).arg( COutlookAPI::getInstance()->accountName() );
+        windowTitle += tr( " - %1" ).arg( COutlookAPI::getInstance()->rootProcessFolderName() );
     }
     setWindowTitle( windowTitle );
-    slotUpdateActions();
 }
 
 void CMainWindow::slotReloadEmail()
@@ -275,19 +309,13 @@ void CMainWindow::clearViews()
 
 void CMainWindow::slotSelectServer()
 {
-    clearViews();
-    auto account = COutlookAPI::getInstance()->selectAccount( false, this );
+    auto account = COutlookAPI::getInstance()->selectAccount( false );
     if ( !account )
         return;
-    slotReloadAll();
-}
 
-void CMainWindow::slotSelectServerAndInbox()
-{
+    updateWindowTitle();
     clearViews();
-    COutlookSetup dlg;
-    if ( dlg.exec() == QDialog::Accepted )
-        slotReloadAll();
+    slotReloadAll();
 }
 
 void CMainWindow::slotHandleProgressToggle()
@@ -325,7 +353,7 @@ void CMainWindow::setupStatusBar()
     if ( !fProgressBars.empty() )
         return;
 
-    addStatusBar( "Loading Folders:", fImpl->folders, true );
+    addStatusBar( "Loading Folders:", fImpl->folders, false );
     addStatusBar( "Grouping Emails:", fImpl->email, false );
     addStatusBar( "Loading Rules:", fImpl->rules, false );
 

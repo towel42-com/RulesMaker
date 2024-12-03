@@ -38,6 +38,25 @@ void CEmailView::init()
             fNotifyOnFinish = true;
         } );
     connect( fGroupedModel, &CGroupedEmailModel::sigSetStatus, this, &CEmailView::sigSetStatus );
+    connect(
+        fGroupedModel, &CGroupedEmailModel::sigSetStatus,
+        [ = ]( int curr, int max )
+        {
+            if ( ( max > 100 ) && ( curr == 1 ) || ( ( curr % 100 ) == 0 ) )
+            {
+                auto model = fImpl->groupedEmails->model();
+                auto root = model->index( 0, 0 );
+                fImpl->groupedEmails->expand( root );
+                auto numRows = model->rowCount( root );
+                for ( int ii = 0; ii < numRows; ++ii )
+                {
+                    auto idx = model->index( ii, 0, root );
+                    fImpl->groupedEmails->expand( idx );
+                }
+
+                fImpl->groupedEmails->resizeColumnToContents( 0 );
+            }
+        } );
 
     setWindowTitle( QObject::tr( "Inbox Emails" ) );
 }
@@ -52,12 +71,16 @@ void CEmailView::clear()
         fGroupedModel->clear();
 }
 
+void CEmailView::clearSelection()
+{
+    fImpl->groupedEmails->clearSelection();
+    fImpl->groupedEmails->setCurrentIndex( {} );
+    slotSelectionChanged();
+}
+
 void CEmailView::slotSelectionChanged()
 {
     auto rules = getRulesForSelection();
-    if ( rules.empty() )
-        return;
-
     fImpl->rule->setText( rules.join( " or " ) );
     emit sigRuleSelected();
 }
@@ -102,24 +125,4 @@ void CEmailView::reload( bool notifyOnFinish )
 {
     fNotifyOnFinish = notifyOnFinish;
     fGroupedModel->reload();
-}
-
-void CEmailView::setOnlyProcessUnread( bool value )
-{
-    fGroupedModel->setOnlyGroupUnread( value );
-}
-
-bool CEmailView::onlyProcessUnread() const
-{
-    return fGroupedModel->onlyGroupUnread();
-}
-
-void CEmailView::setProcessAllEmailWhenLessThan200Emails( bool value )
-{
-    fGroupedModel->setProcessAllEmailWhenLessThan200Emails( value );
-}
-
-bool CEmailView::processAllEmailWhenLessThan200Emails() const
-{
-    return fGroupedModel->processAllEmailWhenLessThan200Emails();
 }

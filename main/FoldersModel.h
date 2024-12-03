@@ -41,7 +41,6 @@ public:
 
 Q_SIGNALS:
     void sigFinishedLoading();
-    void sigIncStatusValue();
     void sigSetStatus( int curr, int max );
 
 private Q_SLOTS:
@@ -52,10 +51,13 @@ private Q_SLOTS:
 
 private:
     void addSubFolders( const std::shared_ptr< Outlook::Folder > &rootFolder );
-    void addSubFolders( QStandardItem *item, const std::shared_ptr< Outlook::Folder > &parentFolder, bool root );   // returns true if progress cancelled
+    void addSubFolders( QStandardItem *item, const std::shared_ptr< Outlook::Folder > &parentFolder );
 
     std::unordered_map< QStandardItem *, std::unique_ptr< SCurrFolderInfo > > fFolders;
     std::unordered_map< QStandardItem *, std::shared_ptr< Outlook::Folder > > fFolderMap;
+
+    int fCurrFolderNum{ 0 };
+    int fNumFolders{ 0 };
 };
 
 #endif
