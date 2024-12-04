@@ -1,4 +1,4 @@
-set(_PROJECT_NAME dumpcpp)
+set(_PROJECT_NAME sab_dumpcpp)
 set(FOLDER_NAME Apps)
 
 
