@@ -10,6 +10,7 @@ IncludeProjectSettings()
 add_executable( ${PROJECT_NAME} WIN32
                 ${_PROJECT_DEPENDENCIES} 
                 ${_CMAKE_MODULE_FILES}
+                resources/application.rc 
           )
 
 set ( DEBUG_PATH 
@@ -33,11 +34,12 @@ target_link_directories( ${PROJECT_NAME}
 
 target_link_libraries( ${PROJECT_NAME}
     PUBLIC
-       ${project_pub_DEPS} Qt5::Widgets
+       ${project_pub_DEPS} Qt5::Widgets Qt5::AxContainer 
     PRIVATE 
        ${project_pri_DEPS}
 )
 
 DeploySystem( ${PROJECT_NAME} . INSTALL_ONLY 1 )
+DeployQt( ${PROJECT_NAME} .)
 INSTALL( TARGETS ${PROJECT_NAME} RUNTIME DESTINATION . )
 INSTALL( FILES ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/${PROJECT_NAME}.pdb DESTINATION . CONFIGURATIONS Debug RelWithDebInfo )

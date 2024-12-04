@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.22)
 
 find_package(IncludeProjectSettings REQUIRED)
+find_package(Deploy REQUIRED)
+
 include( ${CMAKE_CURRENT_LIST_DIR}/include.cmake )
 project( ${_PROJECT_NAME} )
 IncludeProjectSettings()
@@ -31,9 +33,13 @@ target_link_directories( ${PROJECT_NAME}
 
 target_link_libraries( ${PROJECT_NAME}
     PUBLIC
-       ${project_pub_DEPS} Qt5::Widgets
+       ${project_pub_DEPS} Qt5::Widgets Qt5::AxContainer 
     PRIVATE 
-       ${project_pri_DEPS}
+       ${project_pri_DEPS} 
 )
 
+DeploySystem( ${PROJECT_NAME} . INSTALL_ONLY 1 )
+DeployQt( ${PROJECT_NAME} .)
+INSTALL( TARGETS ${PROJECT_NAME} RUNTIME DESTINATION . )
+INSTALL( FILES ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/${PROJECT_NAME}.pdb DESTINATION . CONFIGURATIONS Debug RelWithDebInfo )
 
