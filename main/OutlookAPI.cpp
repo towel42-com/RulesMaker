@@ -420,9 +420,12 @@ std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( const s
     return retVal;
 }
 
-int COutlookAPI::subFolderCount( const std::shared_ptr< Outlook::Folder > &parent, bool recursive )
+int COutlookAPI::recursiveSubFolderCount( const Outlook::Folder *parent )
 {
-    return subFolderCount( parent.get(), recursive );
+    emit sigInitStatus( "Counting Folders:", 0 );
+    auto retVal = subFolderCount( parent, true );
+    emit sigStatusFinished( "Counting Folders:" );
+    return retVal;
 }
 
 int COutlookAPI::subFolderCount( const Outlook::Folder *parent, bool recursive )
@@ -430,11 +433,13 @@ int COutlookAPI::subFolderCount( const Outlook::Folder *parent, bool recursive )
     if ( !parent )
         return 0;
 
+    if ( !recursive )
+        emit sigInitStatus( "Counting Folders:", 0 );
+
     auto folders = parent->Folders();
     auto folderCount = folders->Count();
 
     int retVal = folderCount;
-    emit sigInitStatus( "Counting Folders:", 0 );
     for ( auto jj = 1; recursive && ( jj <= folderCount ); ++jj )
     {
         auto folder = reinterpret_cast< Outlook::Folder * >( folders->Item( jj ) );
@@ -442,7 +447,10 @@ int COutlookAPI::subFolderCount( const Outlook::Folder *parent, bool recursive )
             continue;
         retVal += subFolderCount( folder, recursive );
     }
-    emit sigStatusFinished( "Counting Folders:" );
+
+    if ( !recursive )
+        emit sigStatusFinished( "Counting Folders:" );
+
     return retVal;
 }
 
@@ -507,37 +515,12 @@ QString COutlookAPI::folderName( Outlook::Folder *folder )
     return retVal;
 }
 
-std::pair< std::shared_ptr< Outlook::Rule >, bool > COutlookAPI::addRule( const QString &destFolder, const QStringList &rules, QStringList &msgs )
+std::pair< std::shared_ptr< Outlook::Rule >, bool > COutlookAPI::addRule( const std::shared_ptr< Outlook::Folder > &folder, const QStringList &rules, QStringList &msgs )
 {
-    auto retVal = std::make_pair( std::shared_ptr< Outlook::Rule >(), false );
-    if ( destFolder.isEmpty() || rules.isEmpty() || !fRules )
-    {
-        msgs.push_back( "Parameters not set" );
+    auto retVal = std::pair< std::shared_ptr< Outlook::Rule >, bool >();
+    if ( !folder )
         return retVal;
-    }
 
-    auto &&folders = getFolders(
-        true,
-        [ = ]( std::shared_ptr< Outlook::Folder > folder )
-        {
-            if ( !folder )
-                return false;
-            auto curr = folder->FullFolderPath();
-            return ( curr == destFolder );
-        },
-        [ = ]( std::shared_ptr< Outlook::Folder > folder )
-        {
-            if ( !folder )
-                return false;
-            auto curr = folder->FullFolderPath();
-            return destFolder.startsWith( curr );
-        } );
-    if ( folders.empty() )
-    {
-        msgs.push_back( QString( "Could not find folder '%1'" ).arg( destFolder ) );
-        return retVal;
-    }
-    auto folder = folders.front();
     auto ruleName = ruleNameForFolder( folder );
 
     auto rule = std::shared_ptr< Outlook::Rule >( fRules->Create( ruleName, Outlook::OlRuleType::olRuleReceive ) );

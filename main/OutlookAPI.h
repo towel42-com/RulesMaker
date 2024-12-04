@@ -82,9 +82,11 @@ public:
     std::list< std::shared_ptr< Outlook::Folder > > getFolders( bool recursive, std::function< bool( const std::shared_ptr< Outlook::Folder > &folder ) > acceptFolder = {}, std::function< bool( const std::shared_ptr< Outlook::Folder > &folder ) > checkChildFolders = {} );
     std::list< std::shared_ptr< Outlook::Folder > > getFolders( const std::shared_ptr< Outlook::Folder > &parent, bool recursive, std::function< bool( const std::shared_ptr< Outlook::Folder > &folder ) > acceptFolder = {}, std::function< bool( const std::shared_ptr< Outlook::Folder > &folder ) > checkChildFolders = {} );
 
+    int recursiveSubFolderCount( const Outlook::Folder *parent );
+
     int subFolderCount( const Outlook::Folder *parent, bool recursive );
-    int subFolderCount( const std::shared_ptr< Outlook::Folder > &parent, bool recursive );
-    std::pair< std::shared_ptr< Outlook::Rule >, bool > addRule( const QString &destFolder, const QStringList &rules, QStringList &msg );
+
+    std::pair< std::shared_ptr< Outlook::Rule >, bool > addRule( const std::shared_ptr< Outlook::Folder > &folder, const QStringList &rules, QStringList &msgs );
 
     void saveRules();
 
