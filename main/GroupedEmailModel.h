@@ -19,7 +19,7 @@ namespace Outlook
 class CEmailAddressSection : public QStandardItem
 {
 public:
-    CEmailAddressSection(){};
+    CEmailAddressSection() {};
 
     CEmailAddressSection( const QString &itemName ) :
         QStandardItem( itemName )
@@ -37,22 +37,23 @@ public:
     explicit CGroupedEmailModel( QObject *parent );
     virtual ~CGroupedEmailModel();
 
-
     void reload();
     void clear();
 
     std::shared_ptr< Outlook::MailItem > emailItemFromIndex( const QModelIndex &idx ) const;
     QStringList rulesForIndex( const QModelIndex &idx ) const;
     QStringList rulesForItem( QStandardItem *item ) const;
-    
+
 Q_SIGNALS:
     void sigFinishedGrouping();
     void sigSetStatus( int curr, int max );
 
+private Q_SLOTS:
+    void slotGroupNextMailItemBySender();
+
 private:
     void sortAll( QStandardItem *root );
     QString ruleForItem( QStandardItem *item ) const;
-    void groupNextMailItemBySender();
     void addEmailAddresses( std::shared_ptr< Outlook::MailItem >, const QStringList &emails );
     void addEmailAddress( std::shared_ptr< Outlook::MailItem > mailItem, const QString &email );
     CEmailAddressSection *findOrAddEmailAddressSection( const QStringRef &curr, const QVector< QStringRef > &remaining, CEmailAddressSection *parent );

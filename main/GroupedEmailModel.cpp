@@ -65,10 +65,10 @@ void CGroupedEmailModel::reload()
 
     endResetModel();
     fCurrPos = 1;
-    QTimer::singleShot( 0, [ = ]() { groupNextMailItemBySender(); } );
+    QTimer::singleShot( 0, this, &CGroupedEmailModel::slotGroupNextMailItemBySender );
 }
 
-void CGroupedEmailModel::groupNextMailItemBySender()
+void CGroupedEmailModel::slotGroupNextMailItemBySender()
 {
     if ( !fItems || !fCountCache.has_value() )
         return;
@@ -107,7 +107,7 @@ void CGroupedEmailModel::groupNextMailItemBySender()
     else
     {
         fCurrPos++;
-        QTimer::singleShot( 0, [ = ]() { groupNextMailItemBySender(); } );
+        QTimer::singleShot( 0, this, &CGroupedEmailModel::slotGroupNextMailItemBySender );
     }
 }
 
