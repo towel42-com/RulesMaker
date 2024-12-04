@@ -29,6 +29,7 @@ UNSET( qtproject_CPPMOC_H )
 UNSET( qtproject_QRC_SRCS )
 QT5_WRAP_CPP(qtproject_MOC_SRCS ${qtproject_H})
 QT5_WRAP_UI(qtproject_UIS_H ${qtproject_UIS})
+QT5_ADD_RESOURCES( qtproject_QRC_SRCS ${qtproject_QRC} )
 
 source_group("Generated Files" FILES ${qtproject_UIS_H} ${qtproject_MOC_SRCS} ${qtproject_QRC_SRCS} ${qtproject_CPPMOC_H})
 source_group("Resource Files"  FILES ${qtproject_QRC} ${qtproject_QRC_SOURCES} )
