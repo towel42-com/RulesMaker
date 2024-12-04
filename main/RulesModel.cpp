@@ -255,7 +255,7 @@ bool CRulesModel::addCondition( QStandardItem *parent, Outlook::ToOrFromRuleCond
     if ( !condition->Enabled() )
         return false;
 
-    auto recipients = COutlookAPI::getRecipientEmails( condition->Recipients(), {} );
+    auto recipients = COutlookAPI::getRecipientEmails( condition->Recipients(), {}, false );
     addAttribute( parent, ( from ? "From" : "To" ), recipients, " or " );
     return true;
 }
@@ -341,7 +341,7 @@ bool CRulesModel::addCondition( QStandardItem *parent, Outlook::SenderInAddressL
     if ( !condition->Enabled() )
         return false;
 
-    auto addresses = COutlookAPI::getInstance()->getEmailAddresses( condition->AddressList() );
+    auto addresses = COutlookAPI::getInstance()->getEmailAddresses( condition->AddressList(), false );
     addAttribute( parent, "Sender in Address List", addresses, " or " );
 
     return true;
@@ -472,7 +472,7 @@ bool CRulesModel::addAction( QStandardItem *parent, Outlook::SendRuleAction *act
     if ( !action->Enabled() )
         return false;
 
-    auto recipients = COutlookAPI::getRecipientEmails( action->Recipients(), {} );
+    auto recipients = COutlookAPI::getRecipientEmails( action->Recipients(), {}, false );
 
     addAttribute( parent, actionName, recipients, " and " );
     return true;

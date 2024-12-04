@@ -5,7 +5,7 @@
 #include <QTimer>
 
 CRulesView::CRulesView( QWidget *parent ) :
-    QWidget( parent ),
+    CWidgetWithStatus( parent ),
     fImpl( new Ui::CRulesView )
 {
     init();
@@ -17,12 +17,14 @@ CRulesView::CRulesView( QWidget *parent ) :
 void CRulesView::init()
 {
     fImpl->setupUi( this );
+    setStatusLabel( "Loading Rules:" );
 
-    fModel = std::make_shared< CRulesModel >( this );
-    fImpl->rules->setModel( fModel.get() );
+
+    fModel = new CRulesModel( this );
+    fImpl->rules->setModel( fModel );
     connect( fImpl->rules->selectionModel(), &QItemSelectionModel::currentChanged, this, &CRulesView::slotItemSelected );
     connect(
-        fModel.get(), &CRulesModel::sigFinishedLoading,
+        fModel, &CRulesModel::sigFinishedLoading,
         [ = ]()
         {
             fImpl->rules->resizeColumnToContents( 0 );
@@ -31,9 +33,9 @@ void CRulesView::init()
             fNotifyOnFinish = true;
         } );
 
-    connect( fModel.get(), &CRulesModel::sigSetStatus, this, &CRulesView::sigSetStatus );
+    connect( fModel, &CRulesModel::sigSetStatus, [ = ]( int curr, int max ) { emit sigSetStatus( statusLabel(), curr, max ); } );
     connect(
-        fModel.get(), &CRulesModel::sigSetStatus,
+        fModel, &CRulesModel::sigSetStatus,
         [ = ]( int curr, int max )
         {
             if ( ( max > 10 ) && ( curr == 1 ) || ( ( curr % 10 ) == 0 ) )

@@ -6,7 +6,7 @@
 #include <QTimer>
 
 CFoldersView::CFoldersView( QWidget *parent ) :
-    QWidget( parent ),
+    CWidgetWithStatus( parent ),
     fImpl( new Ui::CFoldersView )
 {
     init();
@@ -18,15 +18,15 @@ CFoldersView::CFoldersView( QWidget *parent ) :
 void CFoldersView::init()
 {
     fImpl->setupUi( this );
-    setWindowTitle( QObject::tr( "Folders" ) );
+    setStatusLabel( "Loading Folders:" );
 
-    fModel = std::make_shared< CFoldersModel >( this );
-    fImpl->folders->setModel( fModel.get() );
+    fModel = new CFoldersModel( this );
+    fImpl->folders->setModel( fModel );
     fImpl->setRootFolderBtn->setEnabled( false );
     connect( fImpl->setRootFolderBtn, &QPushButton::clicked, this, &CFoldersView::slotSetRootFolder );
     connect( fImpl->folders->selectionModel(), &QItemSelectionModel::currentChanged, this, &CFoldersView::slotItemSelected );
     connect(
-        fModel.get(), &CFoldersModel::sigFinishedLoading,
+        fModel, &CFoldersModel::sigFinishedLoading,
         [ = ]()
         {
             fImpl->folders->expandAll();
@@ -38,9 +38,9 @@ void CFoldersView::init()
             fNotifyOnFinish = true;
         } );
     connect( fImpl->addFolder, &QPushButton::clicked, this, &CFoldersView::slotAddFolder );
-    connect( fModel.get(), &CFoldersModel::sigSetStatus, this, &CFoldersView::sigSetStatus );
+    connect( fModel, &CFoldersModel::sigSetStatus, [ = ]( int curr, int max ) { emit sigSetStatus( statusLabel(), curr, max ); } );
     connect(
-        fModel.get(), &CFoldersModel::sigSetStatus,
+        fModel, &CFoldersModel::sigSetStatus,
         [ = ]( int curr, int max )
         {
             if ( ( max > 10 ) && ( curr == 1 ) || ( ( curr % 10 ) == 0 ) )

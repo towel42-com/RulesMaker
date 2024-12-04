@@ -10,6 +10,7 @@
 #include <QPushButton>
 #include <QCursor>
 #include <QApplication>
+#include <QToolButton>
 
 CMainWindow::CMainWindow( QWidget *parent ) :
     QMainWindow( parent ),
@@ -36,26 +37,11 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     connect( fImpl->actionRunAllRules, &QAction::triggered, this, &CMainWindow::slotRunAllRules );
     connect( fImpl->actionAddToSelectedRule, &QAction::triggered, this, &CMainWindow::slotAddToSelectedRule );
 
-    connect(
-        fImpl->actionProcessAllEmailWhenLessThan200Emails, &QAction::changed,
-        [ = ]()
-        {
-            api->setProcessAllEmailWhenLessThan200Emails( fImpl->actionProcessAllEmailWhenLessThan200Emails->isChecked() );
-        } );
+    connect( fImpl->actionProcessAllEmailWhenLessThan200Emails, &QAction::changed, [ = ]() { api->setProcessAllEmailWhenLessThan200Emails( fImpl->actionProcessAllEmailWhenLessThan200Emails->isChecked() ); } );
 
-    connect(
-        fImpl->actionOnlyProcessUnread, &QAction::changed,
-        [ = ]()
-        {
-            api->setOnlyProcessUnread( fImpl->actionOnlyProcessUnread->isChecked() );
-        } );
+    connect( fImpl->actionOnlyProcessUnread, &QAction::changed, [ = ]() { api->setOnlyProcessUnread( fImpl->actionOnlyProcessUnread->isChecked() ); } );
 
-    connect(
-        fImpl->actionLoadEmailFromJunkFolder, &QAction::changed,
-        [ = ]()
-        {
-            api->setLoadEmailFromJunkFolder( fImpl->actionLoadEmailFromJunkFolder->isChecked() );
-        } );
+    connect( fImpl->actionLoadEmailFromJunkFolder, &QAction::changed, [ = ]() { api->setLoadEmailFromJunkFolder( fImpl->actionLoadEmailFromJunkFolder->isChecked() ); } );
 
     connect( COutlookAPI::getInstance().get(), &COutlookAPI::sigOptionChanged, this, &CMainWindow::updateWindowTitle );
 
@@ -75,40 +61,12 @@ CMainWindow::CMainWindow( QWidget *parent ) :
             slotReloadAll();
         } );
 
-    connect(
-        api.get(), &COutlookAPI::sigInitStatus,
-        [ = ]( const QString &label, int max )
-        {
-            CStatusProgress *bar = nullptr;
-            auto pos = fProgressBars.find( label );
-            if ( pos == fProgressBars.end() )
-                bar = addStatusBar( label, nullptr, true );
-            else
-                bar = ( *pos ).second;
-            bar->setRange( 0, max );
-        } );
-    connect(
-        api.get(), &COutlookAPI::sigSetStatus,
-        [ = ]( const QString &label, int curr, int max )
-        {
-            auto pos = fProgressBars.find( label );
-            if ( pos == fProgressBars.end() )
-                return;
-
-            auto bar = ( *pos ).second;
-            bar->slotSetStatus( curr, max );
-        } );
-    connect(
-        api.get(), &COutlookAPI::sigIncStatusValue,
-        [ = ]( const QString &label )
-        {
-            auto pos = fProgressBars.find( label );
-            if ( pos == fProgressBars.end() )
-                return;
-
-            auto bar = ( *pos ).second;
-            bar->slotIncValue();
-        } );
+    connect( api.get(), &COutlookAPI::sigInitStatus, this, &CMainWindow::slotInitStatus );
+    connect( api.get(), &COutlookAPI::sigSetStatus, this, &CMainWindow::slotSetStatus );
+    connect( api.get(), &COutlookAPI::sigIncStatusValue, this, &CMainWindow::slotIncStatusValue );
+    connect( api.get(), &COutlookAPI::sigStatusMessage, this, &CMainWindow::slotStatusMessage );
+    connect( api.get(), &COutlookAPI::sigStatusFinished, this, &CMainWindow::slotFinishedStatus );
+    
 
     slotUpdateActions();
 
@@ -117,6 +75,18 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     fImpl->actionLoadEmailFromJunkFolder->setChecked( api->loadEmailFromJunkFolder() );
 
     updateWindowTitle();
+
+    auto updateIcon = [ = ]( QAction *action )
+    {
+        auto tb = dynamic_cast< QToolButton * >( fImpl->toolBar->widgetForAction( action ) );
+        if ( !tb )
+            return;
+        tb->setToolButtonStyle( Qt::ToolButtonTextBesideIcon );
+    };
+    updateIcon( fImpl->actionReloadAllData );
+    updateIcon( fImpl->actionReloadEmail );
+    updateIcon( fImpl->actionReloadFolders );
+    updateIcon( fImpl->actionReloadRules );
 
     QTimer::singleShot( 0, [ = ]() { slotSelectServer(); } );
 }
@@ -206,39 +176,39 @@ void CMainWindow::slotAddToSelectedRule()
 void CMainWindow::slotMergeRules()
 {
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
-    COutlookAPI::getInstance()->mergeRules();
-    slotReloadRules();
+    if ( COutlookAPI::getInstance()->mergeRules() )
+        slotReloadRules();
     qApp->restoreOverrideCursor();
 }
 
 void CMainWindow::slotRenameRules()
 {
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
-    COutlookAPI::getInstance()->renameRules();
-    slotReloadRules();
+    if ( COutlookAPI::getInstance()->renameRules() )
+        slotReloadRules();
     qApp->restoreOverrideCursor();
 }
 
 void CMainWindow::slotSortRules()
 {
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
-    COutlookAPI::getInstance()->sortRules();
-    slotReloadRules();
+    if ( COutlookAPI::getInstance()->sortRules() )
+        slotReloadRules();
     qApp->restoreOverrideCursor();
 }
 
 void CMainWindow::slotMoveFromToAddress()
 {
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
-    COutlookAPI::getInstance()->moveFromToAddress();
-    slotReloadRules();
+    if ( COutlookAPI::getInstance()->moveFromToAddress() )
+        slotReloadRules();
     qApp->restoreOverrideCursor();
 }
 
 void CMainWindow::slotRunAllRules()
 {
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
-    COutlookAPI::getInstance()->runRulesOnSPAM();
+    COutlookAPI::getInstance()->runAllRules();
     slotReloadEmail();
     qApp->restoreOverrideCursor();
 }
@@ -330,17 +300,25 @@ void CMainWindow::slotHandleProgressToggle()
     }
 
     fCancelButton->setVisible( visible );
+    if ( !visible )
+    {
+        statusBar()->showMessage( QString() );
+    }
 }
 
-CStatusProgress *CMainWindow::addStatusBar( const QString &label, QObject *object, bool hasInc )
+CStatusProgress *CMainWindow::addStatusBar( QString label, CWidgetWithStatus *object )
 {
-    auto progress = new CStatusProgress( label );
+    Q_ASSERT( ( !label.isEmpty() && !object ) || ( label.isEmpty() && object ) );
     if ( object )
     {
-        connect( object, SIGNAL( sigSetStatus( int, int ) ), progress, SLOT( slotSetStatus( int, int ) ) );
-        if ( hasInc )
-            connect( object, SIGNAL( sigIncStatusValue() ), progress, SLOT( slotIncValue() ) );
+        connect( object, &CWidgetWithStatus::sigStatusMessage, this, &CMainWindow::slotStatusMessage );
+        connect( object, &CWidgetWithStatus::sigInitStatus, this, &CMainWindow::slotInitStatus );
+        connect( object, &CWidgetWithStatus::sigSetStatus, this, &CMainWindow::slotSetStatus );
+        connect( object, &CWidgetWithStatus::sigIncStatusValue, this, &CMainWindow::slotIncStatusValue );
+        label = object->statusLabel();
     }
+
+    auto progress = new CStatusProgress( label );
     connect( progress, &CStatusProgress::sigShow, this, &CMainWindow::slotHandleProgressToggle );
     connect( progress, &CStatusProgress::sigFinished, this, &CMainWindow::slotHandleProgressToggle );
     auto num = statusBar()->insertPermanentWidget( static_cast< int >( fProgressBars.size() ), progress );
@@ -353,9 +331,9 @@ void CMainWindow::setupStatusBar()
     if ( !fProgressBars.empty() )
         return;
 
-    addStatusBar( "Loading Folders:", fImpl->folders, false );
-    addStatusBar( "Grouping Emails:", fImpl->email, false );
-    addStatusBar( "Loading Rules:", fImpl->rules, false );
+    addStatusBar( {}, fImpl->folders );
+    addStatusBar( {}, fImpl->email );
+    addStatusBar( {}, fImpl->rules );
 
     fCancelButton = new QPushButton( "&Cancel" );
     connect( fCancelButton, &QPushButton::clicked, COutlookAPI::getInstance().get(), &COutlookAPI::slotCanceled );
@@ -372,4 +350,53 @@ void CMainWindow::setupStatusBar()
     for ( auto &&ii : fProgressBars )
         ii.second->hide();
     slotHandleProgressToggle();
+}
+
+void CMainWindow::slotStatusMessage( const QString &msg )
+{
+    statusBar()->showMessage( msg, 5000 );
+    qApp->processEvents();
+}
+
+CStatusProgress *CMainWindow::getProgressBar( const QString &label )
+{
+    CStatusProgress *bar = nullptr;
+    auto pos = fProgressBars.find( label );
+    if ( pos == fProgressBars.end() )
+        bar = addStatusBar( label, nullptr );
+    else
+        bar = ( *pos ).second;
+    return bar;
+}
+
+void CMainWindow::slotSetStatus( const QString &label, int curr, int max )
+{
+    auto bar = getProgressBar( label );
+    if ( !bar )
+        return;
+    bar->slotSetStatus( curr, max );
+}
+
+void CMainWindow::slotInitStatus( const QString &label, int max )
+{
+    auto bar = getProgressBar( label );
+    if ( !bar )
+        return;
+    bar->setRange( 0, max );
+}
+
+void CMainWindow::slotFinishedStatus( const QString &label )
+{
+    auto bar = getProgressBar( label );
+    if ( !bar )
+        return;
+    bar->finished();
+}
+
+void CMainWindow::slotIncStatusValue( const QString &label )
+{
+    auto bar = getProgressBar( label );
+    if ( !bar )
+        return;
+    bar->slotIncValue();
 }

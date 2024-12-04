@@ -7,6 +7,7 @@ if( NOT DUMPCPP_EXECUTABLE )
       PATHS ${CMAKE_BINARY_DIR}/dumpcpp/RelWithDebInfo ${CMAKE_BINARY_DIR}/dumpcpp/Release ${CMAKE_BINARY_DIR}/dumpcpp/Debug
         DOC "path to the dumpcpp executable (from build area)" 
         NO_DEFAULT_PATH
+        NO_CACHE
         )
     if( NOT DUMPCPP_EXECUTABLE )
         MESSAGE( WARNING "Could not find build area dumpcpp.  Re-run cmake after initial build" )
@@ -64,6 +65,7 @@ set(qtproject_H
     RulesModel.h
     RulesView.h
     StatusProgress.h
+    WidgetWithStatus.h
 )
 
 set(project_H
@@ -85,3 +87,6 @@ set( project_pri_LIB_DIRS
 set( project_pri_DEPS
 )
 
+set(qtproject_QRC
+    app.qrc
+)

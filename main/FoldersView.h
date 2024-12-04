@@ -1,7 +1,7 @@
 #ifndef CFoldersVIEW_H
 #define CFoldersVIEW_H
 
-#include <QWidget>
+#include "WidgetWithStatus.h"
 #include <memory>
 namespace Ui
 {
@@ -16,7 +16,7 @@ namespace Outlook
 class QModelIndex;
 class CFoldersModel;
 
-class CFoldersView : public QWidget
+class CFoldersView : public CWidgetWithStatus
 {
     Q_OBJECT
 
@@ -38,7 +38,6 @@ public:
 Q_SIGNALS:
     void sigFinishedLoading();
     void sigFolderSelected( const QString &folderPath );
-    void sigSetStatus( int curr, int max );
 
 protected Q_SLOTS:
     void slotItemSelected( const QModelIndex &index );
@@ -46,7 +45,7 @@ protected Q_SLOTS:
     void slotSetRootFolder();
 
 protected:
-    std::shared_ptr< CFoldersModel > fModel;
+    CFoldersModel *fModel{ nullptr };
     std::unique_ptr< Ui::CFoldersView > fImpl;
     bool fNotifyOnFinish{ true };
 };

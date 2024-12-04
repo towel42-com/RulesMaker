@@ -9,7 +9,7 @@
 #include <QTimer>
 
 CEmailView::CEmailView( QWidget *parent ) :
-    QWidget( parent ),
+    CWidgetWithStatus( parent ),
     fImpl( new Ui::CEmailView )
 {
     init();
@@ -21,6 +21,7 @@ CEmailView::CEmailView( QWidget *parent ) :
 void CEmailView::init()
 {
     fImpl->setupUi( this );
+    setStatusLabel( "Grouping Emails:" );
 
     fGroupedModel = new CGroupedEmailModel( this );
     fImpl->groupedEmails->setModel( fGroupedModel );
@@ -37,7 +38,7 @@ void CEmailView::init()
                 emit sigFinishedLoading();
             fNotifyOnFinish = true;
         } );
-    connect( fGroupedModel, &CGroupedEmailModel::sigSetStatus, this, &CEmailView::sigSetStatus );
+    connect( fGroupedModel, &CGroupedEmailModel::sigSetStatus, [ = ]( int curr, int max ) { emit sigSetStatus( statusLabel(), curr, max ); } );
     connect(
         fGroupedModel, &CGroupedEmailModel::sigSetStatus,
         [ = ]( int curr, int max )

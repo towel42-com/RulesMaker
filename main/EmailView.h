@@ -1,7 +1,7 @@
 #ifndef EMAILVIEW_H
 #define EMAILVIEW_H
 
-#include <QWidget>
+#include "WidgetWithStatus.h"
 #include <memory>
 namespace Ui
 {
@@ -11,7 +11,7 @@ namespace Ui
 class QModelIndex;
 class CGroupedEmailModel;
 
-class CEmailView : public QWidget
+class CEmailView : public CWidgetWithStatus
 {
     Q_OBJECT
 
@@ -31,14 +31,13 @@ Q_SIGNALS:
     void sigFinishedLoading();
     void sigFinishedGrouping();
     void sigRuleSelected();
-    void sigSetStatus( int curr, int max );
 
 protected Q_SLOTS:
     void slotSelectionChanged();
     void slotItemDoubleClicked( const QModelIndex &idx );
 
 protected:
-    CGroupedEmailModel *fGroupedModel;
+    CGroupedEmailModel *fGroupedModel{ nullptr };
     std::unique_ptr< Ui::CEmailView > fImpl;
     bool fNotifyOnFinish{ true };
 };

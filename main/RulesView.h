@@ -1,7 +1,7 @@
 #ifndef RULESVIEW_H
 #define RULESVIEW_H
 
-#include <QWidget>
+#include "WidgetWithStatus.h"
 #include <memory>
 namespace Ui
 {
@@ -16,7 +16,7 @@ namespace Ui
 class QModelIndex;
 class CRulesModel;
 
-class CRulesView : public QWidget
+class CRulesView : public CWidgetWithStatus
 {
     Q_OBJECT
 
@@ -41,13 +41,12 @@ public:
 Q_SIGNALS:
     void sigFinishedLoading();
     void sigRuleSelected();
-    void sigSetStatus( int curr, int max );
 
 protected Q_SLOTS:
     void slotItemSelected( const QModelIndex &index );
 
 protected:
-    std::shared_ptr< CRulesModel > fModel;
+    CRulesModel *fModel{ nullptr };
     std::unique_ptr< Ui::CRulesView > fImpl;
     bool fNotifyOnFinish{ true };
 };

@@ -11,6 +11,7 @@ namespace Ui
 class QPushButton;
 class CStatusProgress;
 class QModelIndex;
+class CWidgetWithStatus;
 
 class CMainWindow : public QMainWindow
 {
@@ -18,8 +19,6 @@ class CMainWindow : public QMainWindow
 
 public:
     explicit CMainWindow( QWidget *parent = nullptr );
-
-    void slotUpdateActions();
 
     ~CMainWindow();
 
@@ -44,11 +43,19 @@ protected Q_SLOTS:
     void slotMoveFromToAddress();
     void slotRunAllRules();
     void slotHandleProgressToggle();
+    void slotUpdateActions();
+
+    void slotStatusMessage( const QString & msg );
+    void slotSetStatus( const QString &label, int curr, int max );
+    void slotInitStatus( const QString &label, int max );
+    void slotIncStatusValue( const QString &label );;
+    void slotFinishedStatus( const QString &label );
 
 protected:
+    CStatusProgress *getProgressBar( const QString &label );
     void setupStatusBar();
 
-    CStatusProgress * addStatusBar( const QString &label, QObject *object, bool hasInc );
+    CStatusProgress *addStatusBar( QString label, CWidgetWithStatus *object );
 
     void clearViews();
     std::unique_ptr< Ui::CMainWindow > fImpl;

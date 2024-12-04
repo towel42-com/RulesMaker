@@ -20,16 +20,21 @@ void CStatusProgress::setRange( int min, int max )
     slotSetStatus( min, max );
 }
 
+void CStatusProgress::finished()
+{
+    hide();
+    emit sigFinished();
+}
+
 void CStatusProgress::slotSetStatus( int curr, int max )
 {
     fImpl->progressBar->setRange( 0, max );
     fImpl->progressBar->setValue( curr );
-    if ( curr >= max )
+    if ( max && ( curr >= max ) )
     {
         if ( isVisible() )
         {
-            hide();
-            emit sigFinished();
+            finished();
         }
     }
     else

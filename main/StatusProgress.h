@@ -24,7 +24,7 @@ public:
     ~CStatusProgress();
 
     void setRange( int min, int max );
-
+    void finished();
 public Q_SLOTS:
     void slotSetStatus( int curr, int max );
     void slotIncValue();

@@ -85,14 +85,17 @@ public:
     int subFolderCount( const Outlook::Folder *parent, bool recursive );
     int subFolderCount( const std::shared_ptr< Outlook::Folder > &parent, bool recursive );
     std::pair< std::shared_ptr< Outlook::Rule >, bool > addRule( const QString &destFolder, const QStringList &rules, QStringList &msg );
+
+    void saveRules();
+
     bool addToRule( std::shared_ptr< Outlook::Rule > rule, const QStringList &rules, QStringList &msg );
 
-    void renameRules();
+    bool renameRules();
+    bool sortRules();
+    bool moveFromToAddress();
+    bool mergeRules();
 
-    void sortRules();
-    void moveFromToAddress();
-    void mergeRules();
-    void runRulesOnSPAM();
+    void runAllRules();
 
     bool execute( std::shared_ptr< Outlook::Rule > rule );
     bool execute( const std::vector< std::shared_ptr< Outlook::Rule > > &rules );
@@ -106,14 +109,14 @@ public:
     }
     static Outlook::OlObjectClass getObjectClass( IDispatch *item );
     static QStringList getSenderEmailAddresses( Outlook::MailItem *mailItem );
-    static QStringList getRecipientEmails( Outlook::MailItem *mailItem, Outlook::OlMailRecipientType recipientType );
-    static QStringList getRecipientEmails( Outlook::Recipients *recipients, std::optional< Outlook::OlMailRecipientType > recipientType );
+    static QStringList getRecipientEmails( Outlook::MailItem *mailItem, Outlook::OlMailRecipientType recipientType, bool smtpOnly );
+    static QStringList getRecipientEmails( Outlook::Recipients *recipients, std::optional< Outlook::OlMailRecipientType > recipientType, bool smtpOnly );
 
-    static QStringList getEmailAddresses( Outlook::AddressList *addresses );
-    static QStringList getEmailAddresses( Outlook::AddressEntry *address );
-    static QStringList getEmailAddresses( Outlook::AddressEntries *entries );
+    static QStringList getEmailAddresses( Outlook::AddressList *addresses, bool smtpOnly );
+    static QStringList getEmailAddresses( Outlook::AddressEntry *address, bool smtpOnly );
+    static QStringList getEmailAddresses( Outlook::AddressEntries *entries, bool smtpOnly );
 
-    static QString getEmailAddress( Outlook::Recipient *recipient );
+    static QString getEmailAddress( Outlook::Recipient *recipient, bool smtpOnly );
 
     void dumpSession( Outlook::NameSpace &session );
     void dumpFolder( Outlook::Folder *root );
@@ -143,9 +146,11 @@ public:
     bool loadEmailFromJunkFolder() const { return fLoadEmailFromJunkFolder; }
 Q_SIGNALS:
     void sigAccountChanged();
+    void sigStatusMessage( const QString &msg );
     void sigInitStatus( const QString &label, int max );
     void sigSetStatus( const QString &label, int curr, int max );
     void sigIncStatusValue( const QString &label );
+    void sigStatusFinished( const QString &label );
     void sigOptionChanged();
 
 public Q_SLOTS:
