@@ -61,6 +61,9 @@
     </property>
     <addaction name="actionAddRule"/>
     <addaction name="actionAddToSelectedRule"/>
+    <addaction name="separator"/>
+    <addaction name="actionRunSelectedRule"/>
+    <addaction name="actionRunAllRules"/>
    </widget>
    <widget class="QMenu" name="menuTool">
     <property name="title">
@@ -70,9 +73,6 @@
     <addaction name="actionSortRules"/>
     <addaction name="actionMoveFromToAddress"/>
     <addaction name="actionMergeRules"/>
-    <addaction name="separator"/>
-    <addaction name="actionRunSelectedRule"/>
-    <addaction name="actionRunAllRules"/>
    </widget>
    <widget class="QMenu" name="menuSettings">
     <property name="title">
