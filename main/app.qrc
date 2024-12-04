@@ -1,0 +1,14 @@
+<RCC>
+    <qresource prefix="/">
+        <file>resources/add.png</file>
+        <file>resources/fixrules.png</file>
+        <file>resources/merge.png</file>
+        <file>resources/reload.png</file>
+        <file>resources/rename.png</file>
+        <file>resources/rules.png</file>
+        <file>resources/run.png</file>
+        <file>resources/select.png</file>
+        <file>resources/server.png</file>
+        <file>resources/sort.png</file>
+    </qresource>
+</RCC>
