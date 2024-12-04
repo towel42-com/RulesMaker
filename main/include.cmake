@@ -3,21 +3,23 @@ set(FOLDER_NAME Apps)
 
 
 if( NOT DUMPCPP_EXECUTABLE )
-    find_program(DUMPCPP_EXECUTABLE NAMES dumpcpp
-      PATHS ${CMAKE_BINARY_DIR}/dumpcpp/RelWithDebInfo ${CMAKE_BINARY_DIR}/dumpcpp/Release ${CMAKE_BINARY_DIR}/dumpcpp/Debug
+    find_program(DUMPCPP_EXECUTABLE NAMES sab_dumpcpp
+      PATHS ${CMAKE_INSTALL_PREFIX} ${CMAKE_BINARY_DIR}/dumpcpp/RelWithDebInfo ${CMAKE_BINARY_DIR}/dumpcpp/Release ${CMAKE_BINARY_DIR}/dumpcpp/Debug
         DOC "path to the dumpcpp executable (from build area)" 
         NO_DEFAULT_PATH
-        NO_CACHE
+#        NO_CACHE
         )
     if( NOT DUMPCPP_EXECUTABLE )
         MESSAGE( WARNING "Could not find build area dumpcpp.  Re-run cmake after initial build" )
     else()
         file( REAL_PATH ${DUMPCPP_EXECUTABLE} DUMPCPP_EXECUTABLE EXPAND_TILDE)
         file( TO_CMAKE_PATH ${DUMPCPP_EXECUTABLE} DUMPCPP_EXECUTABLE)
-        
         mark_as_advanced(DUMPCPP_EXECUTABLE)
-        MESSAGE( STATUS "Found dumpcpp: '${DUMPCPP_EXECUTABLE}'" )
     endif()
+endif()
+
+if( DUMPCPP_EXECUTABLE )
+    MESSAGE( STATUS "Using dumpcpp: '${DUMPCPP_EXECUTABLE}'" )
 endif()
 
 set( MSOUTL_OLB "C:/Program Files (x86)/Microsoft Office/Root/Office16/MSOUTL.OLB" )
@@ -45,6 +47,7 @@ set(project_SRCS
     EmailView.cpp
     FoldersView.cpp
     FoldersModel.cpp
+    ListFilterModel.cpp
     main.cpp
     MainWindow.cpp
     OutlookAPI.cpp
@@ -59,6 +62,7 @@ set(qtproject_H
     GroupedEmailModel.h
     EmailView.h
     FoldersModel.h
+    ListFilterModel.h
     FoldersView.h
     MainWindow.h
     OutlookAPI.h
