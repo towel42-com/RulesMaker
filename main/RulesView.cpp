@@ -1,8 +1,11 @@
 #include "RulesView.h"
 #include "RulesModel.h"
+#include "ListFilterModel.h"
 #include "ui_RulesView.h"
-#include "MSOUTL.h"
+#include <QLineEdit>
 #include <QTimer>
+
+#include "MSOUTL.h"
 
 CRulesView::CRulesView( QWidget *parent ) :
     CWidgetWithStatus( parent ),
@@ -19,9 +22,12 @@ void CRulesView::init()
     fImpl->setupUi( this );
     setStatusLabel( "Loading Rules:" );
 
-
     fModel = new CRulesModel( this );
-    fImpl->rules->setModel( fModel );
+    fFilterModel = new CListFilterModel( this );
+    fFilterModel->setOnlyFilterParent( true );
+    fFilterModel->setSourceModel( fModel );
+    fImpl->rules->setModel( fFilterModel );
+
     connect( fImpl->rules->selectionModel(), &QItemSelectionModel::currentChanged, this, &CRulesView::slotItemSelected );
     connect(
         fModel, &CRulesModel::sigFinishedLoading,
@@ -42,6 +48,15 @@ void CRulesView::init()
             {
                 fImpl->rules->resizeColumnToContents( 0 );
             }
+        } );
+    connect(
+        fImpl->filter, &QLineEdit::textChanged,
+        [ = ]( const QString &filter )
+        {
+            fFilterModel->slotSetFilter( filter );
+
+            if ( fFilterModel->rowCount() == 1 )
+                fImpl->rules->expandAll();
         } );
 
     setWindowTitle( QObject::tr( "Rules" ) );
@@ -70,10 +85,24 @@ void CRulesView::clearSelection()
     slotItemSelected( {} );
 }
 
+QModelIndex CRulesView::sourceIndex( const QModelIndex &idx ) const
+{
+    if ( !idx.isValid() || ( idx.model() == fModel ) )
+        return idx;
+    return fFilterModel->mapToSource( idx );
+}
+
+QModelIndex CRulesView::currentIndex() const
+{
+    auto filterIdx = fImpl->rules->currentIndex();
+    if ( !filterIdx.isValid() )
+        return filterIdx;
+    return sourceIndex( filterIdx );
+}
+
 bool CRulesView::ruleSelected() const
 {
-    auto idx = fImpl->rules->currentIndex();
-    return fModel->getRuleItem( idx ) != nullptr;
+    return fModel->getRuleItem( currentIndex() ) != nullptr;
 }
 
 QString CRulesView::folderForSelectedRule() const
@@ -92,34 +121,20 @@ QString CRulesView::folderForSelectedRule() const
 
 std::shared_ptr< Outlook::Rule > CRulesView::selectedRule() const
 {
-    auto idx = fImpl->rules->currentIndex();
-    return fModel->getRule( idx );
+    return fModel->getRule( currentIndex() );
 }
 
 void CRulesView::runSelectedRule() const
 {
-    auto idx = fImpl->rules->currentIndex();
-    return fModel->runRule( idx );
+    return fModel->runRule( currentIndex() );
 }
 
-void CRulesView::slotItemSelected( const QModelIndex &index )
+void CRulesView::slotItemSelected( const QModelIndex & /*index*/ )
 {
-    fImpl->name->clear();
-
-    if ( index.isValid() )
-    {
-        auto item = fModel->getRuleItem( index );
-        if ( item )
-        {
-            auto row = item->row();
-            auto col = item->column();
-            fImpl->name->setText( item->text() );
-        }
-    }
     emit sigRuleSelected();
 }
 
-bool CRulesView::addRule( const QString &destFolder, const QStringList &rules, QStringList &msgs )
+bool CRulesView::addRule( const std::shared_ptr< Outlook::Folder > &destFolder, const QStringList &rules, QStringList &msgs )
 {
     return fModel->addRule( destFolder, rules, msgs );
 }

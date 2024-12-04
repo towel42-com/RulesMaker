@@ -14,6 +14,7 @@ namespace Outlook
     class Rules;
     class Rule;
     class RuleConditions;
+    class Folder;
 
     class AccountRuleCondition;
     class AddressRuleCondition;
@@ -59,7 +60,7 @@ public:
     std::shared_ptr< Outlook::Rule > getRule( const QModelIndex &index ) const;
     std::shared_ptr< Outlook::Rule > getRule( QStandardItem *item ) const;
 
-    bool addRule( const QString &destFolder, const QStringList &rules, QStringList &msgs );
+    bool addRule( const std::shared_ptr< Outlook::Folder > &destFolder, const QStringList &rules, QStringList &msgs );
     bool addToRule( std::shared_ptr< Outlook::Rule > rule, const QStringList &rules, QStringList &msgs );
 
     virtual bool hasChildren( const QModelIndex &parent ) const override;

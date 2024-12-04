@@ -8,13 +8,15 @@ namespace Ui
     class CRulesView;
 }
 
- namespace Outlook
+namespace Outlook
 {
     class Rule;
+    class Folder;
 }
 
 class QModelIndex;
 class CRulesModel;
+class CListFilterModel;
 
 class CRulesView : public CWidgetWithStatus
 {
@@ -35,7 +37,7 @@ public:
     void runSelectedRule() const;
     std::shared_ptr< Outlook::Rule > selectedRule() const;
 
-    bool addRule( const QString &destFolder, const QStringList &rules, QStringList &msgs );
+    bool addRule( const std::shared_ptr< Outlook::Folder > &destFolder, const QStringList &rules, QStringList &msgs );
     bool addToSelectedRule( const QStringList &rules, QStringList &msgs );
 
 Q_SIGNALS:
@@ -46,7 +48,11 @@ protected Q_SLOTS:
     void slotItemSelected( const QModelIndex &index );
 
 protected:
+    QModelIndex currentIndex() const;
+    QModelIndex sourceIndex( const QModelIndex &idx ) const;
+
     CRulesModel *fModel{ nullptr };
+    CListFilterModel *fFilterModel{ nullptr };
     std::unique_ptr< Ui::CRulesView > fImpl;
     bool fNotifyOnFinish{ true };
 };

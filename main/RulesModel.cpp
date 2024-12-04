@@ -25,7 +25,7 @@ CRulesModel::~CRulesModel()
 void CRulesModel::clear()
 {
     QStandardItemModel::clear();
-    setHorizontalHeaderLabels( { "Name", "Value" } );
+    setHorizontalHeaderLabels( { "Name (Execution Order)", "Value" } );
     setColumnCount( 2 );
     fRuleMap.clear();
     fRules.reset();
@@ -72,7 +72,7 @@ bool CRulesModel::loadRule( std::shared_ptr< Outlook::Rule > rule )
     if ( !rule )
         return false;
 
-    auto ruleItem = new QStandardItem( rule->Name() );
+    auto ruleItem = new QStandardItem( QString( "%1 (%2)" ).arg( rule->Name() ).arg( rule->ExecutionOrder() ) );
     fRuleMap[ ruleItem ] = rule;
 
     this->appendRow( ruleItem );
@@ -572,7 +572,7 @@ std::shared_ptr< Outlook::Rule > CRulesModel::getRule( QStandardItem *item ) con
     return ( *pos ).second;
 }
 
-bool CRulesModel::addRule( const QString &destFolder, const QStringList &rules, QStringList &msgs )
+bool CRulesModel::addRule( const std::shared_ptr< Outlook::Folder > &destFolder, const QStringList &rules, QStringList &msgs )
 {
     auto retVal = COutlookAPI::getInstance()->addRule( destFolder, rules, msgs );
     if ( !retVal.second )
