@@ -10,6 +10,7 @@
 #include <QPushButton>
 #include <QCursor>
 #include <QApplication>
+#include <QLineEdit>
 #include <QToolButton>
 
 CMainWindow::CMainWindow( QWidget *parent ) :
@@ -37,11 +38,9 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     connect( fImpl->actionRunAllRules, &QAction::triggered, this, &CMainWindow::slotRunAllRules );
     connect( fImpl->actionAddToSelectedRule, &QAction::triggered, this, &CMainWindow::slotAddToSelectedRule );
 
-    connect( fImpl->actionProcessAllEmailWhenLessThan200Emails, &QAction::changed, [ = ]() { api->setProcessAllEmailWhenLessThan200Emails( fImpl->actionProcessAllEmailWhenLessThan200Emails->isChecked() ); } );
-
-    connect( fImpl->actionOnlyProcessUnread, &QAction::changed, [ = ]() { api->setOnlyProcessUnread( fImpl->actionOnlyProcessUnread->isChecked() ); } );
-
-    connect( fImpl->actionLoadEmailFromJunkFolder, &QAction::changed, [ = ]() { api->setLoadEmailFromJunkFolder( fImpl->actionLoadEmailFromJunkFolder->isChecked() ); } );
+    connect( fImpl->actionProcessAllEmailWhenLessThan200Emails, &QAction::triggered, [ = ]() { api->setProcessAllEmailWhenLessThan200Emails( fImpl->actionProcessAllEmailWhenLessThan200Emails->isChecked() ); } );
+    connect( fImpl->actionOnlyProcessUnread, &QAction::triggered, [ = ]() { api->setOnlyProcessUnread( fImpl->actionOnlyProcessUnread->isChecked() ); } );
+    connect( fImpl->actionLoadEmailFromJunkFolder, &QAction::triggered, [ = ]() { api->setLoadEmailFromJunkFolder( fImpl->actionLoadEmailFromJunkFolder->isChecked() ); } );
 
     connect( COutlookAPI::getInstance().get(), &COutlookAPI::sigOptionChanged, this, &CMainWindow::updateWindowTitle );
 
@@ -66,7 +65,6 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     connect( api.get(), &COutlookAPI::sigIncStatusValue, this, &CMainWindow::slotIncStatusValue );
     connect( api.get(), &COutlookAPI::sigStatusMessage, this, &CMainWindow::slotStatusMessage );
     connect( api.get(), &COutlookAPI::sigStatusFinished, this, &CMainWindow::slotFinishedStatus );
-    
 
     slotUpdateActions();
 
@@ -135,7 +133,7 @@ void CMainWindow::slotUpdateActions()
 void CMainWindow::slotAddRule()
 {
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
-    auto destFolder = fImpl->folders->selectedFullPath();
+    auto destFolder = fImpl->folders->selectedFolder();
     auto rules = fImpl->email->getRulesForSelection();
 
     QStringList msgs;
@@ -288,22 +286,44 @@ void CMainWindow::slotSelectServer()
     slotReloadAll();
 }
 
-void CMainWindow::slotHandleProgressToggle()
+bool CMainWindow::running() const
 {
-    bool visible = false;
+    bool running = false;
     for ( auto &&ii : fProgressBars )
     {
         if ( ii.second->isVisible() )
-            visible = true;
-        if ( visible )
+        {
+            running = true;
             break;
+        }
     }
+    return running;
+}
 
-    fCancelButton->setVisible( visible );
-    if ( !visible )
+void CMainWindow::slotHandleProgressToggle()
+{
+    bool running = this->running();
+
+    fCancelButton->setVisible( running );
+    if ( !running )
     {
         statusBar()->showMessage( QString() );
     }
+
+    auto actions = this->findChildren< QAction * >();
+    for ( auto &&action : actions )
+    {
+        if ( !action->menu() )
+            action->setEnabled( !running );
+    }
+    auto filters = this->findChildren< QLineEdit * >();
+    for ( auto &&filter : filters )
+    {
+        filter->setEnabled( !running );
+    }
+
+    if ( !running )
+        slotUpdateActions();
 }
 
 CStatusProgress *CMainWindow::addStatusBar( QString label, CWidgetWithStatus *object )

@@ -21,6 +21,7 @@ public:
     explicit CMainWindow( QWidget *parent = nullptr );
 
     ~CMainWindow();
+    bool running() const;
 
 protected Q_SLOTS:
     void slotSelectServer();
