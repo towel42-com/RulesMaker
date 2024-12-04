@@ -41,6 +41,7 @@ public:
 
 Q_SIGNALS:
     void sigFinishedLoading();
+    void sigFinishedLoadingChildren( QStandardItem *parent );
     void sigSetStatus( int curr, int max );
 
 private Q_SLOTS:

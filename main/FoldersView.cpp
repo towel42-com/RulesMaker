@@ -2,6 +2,7 @@
 #include "FoldersModel.h"
 #include "ui_FoldersView.h"
 #include "OutlookAPI.h"
+#include "ListFilterModel.h"
 
 #include <QTimer>
 
@@ -21,8 +22,12 @@ void CFoldersView::init()
     setStatusLabel( "Loading Folders:" );
 
     fModel = new CFoldersModel( this );
-    fImpl->folders->setModel( fModel );
+
+    fFilterModel = new CListFilterModel( this );
+    fFilterModel->setSourceModel( fModel );
+    fImpl->folders->setModel( fFilterModel );
     fImpl->setRootFolderBtn->setEnabled( false );
+    fImpl->addFolder->setEnabled( false );
     connect( fImpl->setRootFolderBtn, &QPushButton::clicked, this, &CFoldersView::slotSetRootFolder );
     connect( fImpl->folders->selectionModel(), &QItemSelectionModel::currentChanged, this, &CFoldersView::slotItemSelected );
     connect(
@@ -37,6 +42,14 @@ void CFoldersView::init()
                 emit sigFinishedLoading();
             fNotifyOnFinish = true;
         } );
+
+    connect(
+        fModel, &CFoldersModel::sigFinishedLoadingChildren,
+        [ = ]( QStandardItem * /*parent*/ )
+        {
+            fFilterModel->sort( 0, Qt::SortOrder::AscendingOrder );
+        } );
+
     connect( fImpl->addFolder, &QPushButton::clicked, this, &CFoldersView::slotAddFolder );
     connect( fModel, &CFoldersModel::sigSetStatus, [ = ]( int curr, int max ) { emit sigSetStatus( statusLabel(), curr, max ); } );
     connect(
@@ -49,6 +62,8 @@ void CFoldersView::init()
                 fImpl->folders->resizeColumnToContents( 0 );
             }
         } );
+    connect( fImpl->filter, &QLineEdit::textChanged, fFilterModel, &CListFilterModel::slotSetFilter );
+    connect( fImpl->filter, &QLineEdit::textChanged, [ = ]() { fImpl->folders->expandAll(); } );
 }
 
 CFoldersView::~CFoldersView()
@@ -74,9 +89,24 @@ void CFoldersView::clearSelection()
     slotItemSelected( {} );
 }
 
+QModelIndex CFoldersView::sourceIndex( const QModelIndex &idx ) const
+{
+    if ( !idx.isValid() || ( idx.model() == fModel ) )
+        return idx;
+    return fFilterModel->mapToSource( idx );
+}
+
+QModelIndex CFoldersView::currentIndex() const
+{
+    auto filterIdx = fImpl->folders->currentIndex();
+    if ( !filterIdx.isValid() )
+        return filterIdx;
+    return sourceIndex( filterIdx );
+}
+
 void CFoldersView::slotSetRootFolder()
 {
-    auto idx = fImpl->folders->currentIndex();
+    auto idx = currentIndex();
     if ( !idx.isValid() )
         return;
     auto folder = fModel->folderForItem( idx );
@@ -87,21 +117,22 @@ void CFoldersView::slotSetRootFolder()
 
 void CFoldersView::slotItemSelected( const QModelIndex &index )
 {
-    auto currentPath = index.isValid() ? fModel->pathForItem( index ) : QString();
+    auto currentPath = index.isValid() ? fModel->pathForItem( sourceIndex( index ) ) : QString();
     fImpl->setRootFolderBtn->setEnabled( index.isValid() );
-    fImpl->name->setText( currentPath );
+    fImpl->addFolder->setEnabled( index.isValid() );
+
     emit sigFolderSelected( currentPath );
 }
 
 void CFoldersView::slotAddFolder()
 {
-    auto idx = fImpl->folders->currentIndex();
+    auto idx = currentIndex();
     fModel->addFolder( idx, this );
 }
 
 QString CFoldersView::selectedPath() const
 {
-    auto idx = fImpl->folders->currentIndex();
+    auto idx = currentIndex();
     if ( !idx.isValid() )
         return {};
     return fModel->pathForItem( idx );
@@ -109,7 +140,7 @@ QString CFoldersView::selectedPath() const
 
 QString CFoldersView::selectedFullPath() const
 {
-    auto idx = fImpl->folders->currentIndex();
+    auto idx = currentIndex();
     if ( !idx.isValid() )
         return {};
     return fModel->fullPathForItem( idx );
@@ -117,7 +148,7 @@ QString CFoldersView::selectedFullPath() const
 
 std::shared_ptr< Outlook::Folder > CFoldersView::selectedFolder() const
 {
-    auto idx = fImpl->folders->currentIndex();
+    auto idx = currentIndex();
     if ( !idx.isValid() )
         return {};
     return fModel->folderForItem( idx );

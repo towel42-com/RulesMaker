@@ -5,35 +5,41 @@
 
 #include <QTimer>
 #include <QInputDialog>
+#include <QSortFilterProxyModel>
 
 #include <QMetaMethod>
 #include <QDebug>
+#include <vector>
+
+using TFolderVector = std::vector< std::shared_ptr< Outlook::Folder > >;
 
 struct SCurrFolderInfo
 {
-    SCurrFolderInfo( const std::list< std::shared_ptr< Outlook::Folder > > &folders ) :
+    SCurrFolderInfo( const TFolderVector &folders ) :
         fSubFolders( folders )
     {
-        fPos = fSubFolders.begin();
+        fPos = 0;
     }
     std::shared_ptr< Outlook::Folder > folder() const
     {
-        if ( fPos == fSubFolders.end() )
+        if ( atEnd() )
             return {};
-        return ( *fPos );
+        return fSubFolders[ fPos ];
     }
     void incPos()
     {
-        if ( fPos == fSubFolders.end() )
+        if ( atEnd() )
             return;
+
         fPos++;
     }
     bool empty() const { return fSubFolders.empty(); }
-    bool atEnd() const { return fPos == fSubFolders.end(); }
+    bool atEnd() const { return fPos >= fSubFolders.size(); }
+    int pos() const { return static_cast< int >( fPos ); }
 
 private:
-    std::list< std::shared_ptr< Outlook::Folder > > fSubFolders;
-    std::list< std::shared_ptr< Outlook::Folder > >::iterator fPos;
+    TFolderVector fSubFolders;
+    std::size_t fPos{ 0 };
 };
 
 CFoldersModel::CFoldersModel( QObject *parent ) :
@@ -113,7 +119,7 @@ void CFoldersModel::slotReload()
 
 void CFoldersModel::addSubFolders( const std::shared_ptr< Outlook::Folder > &rootFolder )
 {
-    fNumFolders = COutlookAPI::getInstance()->subFolderCount( rootFolder, true );
+    fNumFolders = COutlookAPI::getInstance()->recursiveSubFolderCount( rootFolder.get() );
     fCurrFolderNum = 0;
 
     auto rootItem = new QStandardItem( COutlookAPI::getInstance()->folderName( rootFolder ) );
@@ -125,7 +131,8 @@ void CFoldersModel::addSubFolders( const std::shared_ptr< Outlook::Folder > &roo
 
 void CFoldersModel::addSubFolders( QStandardItem *parent, const std::shared_ptr< Outlook::Folder > &parentFolder )
 {
-    auto curr = std::make_unique< SCurrFolderInfo >( COutlookAPI::getInstance()->getFolders( parentFolder, false ) );
+    auto folders = COutlookAPI::getInstance()->getFolders( parentFolder, false );
+    auto curr = std::make_unique< SCurrFolderInfo >( TFolderVector( { folders.begin(), folders.end() } ) );
     if ( curr->atEnd() )
         return;
 
@@ -149,9 +156,12 @@ void CFoldersModel::slotAddNextFolder( QStandardItem *parent )
 
     auto &&curr = ( *pos ).second;
 
-    auto child = new QStandardItem( curr->folder()->Name() );
+    auto parentName = parent ? parent->text() : QString();
+
+    auto folderName = curr->folder()->Name();
+    auto child = new QStandardItem( /*QString::number( curr->pos() )  + " - " + */ folderName );
     fFolderMap[ child ] = curr->folder();
-    parent->appendRow( child );
+    parent->insertRow( curr->pos(), child );
     emit sigSetStatus( ++fCurrFolderNum, fNumFolders );
 
     addSubFolders( child, curr->folder() );
@@ -159,10 +169,10 @@ void CFoldersModel::slotAddNextFolder( QStandardItem *parent )
     if ( curr->atEnd() )
     {
         fFolders.erase( pos );
-
-        parent->sortChildren( 0, Qt::SortOrder::AscendingOrder );
         if ( fFolders.empty() )
             emit sigFinishedLoading();
+        else
+            emit sigFinishedLoadingChildren( parent );
     }
     else
         QTimer::singleShot( 0, [ = ]() { slotAddNextFolder( parent ); } );

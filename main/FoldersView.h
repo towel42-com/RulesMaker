@@ -15,6 +15,7 @@ namespace Outlook
 
 class QModelIndex;
 class CFoldersModel;
+class CListFilterModel;
 
 class CFoldersView : public CWidgetWithStatus
 {
@@ -45,7 +46,11 @@ protected Q_SLOTS:
     void slotSetRootFolder();
 
 protected:
+    QModelIndex currentIndex() const;
+    QModelIndex sourceIndex( const QModelIndex &idx ) const;
+
     CFoldersModel *fModel{ nullptr };
+    CListFilterModel *fFilterModel{ nullptr };
     std::unique_ptr< Ui::CFoldersView > fImpl;
     bool fNotifyOnFinish{ true };
 };
