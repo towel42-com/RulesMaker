@@ -31,7 +31,10 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     connect( fImpl->actionSortRules, &QAction::triggered, this, &CMainWindow::slotSortRules );
     connect( fImpl->actionRenameRules, &QAction::triggered, this, &CMainWindow::slotRenameRules );
     connect( fImpl->actionMergeRules, &QAction::triggered, this, &CMainWindow::slotMergeRules );
+    connect( fImpl->actionEnableAllRules, &QAction::triggered, this, &CMainWindow::slotEnableAllRules );
     connect( fImpl->actionMoveFromToAddress, &QAction::triggered, this, &CMainWindow::slotMoveFromToAddress );
+
+    connect( fImpl->actionAddFolderForSelectedEmail, &QAction::triggered, this, &CMainWindow::slotAddFolderForSelectedEmail );
 
     connect( fImpl->actionAddRule, &QAction::triggered, this, &CMainWindow::slotAddRule );
     connect( fImpl->actionRunSelectedRule, &QAction::triggered, this, &CMainWindow::slotRunSelectedRule );
@@ -107,9 +110,12 @@ void CMainWindow::slotUpdateActions()
     fImpl->actionMoveFromToAddress->setEnabled( accountSelected );
     fImpl->actionRunAllRules->setEnabled( accountSelected );
 
-    bool emailSelected = !fImpl->email->getRulesForSelection().isEmpty();
-    bool ruleSelected = fImpl->rules->ruleSelected();
-    bool folderSelected = !fImpl->folders->selectedPath().isEmpty();
+    auto emailSelected = !fImpl->email->getRulesForSelection().isEmpty();
+    auto displayNameOfEmailSelected = fImpl->email->getSelectedDisplayName();
+    auto ruleSelected = fImpl->rules->ruleSelected();
+    auto folderSelected = !fImpl->folders->selectedPath().isEmpty();
+
+    fImpl->actionAddFolderForSelectedEmail->setEnabled( !displayNameOfEmailSelected.isEmpty() );
 
     fImpl->actionRunSelectedRule->setEnabled( ruleSelected );
     bool folderSame = false;
@@ -130,23 +136,6 @@ void CMainWindow::slotUpdateActions()
     fImpl->actionAddRule->setEnabled( accountSelected && folderSelected && emailSelected );
 }
 
-void CMainWindow::slotAddRule()
-{
-    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
-    auto destFolder = fImpl->folders->selectedFolder();
-    auto rules = fImpl->email->getRulesForSelection();
-
-    QStringList msgs;
-    if ( !fImpl->rules->addRule( destFolder, rules, msgs ) )
-    {
-        QMessageBox::critical( this, "Error", "Could not create rule\n" + msgs.join( "\n" ) );
-    }
-    clearSelection();
-    slotReloadEmail();
-    slotReloadRules();
-    qApp->restoreOverrideCursor();
-}
-
 void CMainWindow::clearSelection()
 {
     fImpl->folders->clearSelection();
@@ -155,13 +144,41 @@ void CMainWindow::clearSelection()
     slotUpdateActions();
 }
 
-void CMainWindow::slotAddToSelectedRule()
+void CMainWindow::slotAddFolderForSelectedEmail()
 {
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+
+    auto folderName = fImpl->email->getSelectedDisplayName();
+    fImpl->folders->addFolder( folderName );
+
+    qApp->restoreOverrideCursor();
+}
+
+void CMainWindow::slotAddRule()
+{
+    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    auto destFolder = fImpl->folders->selectedFolder();
     auto rules = fImpl->email->getRulesForSelection();
 
     QStringList msgs;
-    if ( !fImpl->rules->addToSelectedRule( rules, msgs ) )
+    if ( !COutlookAPI::getInstance()->addRule( destFolder, rules, msgs ) )
+    {
+        QMessageBox::critical( this, "Error", "Could not create rule\n" + msgs.join( "\n" ) );
+    }
+    clearSelection();
+    slotReloadEmail();
+    //slotReloadRules();
+    qApp->restoreOverrideCursor();
+}
+
+void CMainWindow::slotAddToSelectedRule()
+{
+    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    auto rule = fImpl->rules->selectedRule();
+    auto rules = fImpl->email->getRulesForSelection();
+
+    QStringList msgs;
+    if ( !COutlookAPI::getInstance()->addToRule( rule, rules, msgs ) )
     {
         QMessageBox::critical( this, "Error", "Could not modify rule\n" + msgs.join( "\n" ) );
     }
@@ -199,6 +216,14 @@ void CMainWindow::slotMoveFromToAddress()
 {
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
     if ( COutlookAPI::getInstance()->moveFromToAddress() )
+        slotReloadRules();
+    qApp->restoreOverrideCursor();
+}
+
+void CMainWindow::slotEnableAllRules()
+{
+    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    if ( COutlookAPI::getInstance()->enableAllRules() )
         slotReloadRules();
     qApp->restoreOverrideCursor();
 }
@@ -320,6 +345,12 @@ void CMainWindow::slotHandleProgressToggle()
     for ( auto &&filter : filters )
     {
         filter->setEnabled( !running );
+    }
+
+    auto buttons = this->findChildren< QAbstractButton * >();
+    for ( auto &&button : buttons )
+    {
+        button->setEnabled( !running );
     }
 
     if ( !running )

@@ -43,8 +43,11 @@ protected Q_SLOTS:
     void slotSortRules();
     void slotMoveFromToAddress();
     void slotRunAllRules();
+    void slotEnableAllRules();
+
     void slotHandleProgressToggle();
     void slotUpdateActions();
+    void slotAddFolderForSelectedEmail();
 
     void slotStatusMessage( const QString & msg );
     void slotSetStatus( const QString &label, int curr, int max );

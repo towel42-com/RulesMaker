@@ -47,12 +47,6 @@
     </property>
     <addaction name="actionSelectServer"/>
     <addaction name="separator"/>
-    <addaction name="actionReloadAllData"/>
-    <addaction name="separator"/>
-    <addaction name="actionReloadEmail"/>
-    <addaction name="actionReloadFolders"/>
-    <addaction name="actionReloadRules"/>
-    <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menu_Edit">
@@ -73,6 +67,7 @@
     <addaction name="actionSortRules"/>
     <addaction name="actionMoveFromToAddress"/>
     <addaction name="actionMergeRules"/>
+    <addaction name="actionEnableAllRules"/>
    </widget>
    <widget class="QMenu" name="menuSettings">
     <property name="title">
@@ -82,10 +77,28 @@
     <addaction name="actionProcessAllEmailWhenLessThan200Emails"/>
     <addaction name="actionLoadEmailFromJunkFolder"/>
    </widget>
+   <widget class="QMenu" name="menuFolders">
+    <property name="title">
+     <string>Folders</string>
+    </property>
+    <addaction name="actionAddFolderForSelectedEmail"/>
+   </widget>
+   <widget class="QMenu" name="menuLoad">
+    <property name="title">
+     <string>Load</string>
+    </property>
+    <addaction name="actionReloadAllData"/>
+    <addaction name="separator"/>
+    <addaction name="actionReloadEmail"/>
+    <addaction name="actionReloadFolders"/>
+    <addaction name="actionReloadRules"/>
+   </widget>
    <addaction name="menu_File"/>
-   <addaction name="menuSettings"/>
+   <addaction name="menuLoad"/>
+   <addaction name="menuFolders"/>
    <addaction name="menu_Edit"/>
    <addaction name="menuTool"/>
+   <addaction name="menuSettings"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
@@ -105,6 +118,8 @@
    <addaction name="actionReloadEmail"/>
    <addaction name="actionReloadFolders"/>
    <addaction name="actionReloadRules"/>
+   <addaction name="separator"/>
+   <addaction name="actionAddFolderForSelectedEmail"/>
    <addaction name="separator"/>
    <addaction name="actionAddRule"/>
    <addaction name="actionAddToSelectedRule"/>
@@ -241,7 +256,7 @@
      <normaloff>:/resources/fixrules.png</normaloff>:/resources/fixrules.png</iconset>
    </property>
    <property name="text">
-    <string>Move &quot;From&quot; to &quot;Address&quot;</string>
+    <string>Move &quot;From&quot; conditional to &quot;Address&quot;</string>
    </property>
   </action>
   <action name="actionMergeRules">
@@ -279,6 +294,24 @@
    </property>
    <property name="text">
     <string>Load Email from Junk Folder?</string>
+   </property>
+  </action>
+  <action name="actionAddFolderForSelectedEmail">
+   <property name="icon">
+    <iconset resource="app.qrc">
+     <normaloff>:/resources/folder.png</normaloff>:/resources/folder.png</iconset>
+   </property>
+   <property name="text">
+    <string>Add Folder for Selected Email</string>
+   </property>
+  </action>
+  <action name="actionEnableAllRules">
+   <property name="icon">
+    <iconset resource="app.qrc">
+     <normaloff>:/resources/enable.png</normaloff>:/resources/enable.png</iconset>
+   </property>
+   <property name="text">
+    <string>Enable All Rules</string>
    </property>
   </action>
  </widget>
