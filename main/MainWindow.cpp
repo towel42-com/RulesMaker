@@ -350,6 +350,8 @@ void CMainWindow::slotHandleProgressToggle()
     auto buttons = this->findChildren< QAbstractButton * >();
     for ( auto &&button : buttons )
     {
+        if ( button == fCancelButton )
+            continue;
         button->setEnabled( !running );
     }
 
