@@ -10,5 +10,8 @@
         <file>resources/select.png</file>
         <file>resources/server.png</file>
         <file>resources/sort.png</file>
+        <file>resources/folder.png</file>
+        <file>resources/trash.png</file>
+        <file>resources/enable.png</file>
     </qresource>
 </RCC>
