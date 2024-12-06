@@ -37,7 +37,8 @@ public:
 
     void clear();
 
-    void addFolder( const QModelIndex &idx, QWidget *parent );
+    QModelIndex addFolder( const QModelIndex &parentIndex, QWidget *parent );
+    QModelIndex addFolder( const QModelIndex &parentIndex, const QString &folderName );
 
 Q_SIGNALS:
     void sigFinishedLoading();
@@ -46,11 +47,11 @@ Q_SIGNALS:
 
 private Q_SLOTS:
     void slotReload();
-    void slotAddFolder( Outlook::Folder *folder );
-    void slotFolderChanged( Outlook::Folder *folder );
     void slotAddNextFolder( QStandardItem *parent );
 
 private:
+    QStandardItem * addFolder( Outlook::Folder *folder );
+
     void addSubFolders( const std::shared_ptr< Outlook::Folder > &rootFolder );
     void addSubFolders( QStandardItem *item, const std::shared_ptr< Outlook::Folder > &parentFolder );
 

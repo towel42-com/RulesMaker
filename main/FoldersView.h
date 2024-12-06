@@ -31,6 +31,7 @@ public:
     void reload( bool notifyOnFinished );
     void clear();
     void clearSelection();
+    void addFolder( const QString &fileName );
 
     QString selectedPath() const;
     QString selectedFullPath() const;
@@ -46,6 +47,7 @@ protected Q_SLOTS:
     void slotSetRootFolder();
 
 protected:
+    void selectAndScroll( const QModelIndex &newIndex );
     QModelIndex currentIndex() const;
     QModelIndex sourceIndex( const QModelIndex &idx ) const;
 

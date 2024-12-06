@@ -1,9 +1,14 @@
 #include "RulesView.h"
 #include "RulesModel.h"
 #include "ListFilterModel.h"
+#include "OutlookAPI.h"
+
 #include "ui_RulesView.h"
 #include <QLineEdit>
 #include <QTimer>
+#include <QDebug>
+#include <QCursor>
+#include <QApplication>
 
 #include "MSOUTL.h"
 
@@ -27,7 +32,9 @@ void CRulesView::init()
     fFilterModel->setOnlyFilterParent( true );
     fFilterModel->setSourceModel( fModel );
     fImpl->rules->setModel( fFilterModel );
+    fImpl->deleteRule->setEnabled( false );
 
+    connect( fImpl->deleteRule, &QToolButton::clicked, this, &CRulesView::slotDeleteCurrent );
     connect( fImpl->rules->selectionModel(), &QItemSelectionModel::currentChanged, this, &CRulesView::slotItemSelected );
     connect(
         fModel, &CRulesModel::sigFinishedLoading,
@@ -129,21 +136,21 @@ void CRulesView::runSelectedRule() const
     return fModel->runRule( currentIndex() );
 }
 
-void CRulesView::slotItemSelected( const QModelIndex & /*index*/ )
+void CRulesView::slotItemSelected( const QModelIndex & index )
 {
     emit sigRuleSelected();
+    fImpl->deleteRule->setEnabled( index.isValid() && fModel->getRule( sourceIndex( index ) ) );
+    //qDebug() << index << sourceIndex( index );
 }
 
-bool CRulesView::addRule( const std::shared_ptr< Outlook::Folder > &destFolder, const QStringList &rules, QStringList &msgs )
+void CRulesView::slotDeleteCurrent()
 {
-    return fModel->addRule( destFolder, rules, msgs );
-}
-
-bool CRulesView::addToSelectedRule( const QStringList &rules, QStringList &msgs )
-{
-    auto rule = selectedRule();
+    if ( !currentIndex().isValid() )
+        return;
+    auto rule = fModel->getRule( currentIndex() );
     if ( !rule )
-        return false;
-
-    return fModel->addToRule( rule, rules, msgs );
+        return;
+    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    COutlookAPI::getInstance()->deleteRule( rule );
+    qApp->restoreOverrideCursor();
 }

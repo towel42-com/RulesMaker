@@ -3,13 +3,13 @@
 
 #include "WidgetWithStatus.h"
 #include <memory>
+#include <QModelIndexList>
 namespace Ui
 {
     class CEmailView;
 }
 
-class QModelIndex;
-class CGroupedEmailModel;
+class CEmailModel;
 
 class CEmailView : public CWidgetWithStatus
 {
@@ -26,6 +26,9 @@ public:
     void reload( bool notifyOnFinished );
 
     QStringList getRulesForSelection() const;
+
+    QString getSelectedDisplayName() const;
+
     
 Q_SIGNALS:
     void sigFinishedLoading();
@@ -37,7 +40,9 @@ protected Q_SLOTS:
     void slotItemDoubleClicked( const QModelIndex &idx );
 
 protected:
-    CGroupedEmailModel *fGroupedModel{ nullptr };
+    QModelIndexList getSelectedRows() const;
+
+    CEmailModel *fGroupedModel{ nullptr };
     std::unique_ptr< Ui::CEmailView > fImpl;
     bool fNotifyOnFinish{ true };
 };

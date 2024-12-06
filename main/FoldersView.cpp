@@ -43,12 +43,7 @@ void CFoldersView::init()
             fNotifyOnFinish = true;
         } );
 
-    connect(
-        fModel, &CFoldersModel::sigFinishedLoadingChildren,
-        [ = ]( QStandardItem * /*parent*/ )
-        {
-            fFilterModel->sort( 0, Qt::SortOrder::AscendingOrder );
-        } );
+    connect( fModel, &CFoldersModel::sigFinishedLoadingChildren, [ = ]( QStandardItem * /*parent*/ ) { fFilterModel->sort( 0, Qt::SortOrder::AscendingOrder ); } );
 
     connect( fImpl->addFolder, &QPushButton::clicked, this, &CFoldersView::slotAddFolder );
     connect( fModel, &CFoldersModel::sigSetStatus, [ = ]( int curr, int max ) { emit sigSetStatus( statusLabel(), curr, max ); } );
@@ -124,10 +119,25 @@ void CFoldersView::slotItemSelected( const QModelIndex &index )
     emit sigFolderSelected( currentPath );
 }
 
+void CFoldersView::addFolder( const QString &folderName )
+{
+    auto newIndex = fFilterModel->mapFromSource( fModel->addFolder( currentIndex(), folderName ) );
+    selectAndScroll( newIndex );
+}
+
 void CFoldersView::slotAddFolder()
 {
-    auto idx = currentIndex();
-    fModel->addFolder( idx, this );
+    auto newIndex = fFilterModel->mapFromSource( fModel->addFolder( currentIndex(), this ) );
+    selectAndScroll( newIndex );
+}
+
+void CFoldersView::selectAndScroll( const QModelIndex &newIndex )
+{
+    if ( !newIndex.isValid() )
+        return;
+
+    fImpl->folders->setCurrentIndex( newIndex );
+    fImpl->folders->scrollTo( newIndex );
 }
 
 QString CFoldersView::selectedPath() const

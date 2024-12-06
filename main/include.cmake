@@ -43,7 +43,7 @@ set(qtproject_UIS
 )
 
 set(project_SRCS
-    GroupedEmailModel.cpp
+    EmailModel.cpp
     EmailView.cpp
     FoldersView.cpp
     FoldersModel.cpp
@@ -51,6 +51,7 @@ set(project_SRCS
     main.cpp
     MainWindow.cpp
     OutlookAPI.cpp
+    OutlookAPI_getEmailAddresses.cpp
     RulesModel.cpp
     RulesView.cpp
     StatusProgress.cpp
@@ -59,7 +60,7 @@ set(project_SRCS
 )
  
 set(qtproject_H
-    GroupedEmailModel.h
+    EmailModel.h
     EmailView.h
     FoldersModel.h
     ListFilterModel.h

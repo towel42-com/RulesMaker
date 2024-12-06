@@ -1,5 +1,5 @@
 #include "EmailView.h"
-#include "GroupedEmailModel.h"
+#include "EmailModel.h"
 
 #include "ui_EmailView.h"
 #include "MSOUTL.h"
@@ -23,13 +23,13 @@ void CEmailView::init()
     fImpl->setupUi( this );
     setStatusLabel( "Grouping Emails:" );
 
-    fGroupedModel = new CGroupedEmailModel( this );
+    fGroupedModel = new CEmailModel( this );
     fImpl->groupedEmails->setModel( fGroupedModel );
 
     connect( fImpl->groupedEmails, &QTreeView::doubleClicked, this, &CEmailView::slotItemDoubleClicked );
     connect( fImpl->groupedEmails->selectionModel(), &QItemSelectionModel::selectionChanged, this, &CEmailView::slotSelectionChanged );
     connect(
-        fGroupedModel, &CGroupedEmailModel::sigFinishedGrouping,
+        fGroupedModel, &CEmailModel::sigFinishedGrouping,
         [ = ]()
         {
             fImpl->groupedEmails->expandAll();
@@ -38,9 +38,9 @@ void CEmailView::init()
                 emit sigFinishedLoading();
             fNotifyOnFinish = true;
         } );
-    connect( fGroupedModel, &CGroupedEmailModel::sigSetStatus, [ = ]( int curr, int max ) { emit sigSetStatus( statusLabel(), curr, max ); } );
+    connect( fGroupedModel, &CEmailModel::sigSetStatus, [ = ]( int curr, int max ) { emit sigSetStatus( statusLabel(), curr, max ); } );
     connect(
-        fGroupedModel, &CGroupedEmailModel::sigSetStatus,
+        fGroupedModel, &CEmailModel::sigSetStatus,
         [ = ]( int curr, int max )
         {
             if ( ( max > 100 ) && ( curr == 1 ) || ( ( curr % 100 ) == 0 ) )
@@ -88,10 +88,31 @@ void CEmailView::slotSelectionChanged()
 
 QStringList CEmailView::getRulesForSelection() const
 {
+    auto rows = getSelectedRows();
+    QStringList retVal;
+    for ( auto &&row : rows )
+    {
+        retVal << fGroupedModel->rulesForIndex( row );
+    }
+    retVal.removeDuplicates();
+    retVal.removeAll( QString() );
+    return retVal;
+}
+
+QString CEmailView::getSelectedDisplayName() const
+{
+    auto rows = getSelectedRows();
+    if ( rows.empty() )
+        return {};
+    return fGroupedModel->displayNameForIndex( rows.front() );
+}
+
+QModelIndexList CEmailView::getSelectedRows() const
+{
     auto selection = fImpl->groupedEmails->selectionModel()->selectedIndexes();
 
     std::set< std::list< int > > rows;
-    QStringList rules;
+    QModelIndexList retVal; 
     for ( auto &&ii : selection )
     {
         std::list< int > currRows;
@@ -102,14 +123,13 @@ QStringList CEmailView::getRulesForSelection() const
             currIdx = currIdx.parent();
         }
 
+        currRows.sort();
         if ( rows.find( currRows ) != rows.end() )
             continue;
         rows.insert( currRows );
-
-        rules << fGroupedModel->rulesForIndex( ii );
+        retVal << ii;
     }
-    rules.removeDuplicates();
-    return rules;
+    return retVal;
 }
 
 void CEmailView::slotItemDoubleClicked( const QModelIndex &idx )

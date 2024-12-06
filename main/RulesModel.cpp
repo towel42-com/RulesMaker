@@ -5,9 +5,16 @@
 
 #include "MSOUTL.h"
 
+Q_DECLARE_METATYPE( std::shared_ptr< Outlook::Rule > );
+
 CRulesModel::CRulesModel( QObject *parent ) :
     QStandardItemModel( parent )
 {
+    connect( COutlookAPI::getInstance().get(), &COutlookAPI::sigRuleAdded, this, &CRulesModel::slotRuleAdded );
+    connect( COutlookAPI::getInstance().get(), &COutlookAPI::sigRuleChanged, this, &CRulesModel::slotRuleChanged );
+    connect( COutlookAPI::getInstance().get(), &COutlookAPI::sigRuleDeleted, this, &CRulesModel::slotRuleDeleted );
+    qRegisterMetaType< std::shared_ptr< Outlook::Rule > >();
+    qRegisterMetaType< std::shared_ptr< Outlook::Rule > >( "std::shared_ptr<Outlook::Rule>const&" );
 }
 
 void CRulesModel::reload()
@@ -26,8 +33,8 @@ void CRulesModel::clear()
 {
     QStandardItemModel::clear();
     setHorizontalHeaderLabels( { "Name (Execution Order)", "Value" } );
-    setColumnCount( 2 );
     fRuleMap.clear();
+    fReverseRuleMap.clear();
     fRules.reset();
 }
 
@@ -72,8 +79,9 @@ bool CRulesModel::loadRule( std::shared_ptr< Outlook::Rule > rule )
     if ( !rule )
         return false;
 
-    auto ruleItem = new QStandardItem( QString( "%1 (%2)" ).arg( rule->Name() ).arg( rule->ExecutionOrder() ) );
+    auto ruleItem = new QStandardItem( COutlookAPI::ruleNameForRule( rule, true ) );
     fRuleMap[ ruleItem ] = rule;
+    fReverseRuleMap[ rule ] = ruleItem;
 
     this->appendRow( ruleItem );
 
@@ -141,28 +149,6 @@ void CRulesModel::loadRuleData( QStandardItem *ruleItem, std::shared_ptr< Outloo
     addExceptions( ruleItem, rule );
     addActions( ruleItem, rule );
     fBeenLoaded.insert( ruleItem );
-}
-
-bool CRulesModel::updateRule( std::shared_ptr< Outlook::Rule > rule )
-{
-    QStandardItem *ruleItem = nullptr;
-    for ( auto &&ii = fRuleMap.begin(); ii != fRuleMap.end(); ++ii )
-    {
-        if ( ( *ii ).second == rule )
-        {
-            ruleItem = ( *ii ).first;
-            for ( auto jj = 0; jj < ruleItem->rowCount(); ++jj )
-            {
-                ruleItem->removeRow( jj );
-            }
-            break;
-        }
-    }
-    if ( !ruleItem )
-        loadRule( rule );
-    else
-        loadRuleData( ruleItem, rule );
-    return true;
 }
 
 void CRulesModel::addConditions( QStandardItem *parent, std::shared_ptr< Outlook::Rule > rule )
@@ -572,19 +558,71 @@ std::shared_ptr< Outlook::Rule > CRulesModel::getRule( QStandardItem *item ) con
     return ( *pos ).second;
 }
 
-bool CRulesModel::addRule( const std::shared_ptr< Outlook::Folder > &destFolder, const QStringList &rules, QStringList &msgs )
+void CRulesModel::slotRuleAdded( const std::shared_ptr< Outlook::Rule > rule )
 {
-    auto retVal = COutlookAPI::getInstance()->addRule( destFolder, rules, msgs );
-    if ( !retVal.second )
-        return retVal.second;
-    loadRule( retVal.first );
-    return true;
+    if ( !rule )
+        return;
+    loadRule( rule );
 }
 
-bool CRulesModel::addToRule( std::shared_ptr< Outlook::Rule > rule, const QStringList &rules, QStringList &msgs )
+void CRulesModel::slotRuleChanged( const std::shared_ptr< Outlook::Rule > rule )
 {
-    auto retVal = COutlookAPI::getInstance()->addToRule( rule, rules, msgs );
-    if ( retVal )
-        updateRule( rule );
+    if ( !rule )
+        return;
+    updateRule( rule );
+}
+
+void CRulesModel::slotRuleDeleted( const std::shared_ptr< Outlook::Rule > rule )
+{
+    if ( !rule )
+        return;
+    auto pos = fReverseRuleMap.find( rule );
+    QStandardItem *item = nullptr;
+    if ( pos != fReverseRuleMap.end() )
+    {
+        item = ( *pos ).second;
+        fReverseRuleMap.erase( pos );
+    }
+
+    auto pos2 = fRuleMap.find( item );
+    if ( pos2 != fRuleMap.end() )
+    {
+        fRuleMap.erase( pos2 );
+    }
+
+    auto pos3 = fBeenLoaded.find( item );
+    if ( pos3 != fBeenLoaded.end() )
+    {
+        fBeenLoaded.erase( pos3 );
+    }
+
+    auto idx = indexFromItem( item );
+    removeRows( idx.row(), 1 );
+    
+    for ( auto && ii : fRuleMap )
+    {
+        auto && item = ii.first;
+        auto &&rule = ii.second;
+        item->setText( COutlookAPI::ruleNameForRule( rule, true ) );
+    }
+}
+
+bool CRulesModel::updateRule( std::shared_ptr< Outlook::Rule > rule )
+{
+    QStandardItem *ruleItem = nullptr;
+    auto pos = fReverseRuleMap.find( rule );
+    if ( pos != fReverseRuleMap.end() )
+    {
+        ruleItem = ( *pos ).second;
+        for ( auto jj = 0; jj < ruleItem->rowCount(); ++jj )
+        {
+            ruleItem->removeRow( jj );
+        }
+    }
+
+    if ( !ruleItem )
+        loadRule( rule );
+    else
+        loadRuleData( ruleItem, rule );
     return true;
 }

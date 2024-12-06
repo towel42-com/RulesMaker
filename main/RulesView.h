@@ -37,15 +37,13 @@ public:
     void runSelectedRule() const;
     std::shared_ptr< Outlook::Rule > selectedRule() const;
 
-    bool addRule( const std::shared_ptr< Outlook::Folder > &destFolder, const QStringList &rules, QStringList &msgs );
-    bool addToSelectedRule( const QStringList &rules, QStringList &msgs );
-
 Q_SIGNALS:
     void sigFinishedLoading();
     void sigRuleSelected();
 
 protected Q_SLOTS:
     void slotItemSelected( const QModelIndex &index );
+    void slotDeleteCurrent();
 
 protected:
     QModelIndex currentIndex() const;

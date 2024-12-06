@@ -1,5 +1,5 @@
-#ifndef EMAILGROUPINGMODEL_H
-#define EMAILGROUPINGMODEL_H
+#ifndef EMAILMODEL_H
+#define EMAILMODEL_H
 
 #include <QString>
 #include <QStandardItemModel>
@@ -29,13 +29,13 @@ public:
     std::map< QString, CEmailAddressSection * > fChildItems;
 };
 
-class CGroupedEmailModel : public QStandardItemModel
+class CEmailModel : public QStandardItemModel
 {
     Q_OBJECT;
 
 public:
-    explicit CGroupedEmailModel( QObject *parent );
-    virtual ~CGroupedEmailModel();
+    explicit CEmailModel( QObject *parent );
+    virtual ~CEmailModel();
 
     void reload();
     void clear();
@@ -43,6 +43,9 @@ public:
     std::shared_ptr< Outlook::MailItem > emailItemFromIndex( const QModelIndex &idx ) const;
     QStringList rulesForIndex( const QModelIndex &idx ) const;
     QStringList rulesForItem( QStandardItem *item ) const;
+
+    QString displayNameForIndex( const QModelIndex &idx ) const;
+    QString displayNameForItem( QStandardItem *item ) const;
 
 Q_SIGNALS:
     void sigFinishedGrouping();
@@ -54,9 +57,10 @@ private Q_SLOTS:
 private:
     void sortAll( QStandardItem *root );
     QString ruleForItem( QStandardItem *item ) const;
-    void addEmailAddresses( std::shared_ptr< Outlook::MailItem >, const QStringList &emails );
-    void addEmailAddress( std::shared_ptr< Outlook::MailItem > mailItem, const QString &email );
-    CEmailAddressSection *findOrAddEmailAddressSection( const QStringRef &curr, const QVector< QStringRef > &remaining, CEmailAddressSection *parent );
+    void addEmailAddress( std::shared_ptr< Outlook::MailItem > mailItem );
+    CEmailAddressSection *findOrAddEmailAddressSection( const QStringRef &curr, const QVector< QStringRef > &remaining, CEmailAddressSection *parent, const QString &displayName );
+
+    void addToDisplayName( CEmailAddressSection *currItem, const QString &displayName );
 
     std::shared_ptr< Outlook::Items > fItems{ nullptr };
 

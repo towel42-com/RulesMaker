@@ -60,9 +60,6 @@ public:
     std::shared_ptr< Outlook::Rule > getRule( const QModelIndex &index ) const;
     std::shared_ptr< Outlook::Rule > getRule( QStandardItem *item ) const;
 
-    bool addRule( const std::shared_ptr< Outlook::Folder > &destFolder, const QStringList &rules, QStringList &msgs );
-    bool addToRule( std::shared_ptr< Outlook::Rule > rule, const QStringList &rules, QStringList &msgs );
-
     virtual bool hasChildren( const QModelIndex &parent ) const override;
     virtual void fetchMore( const QModelIndex &parent ) override;
     virtual bool canFetchMore( const QModelIndex &parent ) const override;
@@ -73,6 +70,9 @@ Q_SIGNALS:
 
 private Q_SLOTS:
     void slotLoadNextRule();
+    void slotRuleAdded( std::shared_ptr< Outlook::Rule > rule );
+    void slotRuleChanged( std::shared_ptr< Outlook::Rule > rule );
+    void slotRuleDeleted( std::shared_ptr< Outlook::Rule > rule );
 
 private:
     bool beenLoaded( const QModelIndex &parent ) const;
@@ -80,10 +80,9 @@ private:
 
     void loadRules();
 
-    bool loadRule( std::shared_ptr< Outlook::Rule > rule );
-
     void loadRuleData( QStandardItem *ruleItem, std::shared_ptr< Outlook::Rule > rule );
 
+    bool loadRule( std::shared_ptr< Outlook::Rule > rule );
     bool updateRule( std::shared_ptr< Outlook::Rule > rule );
 
     void addAttribute( QStandardItem *parent, const QString &label, const QString &value );
@@ -119,6 +118,7 @@ private:
 
     std::shared_ptr< Outlook::Rules > fRules{ nullptr };
     std::unordered_map< QStandardItem *, std::shared_ptr< Outlook::Rule > > fRuleMap;
+    std::unordered_map< std::shared_ptr< Outlook::Rule >, QStandardItem * > fReverseRuleMap;
     std::unordered_set< QStandardItem * > fBeenLoaded;
     int fCurrPos{ 1 };
 };

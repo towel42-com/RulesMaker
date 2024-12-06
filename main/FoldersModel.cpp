@@ -63,50 +63,6 @@ CFoldersModel::~CFoldersModel()
 {
 }
 
-void CFoldersModel::slotAddFolder( Outlook::Folder *folder )
-{
-    if ( !folder )
-        return;
-
-    auto sharedFolder = COutlookAPI::getInstance()->findMailFolder( folder );
-    auto child = new QStandardItem( COutlookAPI::getInstance()->folderName( folder ) );
-    fFolderMap[ child ] = sharedFolder;
-
-    QStandardItem *parentItem = nullptr;
-    auto parent = folder->Parent();
-    if ( parent )
-    {
-        auto parentObj = new Outlook::Folder( parent );
-        if ( parentObj->Class() == Outlook::OlObjectClass::olFolder )
-        {
-            auto parentPath = parentObj->FullFolderPath();
-            for ( auto &&ii : fFolderMap )
-            {
-                if ( ii.second->FullFolderPath() == parentPath )
-                {
-                    parentItem = ii.first;
-                    break;
-                }
-            }
-        }
-        delete parentObj;
-    }
-    if ( !parentItem )
-    {
-        appendRow( child );
-        sort( 0, Qt::SortOrder::AscendingOrder );
-    }
-    else
-    {
-        parentItem->appendRow( child );
-        parentItem->sortChildren( 0, Qt::SortOrder::AscendingOrder );
-    }
-}
-
-void CFoldersModel::slotFolderChanged( Outlook::Folder * /*folder*/ )
-{
-}
-
 void CFoldersModel::slotReload()
 {
     clear();
@@ -238,15 +194,21 @@ void CFoldersModel::clear()
     fFolderMap.clear();
 }
 
-void CFoldersModel::addFolder( const QModelIndex &idx, QWidget *parent )
+QModelIndex CFoldersModel::addFolder( const QModelIndex &parentIndex, QWidget *parent )
+{
+    auto folderName = QInputDialog::getText( parent, "New Folder Name", "Folder Name" );
+    if ( folderName.isEmpty() )
+        return {};
+
+    return addFolder( parentIndex, folderName );
+}
+
+
+QModelIndex CFoldersModel::addFolder( const QModelIndex & parentIndex, const QString & folderName )
 {
     auto parentFolder = COutlookAPI::getInstance()->getInbox();
 
-    auto folderName = QInputDialog::getText( parent, "New Folder Name", "Folder Name" );
-    if ( folderName.isEmpty() )
-        return;
-
-    auto parentItem = itemFromIndex( idx );
+    auto parentItem = itemFromIndex( parentIndex );
     if ( parentItem )
     {
         auto pos = fFolderMap.find( parentItem );
@@ -255,8 +217,53 @@ void CFoldersModel::addFolder( const QModelIndex &idx, QWidget *parent )
     }
 
     if ( !parentFolder )
-        return;
+        return {};
 
     auto newFolder = parentFolder->Folders()->Add( folderName );
-    slotAddFolder( reinterpret_cast< Outlook::Folder * >( newFolder ) );
+    auto retVal = addFolder( reinterpret_cast< Outlook::Folder * >( newFolder ) );
+    if ( !retVal )
+        return {};
+    return indexFromItem( retVal );
 }
+
+QStandardItem *CFoldersModel::addFolder( Outlook::Folder *folder )
+{
+    if ( !folder )
+        return nullptr;
+
+    auto sharedFolder = COutlookAPI::getInstance()->getMailFolder( folder );
+    auto child = new QStandardItem( COutlookAPI::getInstance()->folderName( folder ) );
+    fFolderMap[ child ] = sharedFolder;
+
+    QStandardItem *parentItem = nullptr;
+    auto parent = folder->Parent();
+    if ( parent )
+    {
+        auto parentObj = new Outlook::Folder( parent );
+        if ( parentObj->Class() == Outlook::OlObjectClass::olFolder )
+        {
+            auto parentPath = parentObj->FullFolderPath();
+            for ( auto &&ii : fFolderMap )
+            {
+                if ( ii.second->FullFolderPath() == parentPath )
+                {
+                    parentItem = ii.first;
+                    break;
+                }
+            }
+        }
+        delete parentObj;
+    }
+    if ( !parentItem )
+    {
+        appendRow( child );
+        sort( 0, Qt::SortOrder::AscendingOrder );
+    }
+    else
+    {
+        parentItem->appendRow( child );
+        parentItem->sortChildren( 0, Qt::SortOrder::AscendingOrder );
+    }
+    return child;
+}
+
