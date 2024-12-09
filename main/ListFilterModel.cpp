@@ -24,6 +24,13 @@ bool CListFilterModel::filterAcceptsRow( int source_row, const QModelIndex &sour
     return true;
 }
 
+bool CListFilterModel::lessThan( const QModelIndex &source_left, const QModelIndex &source_right ) const
+{
+    if ( fLessThanOp )
+        return fLessThanOp( source_left, source_right );
+    return QSortFilterProxyModel::lessThan( source_left, source_right );
+}
+
 void CListFilterModel::slotSetFilter( const QString &filter )
 {
     if ( filter.isEmpty() )

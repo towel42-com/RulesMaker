@@ -3,7 +3,7 @@
 
 #include <QString>
 #include <QSortFilterProxyModel>
-
+#include <functional>
 #include <memory>
 
 class CListFilterModel : public QSortFilterProxyModel
@@ -15,10 +15,14 @@ public:
     virtual ~CListFilterModel();
 
     void setOnlyFilterParent( bool value ) { fOnlyFilterParent = value; }
-    bool onlyFilterParent()const { return fOnlyFilterParent ; }
+    bool onlyFilterParent() const { return fOnlyFilterParent; }
 
-    virtual bool filterAcceptsColumn( int source_column, const QModelIndex &source_parent ) const;
-    virtual bool filterAcceptsRow( int source_row, const QModelIndex &source_parent ) const;
+    void setLessThanOp( const std::function< bool( const QModelIndex &source_left, const QModelIndex &source_right ) > &lessThanOp ) { fLessThanOp = lessThanOp; }
+
+    virtual bool filterAcceptsColumn( int source_column, const QModelIndex &source_parent ) const override;
+    virtual bool filterAcceptsRow( int source_row, const QModelIndex &source_parent ) const override;
+    virtual bool lessThan( const QModelIndex &source_left, const QModelIndex &source_right ) const override;
+
 Q_SIGNALS:
 
 public Q_SLOTS:
@@ -26,6 +30,7 @@ public Q_SLOTS:
 
 private:
     bool fOnlyFilterParent{ false };
+    std::function< bool( const QModelIndex &source_left, const QModelIndex &source_right ) > fLessThanOp;
 };
 
 #endif
