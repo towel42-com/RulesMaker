@@ -140,6 +140,7 @@ void CRulesModel::loadRuleData( QStandardItem *ruleItem, std::shared_ptr< Outloo
     if ( beenLoaded( ruleItem ) )
         return;
 
+    addAttribute( ruleItem, "Name", rule->Name() );
     addAttribute( ruleItem, "Enabled", rule->Enabled() );
     addAttribute( ruleItem, "Execution Order", rule->ExecutionOrder() );
     addAttribute( ruleItem, "Is Local", rule->IsLocalRule() );
@@ -314,7 +315,6 @@ bool CRulesModel::addCondition( QStandardItem *parent, Outlook::AddressRuleCondi
     if ( !condition->Enabled() )
         return false;
 
-    auto address = condition->Address();
     addAttribute( parent, "Address", getValue( condition->Address(), " or " ) );
     return true;
 }
