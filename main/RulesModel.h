@@ -75,6 +75,7 @@ private Q_SLOTS:
     void slotRuleDeleted( std::shared_ptr< Outlook::Rule > rule );
 
 private:
+    void updateAllRules();
     bool beenLoaded( const QModelIndex &parent ) const;
     bool beenLoaded( QStandardItem *parent ) const;
 

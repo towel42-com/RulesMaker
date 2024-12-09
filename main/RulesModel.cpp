@@ -558,11 +558,22 @@ std::shared_ptr< Outlook::Rule > CRulesModel::getRule( QStandardItem *item ) con
     return ( *pos ).second;
 }
 
+void CRulesModel::updateAllRules()
+{
+    for ( auto &&ii : fRuleMap )
+    {
+        auto &&item = ii.first;
+        auto &&rule = ii.second;
+        item->setText( COutlookAPI::ruleNameForRule( rule, true ) );
+    }
+}
+
 void CRulesModel::slotRuleAdded( const std::shared_ptr< Outlook::Rule > rule )
 {
     if ( !rule )
         return;
     loadRule( rule );
+    updateAllRules();
 }
 
 void CRulesModel::slotRuleChanged( const std::shared_ptr< Outlook::Rule > rule )
@@ -570,6 +581,7 @@ void CRulesModel::slotRuleChanged( const std::shared_ptr< Outlook::Rule > rule )
     if ( !rule )
         return;
     updateRule( rule );
+    updateAllRules();
 }
 
 void CRulesModel::slotRuleDeleted( const std::shared_ptr< Outlook::Rule > rule )
@@ -598,13 +610,8 @@ void CRulesModel::slotRuleDeleted( const std::shared_ptr< Outlook::Rule > rule )
 
     auto idx = indexFromItem( item );
     removeRows( idx.row(), 1 );
-    
-    for ( auto && ii : fRuleMap )
-    {
-        auto && item = ii.first;
-        auto &&rule = ii.second;
-        item->setText( COutlookAPI::ruleNameForRule( rule, true ) );
-    }
+
+    updateAllRules();
 }
 
 bool CRulesModel::updateRule( std::shared_ptr< Outlook::Rule > rule )
