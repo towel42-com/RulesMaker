@@ -1003,15 +1003,15 @@ bool COutlookAPI::renameRules()
 
     auto numRules = fRules->Count();
 
-    emit sigInitStatus( "Renaming Rules:", numRules );
+    emit sigInitStatus( "Analyzing Rule Names:", numRules );
 
-    int numChanged = 0;
+    std::list< std::pair< std::shared_ptr< Outlook::Rule >, QString > > changes;
     for ( int ii = 1; ii <= numRules; ++ii )
     {
         if ( canceled() )
             return false;
 
-        emit sigIncStatusValue( "Renaming Rules:" );
+        emit sigIncStatusValue( "Analyzing Rule Names:" );
         auto rule = getRule( fRules->Item( ii ) );
         if ( !rule )
             continue;
@@ -1020,60 +1020,237 @@ bool COutlookAPI::renameRules()
         auto currName = rule->Name();
         if ( ruleName != currName )
         {
-            numChanged++;
-            rule->SetName( ruleName );
+            changes.emplace_back( rule, ruleName );
         }
     }
     if ( canceled() )
         return false;
 
-    if ( numChanged )
-        saveRules();
-    QMessageBox::information( fParentWidget, "Renamed Rules", QString( "%1 rules renamed" ).arg( numChanged ) );
-    return numChanged;
+    if ( changes.empty() )
+    {
+        QMessageBox::information( fParentWidget, "Renamed Rules", QString( "No rules needed renaming" ) );
+        return 0;
+    }
+    QStringList tmp;
+    for ( auto &&ii : changes )
+    {
+        tmp << "<li>" + ii.first->Name() + " => " + ii.second + "</li>";
+    }
+    auto msg = QString( "Rules to be changed:<ul>%1</ul>Continue?" ).arg( tmp.join( "\n" ) );
+    auto process = QMessageBox::information( fParentWidget, "Renamed Rules", msg, QMessageBox::Yes | QMessageBox::No );
+    if ( process == QMessageBox::No )
+        return 0;
+
+    emit sigInitStatus( "Renaming Rules:", static_cast< int >( changes.size() ) );
+    for ( auto &&ii : changes )
+    {
+        ii.first->SetName( ii.second );
+        emit sigIncStatusValue( "Renaming Rules:" );
+    }
+    saveRules();
+
+    return changes.size();
 }
 
-QString COutlookAPI::ruleNameForRule( std::shared_ptr< Outlook::Rule > rule, bool includeExecutionOrder )
+template< typename T >
+QString addConditionBase( T *condition, const QString &conditionStr, bool forDisplayOnly )
 {
+    if ( condition && condition->Enabled() )
+    {
+        if ( forDisplayOnly )
+            return "<" + conditionStr + ">";
+        else
+            return "(" + conditionStr + ")";
+    }
+    return {};
+}
+
+QString addCondition( Outlook::AccountRuleCondition *condition, const QString &conditionStr, bool forDisplayOnly )
+{
+    if ( !condition || !condition->Enabled() )
+        return {};
+
+    auto retVal = conditionStr + "=" + toString( condition->ConditionType() );
+    return addConditionBase( condition, retVal, forDisplayOnly );
+}
+
+QString addCondition( Outlook::RuleCondition *condition, const QString &conditionStr, bool forDisplayOnly )
+{
+    if ( !condition || !condition->Enabled() )
+        return {};
+
+    auto retVal = conditionStr + "=Yes";
+    return addConditionBase( condition, retVal, forDisplayOnly );
+}
+
+QString addCondition( Outlook::TextRuleCondition *condition, const QString &conditionStr, bool forDisplayOnly )
+{
+    if ( !condition || !condition->Enabled() )
+        return {};
+
+    auto retVal = conditionStr + "=" + getValue( condition->Text(), " or " );
+    return addConditionBase( condition, retVal, forDisplayOnly );
+}
+
+QString addCondition( Outlook::CategoryRuleCondition *condition, const QString &conditionStr, bool forDisplayOnly )
+{
+    if ( !condition || !condition->Enabled() )
+        return {};
+
+    auto retVal = conditionStr + "=" + getValue( condition->Categories(), " or " );
+    return addConditionBase( condition, retVal, forDisplayOnly );
+}
+
+QString addCondition( Outlook::ToOrFromRuleCondition *condition, const QString &conditionStr, bool forDisplayOnly )
+{
+    if ( !condition || !condition->Enabled() )
+        return {};
+
+    auto retVal = conditionStr + "=";
+
+    auto recipients = COutlookAPI::getRecipientEmails( condition->Recipients(), {}, false );
+    retVal += recipients.join( " or " );
+
+    return addConditionBase( condition, retVal, forDisplayOnly );
+}
+
+QString addCondition( Outlook::FormNameRuleCondition *condition, const QString &conditionStr, bool forDisplayOnly )
+{
+    if ( !condition || !condition->Enabled() )
+        return {};
+
+    auto retVal = conditionStr + "=" + getValue( condition->FormName(), " or " );
+    return addConditionBase( condition, retVal, forDisplayOnly );
+}
+
+QString addCondition( Outlook::FromRssFeedRuleCondition *condition, const QString &conditionStr, bool forDisplayOnly )
+{
+    if ( !condition || !condition->Enabled() )
+        return {};
+
+    auto retVal = conditionStr + "=" + getValue( condition->FromRssFeed(), " or " );
+    return addConditionBase( condition, retVal, forDisplayOnly );
+}
+
+QString addCondition( Outlook::ImportanceRuleCondition *condition, const QString &conditionStr, bool forDisplayOnly )
+{
+    if ( !condition || !condition->Enabled() )
+        return {};
+
+    auto retVal = conditionStr + "=" + toString( condition->Importance() );
+    return addConditionBase( condition, retVal, forDisplayOnly );
+}
+
+QString addCondition( Outlook::AddressRuleCondition *condition, const QString &conditionStr, bool forDisplayOnly )
+{
+    if ( !condition || !condition->Enabled() )
+        return {};
+
+    auto retVal = conditionStr + "=" + getValue( condition->Address(), " or " );
+    return addConditionBase( condition, retVal, forDisplayOnly );
+}
+
+QString addCondition( Outlook::SenderInAddressListRuleCondition *condition, const QString &conditionStr, bool forDisplayOnly )
+{
+    if ( !condition || !condition->Enabled() )
+        return {};
+
+    auto addresses = COutlookAPI::getInstance()->getEmailAddresses( condition->AddressList(), false );
+    auto retVal = conditionStr + "=";
+    retVal += addresses.join( " or " );
+
+    return addConditionBase( condition, retVal, forDisplayOnly );
+}
+
+QString addCondition( Outlook::SensitivityRuleCondition *condition, const QString &conditionStr, bool forDisplayOnly )
+{
+    if ( !condition || !condition->Enabled() )
+        return {};
+
+    auto retVal = conditionStr + "=" + toString( condition->Sensitivity() );
+    return addConditionBase( condition, retVal, forDisplayOnly );
+}
+
+QString COutlookAPI::ruleNameForRule( std::shared_ptr< Outlook::Rule > rule, bool forDisplay )
+{
+    QStringList addOns;
     if ( !rule )
-        return "<NULLPTR> (-1)";
+        addOns << "INV-NULLPTR";
 
-    auto executionOrder = [ = ]() -> auto
-    {
-        if ( !includeExecutionOrder )
-            return QString();
-        return QString( " (%1)" ).arg( rule->ExecutionOrder() );
-    };
-
-    bool isEnabled = rule->Enabled();
-    auto actions = rule->Actions();
+    bool isEnabled = rule ? rule->Enabled() : false;
+    auto actions = rule ? rule->Actions() : nullptr;
     if ( !actions )
-        return rule->Name() + " <NOACTIONS>" + executionOrder();
-
-    auto mvToFolderAction = actions->MoveToFolder();
-    if ( !mvToFolderAction )
-        return rule->Name() + "<NOMTFACTION>" + executionOrder();
-
-    isEnabled = isEnabled && mvToFolderAction->Enabled();
-
-    auto folder = mvToFolderAction->Folder();
-    if ( !folder )
-        return rule->Name() + "<NOFOLDER>" + executionOrder();
-
-    auto ruleName = ruleNameForFolder( reinterpret_cast< Outlook::Folder * >( folder ) );
-    if ( rule->Conditions() )
     {
-        if ( rule->Conditions()->From() && rule->Conditions()->From()->Enabled() )
-            ruleName += " <From>";
+        addOns << "INV-NOACTIONS";
+    }
 
-        if ( rule->Conditions()->SentTo() && rule->Conditions()->SentTo()->Enabled() )
-            ruleName += " <SentTo>";    
+    Outlook::MAPIFolder *destFolder = nullptr;
+    auto mvToFolderAction = actions ? actions->MoveToFolder() : nullptr;
+    if ( mvToFolderAction )
+    {
+        isEnabled = isEnabled && mvToFolderAction->Enabled();
+        destFolder = mvToFolderAction->Folder();
+        if ( !destFolder )
+            addOns << "NOFOLDER";
+    }
+    else
+    {
+        addOns << "INV-NOMOVEACTION";
+    }
+
+    QStringList conditions;
+    if ( !forDisplay && rule && rule->Conditions() )
+    {
+        conditions << addCondition( rule->Conditions()->Account(), "Account", forDisplay );
+        conditions << addCondition( rule->Conditions()->AnyCategory(), "AnyCategory", forDisplay );
+        conditions << addCondition( rule->Conditions()->Body(), "Body", forDisplay );
+        conditions << addCondition( rule->Conditions()->BodyOrSubject(), "BodyOrSubject", forDisplay );
+        conditions << addCondition( rule->Conditions()->CC(), "CC", forDisplay );
+        conditions << addCondition( rule->Conditions()->Category(), "Category", forDisplay );
+        conditions << addCondition( rule->Conditions()->FormName(), "FormName", forDisplay );
+        conditions << addCondition( rule->Conditions()->From(), "From", forDisplay );
+        conditions << addCondition( rule->Conditions()->FromAnyRSSFeed(), "FromAnyRSSFeed", forDisplay );
+        conditions << addCondition( rule->Conditions()->FromRssFeed(), "FromRssFeed", forDisplay );
+        conditions << addCondition( rule->Conditions()->HasAttachment(), "HasAttachment", forDisplay );
+        conditions << addCondition( rule->Conditions()->Importance(), "Importance", forDisplay );
+        conditions << addCondition( rule->Conditions()->MeetingInviteOrUpdate(), "MeetingInviteOrUpdate", forDisplay );
+        conditions << addCondition( rule->Conditions()->MessageHeader(), "MessageHeader", forDisplay );
+        conditions << addCondition( rule->Conditions()->NotTo(), "NotTo", forDisplay );
+        conditions << addCondition( rule->Conditions()->OnLocalMachine(), "OnLocalMachine", forDisplay );
+        conditions << addCondition( rule->Conditions()->OnOtherMachine(), "OnOtherMachine", forDisplay );
+        conditions << addCondition( rule->Conditions()->OnlyToMe(), "OnlyToMe", forDisplay );
+        conditions << addCondition( rule->Conditions()->RecipientAddress(), "RecipientAddress", forDisplay );
+        //conditions << addCondition( rule->Conditions()->SenderAddress(), "SenderAddress", forDisplay );
+        conditions << addCondition( rule->Conditions()->SenderInAddressList(), "SenderInAddressList", forDisplay );
+        conditions << addCondition( rule->Conditions()->Sensitivity(), "Sensitivity", forDisplay );
+        conditions << addCondition( rule->Conditions()->SentTo(), "SentTo", forDisplay );
+        conditions << addCondition( rule->Conditions()->Subject(), "Subject", forDisplay );
+        conditions << addCondition( rule->Conditions()->ToMe(), "ToMe", forDisplay );
+        conditions << addCondition( rule->Conditions()->ToOrCc(), "ToOrCc", forDisplay );
     }
 
     if ( !isEnabled )
-        ruleName += " <Disabled>";
+        conditions << ( forDisplay ? "(Disabled)" : "<Disabled>" );
 
-    return ruleName + executionOrder();
+    QString ruleName;
+    if ( forDisplay && rule )
+        ruleName = rule->Name();
+    else
+        ruleName = ruleNameForFolder( reinterpret_cast< Outlook::Folder * >( destFolder ) );
+
+    if ( ruleName.isEmpty() )
+        ruleName = "<UNNAMED RULE>";
+
+    conditions.removeAll( QString() );
+    conditions.sort();
+
+    addOns.removeAll( QString() );
+    addOns.sort();
+
+    auto suffixes = QStringList() << ruleName << addOns.join( " " ) << conditions.join( " " ) << ( ( forDisplay ) ? ( rule ? QString( "(%1)" ).arg( rule->ExecutionOrder() ) : QString( "(INV_EXECUTION_ORDER)" ) ) : QString() );
+    suffixes.removeAll( QString() );
+
+    return suffixes.join( " " ).trimmed();
 }
 
 bool COutlookAPI::sortRules()
@@ -1101,8 +1278,10 @@ bool COutlookAPI::sortRules()
     rules.sort(
         []( Outlook::_Rule *lhs, Outlook::_Rule *rhs )
         {
-            if ( !lhs || !rhs )
+            if ( !lhs )
                 return false;
+            if ( !rhs )
+                return true;
             auto lhsName = lhs->Name();
             auto rhsName = rhs->Name();
             if ( lhsName.startsWith( rhsName ) && ( lhsName != rhsName ) )

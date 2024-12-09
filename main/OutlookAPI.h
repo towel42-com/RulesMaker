@@ -150,7 +150,7 @@ public:
 
     static QString ruleNameForFolder( Outlook::Folder *folder );
     static QString ruleNameForFolder( const std::shared_ptr< Outlook::Folder > &folder );
-    static QString ruleNameForRule( std::shared_ptr< Outlook::Rule > rule, bool includeExecutionOrder = false );
+    static QString ruleNameForRule( std::shared_ptr< Outlook::Rule > rule, bool  = false );
 
     static QString folderName( Outlook::Folder *folder );
     static QString folderName( const std::shared_ptr< Outlook::Folder > &folder );
