@@ -30,6 +30,17 @@ void CRulesView::init()
     fModel = new CRulesModel( this );
     fFilterModel = new CListFilterModel( this );
     fFilterModel->setOnlyFilterParent( true );
+    fFilterModel->setLessThanOp(
+        [ = ]( const QModelIndex &lhs, const QModelIndex &rhs )
+        {
+            auto lhsRule = fModel->getRule( lhs );
+            auto rhsRule = fModel->getRule( rhs );
+            if ( !lhsRule )
+                return false;
+            if ( !rhsRule )
+                return true;
+            return lhsRule->ExecutionOrder() < rhsRule->ExecutionOrder();
+        } );
     fFilterModel->setSourceModel( fModel );
     fImpl->rules->setModel( fFilterModel );
     fImpl->deleteRule->setEnabled( false );
