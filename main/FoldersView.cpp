@@ -93,6 +93,8 @@ QModelIndex CFoldersView::sourceIndex( const QModelIndex &idx ) const
 
 QModelIndex CFoldersView::currentIndex() const
 {
+    if ( !fImpl->folders->selectionModel()->hasSelection() )
+        return {};
     auto filterIdx = fImpl->folders->currentIndex();
     if ( !filterIdx.isValid() )
         return filterIdx;
