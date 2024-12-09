@@ -59,7 +59,7 @@ CMainWindow::CMainWindow( QWidget *parent ) :
         api.get(), &COutlookAPI::sigAccountChanged,
         [ = ]()
         {
-            slotUpdateActions();
+            updateActions();
             slotReloadAll();
         } );
 
@@ -69,7 +69,7 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     connect( api.get(), &COutlookAPI::sigStatusMessage, this, &CMainWindow::slotStatusMessage );
     connect( api.get(), &COutlookAPI::sigStatusFinished, this, &CMainWindow::slotFinishedStatus );
 
-    slotUpdateActions();
+    updateActions();
 
     fImpl->actionProcessAllEmailWhenLessThan200Emails->setChecked( api->processAllEmailWhenLessThan200Emails() );
     fImpl->actionOnlyProcessUnread->setChecked( api->onlyProcessUnread() );
@@ -100,24 +100,35 @@ CMainWindow::~CMainWindow()
 
 void CMainWindow::slotUpdateActions()
 {
+    updateActions();
+}
+
+void CMainWindow::updateActions()
+{
     bool accountSelected = COutlookAPI::getInstance()->accountSelected();
-    fImpl->actionReloadAllData->setEnabled( accountSelected );
-    fImpl->actionReloadEmail->setEnabled( accountSelected );
-    fImpl->actionReloadFolders->setEnabled( accountSelected );
-    fImpl->actionReloadRules->setEnabled( accountSelected );
-    fImpl->actionSortRules->setEnabled( accountSelected );
-    fImpl->actionRenameRules->setEnabled( accountSelected );
-    fImpl->actionMoveFromToAddress->setEnabled( accountSelected );
-    fImpl->actionRunAllRules->setEnabled( accountSelected );
+    setEnabled( fImpl->actionReloadAllData, accountSelected, "Account not selected" );
+    setEnabled( fImpl->actionReloadEmail, accountSelected, "Account not selected" );
+    setEnabled( fImpl->actionReloadFolders, accountSelected, "Account not selected" );
+    setEnabled( fImpl->actionReloadRules, accountSelected, "Account not selected" );
+    setEnabled( fImpl->actionSortRules, accountSelected, "Account not selected" );
+    setEnabled( fImpl->actionRenameRules, accountSelected, "Account not selected" );
+    setEnabled( fImpl->actionMoveFromToAddress, accountSelected, "Account not selected" );
+    setEnabled( fImpl->actionReloadAllData, accountSelected, "Account not selected" );
+    setEnabled( fImpl->actionRunAllRules, accountSelected, "Account not selected" );
 
+    auto emailHasDisplayName = !fImpl->email->getSelectedDisplayName().isEmpty();
     auto emailSelected = !fImpl->email->getRulesForSelection().isEmpty();
-    auto displayNameOfEmailSelected = fImpl->email->getSelectedDisplayName();
+    setEnabled( fImpl->actionAddFolderForSelectedEmail, emailHasDisplayName, emailSelected ? "Selected email does not have a display name" : "Email not selected" );
+
     auto ruleSelected = fImpl->rules->ruleSelected();
-    auto folderSelected = !fImpl->folders->selectedPath().isEmpty();
+    setEnabled( fImpl->actionRunSelectedRule, ruleSelected, "Rule not selected" );
 
-    fImpl->actionAddFolderForSelectedEmail->setEnabled( !displayNameOfEmailSelected.isEmpty() );
+    QStringList reasons;
+    if ( !emailSelected )
+        reasons << "Email not selected";
+    if ( !ruleSelected )
+        reasons << "Rule not selected";
 
-    fImpl->actionRunSelectedRule->setEnabled( ruleSelected );
     bool folderSame = false;
     if ( emailSelected && ruleSelected )
     {
@@ -131,9 +142,21 @@ void CMainWindow::slotUpdateActions()
         else
             folderSame = true;
     }
+    if ( !folderSame )
+        reasons << "Selected folder does not match selected rule's target folder";
 
-    fImpl->actionAddToSelectedRule->setEnabled( emailSelected && ruleSelected && folderSame );
-    fImpl->actionAddRule->setEnabled( accountSelected && folderSelected && emailSelected );
+    setEnabled( fImpl->actionAddToSelectedRule, emailSelected && ruleSelected && folderSame, reasons );
+
+    auto folderSelected = !fImpl->folders->selectedPath().isEmpty();
+    reasons.clear();
+    if ( !accountSelected )
+        reasons << "Account not selected";
+    if ( !folderSelected )
+        reasons << "Target folder not selected";
+    if ( !emailSelected )
+        reasons << "Email not selected";
+
+    setEnabled( fImpl->actionAddRule, accountSelected && folderSelected && emailSelected, reasons );
 }
 
 void CMainWindow::clearSelection()
@@ -141,7 +164,7 @@ void CMainWindow::clearSelection()
     fImpl->folders->clearSelection();
     fImpl->email->clearSelection();
     fImpl->rules->clearSelection();
-    slotUpdateActions();
+    updateActions();
 }
 
 void CMainWindow::slotAddFolderForSelectedEmail()
@@ -167,7 +190,6 @@ void CMainWindow::slotAddRule()
     }
     clearSelection();
     slotReloadEmail();
-    //slotReloadRules();
     qApp->restoreOverrideCursor();
 }
 
@@ -184,7 +206,6 @@ void CMainWindow::slotAddToSelectedRule()
     }
     clearSelection();
     slotReloadEmail();
-    slotReloadRules();
     qApp->restoreOverrideCursor();
 }
 
@@ -255,7 +276,7 @@ void CMainWindow::slotReloadAll()
         fImpl->email->reload( true );
     }
 
-    slotUpdateActions();
+    updateActions();
 }
 
 void CMainWindow::updateWindowTitle()
@@ -274,7 +295,7 @@ void CMainWindow::slotReloadEmail()
     fImpl->email->clear();
     if ( COutlookAPI::getInstance()->accountSelected() )
         fImpl->email->reload( false );
-    slotUpdateActions();
+    updateActions();
 }
 
 void CMainWindow::slotReloadFolders()
@@ -282,7 +303,7 @@ void CMainWindow::slotReloadFolders()
     fImpl->folders->clear();
     if ( COutlookAPI::getInstance()->accountSelected() )
         fImpl->folders->reload( false );
-    slotUpdateActions();
+    updateActions();
 }
 
 void CMainWindow::slotReloadRules()
@@ -290,7 +311,7 @@ void CMainWindow::slotReloadRules()
     fImpl->rules->clear();
     if ( COutlookAPI::getInstance()->accountSelected() )
         fImpl->rules->reload( false );
-    slotUpdateActions();
+    updateActions();
 }
 
 void CMainWindow::clearViews()
@@ -339,12 +360,12 @@ void CMainWindow::slotHandleProgressToggle()
     for ( auto &&action : actions )
     {
         if ( !action->menu() )
-            action->setEnabled( !running );
+            setEnabled( action );
     }
     auto filters = this->findChildren< QLineEdit * >();
     for ( auto &&filter : filters )
     {
-        filter->setEnabled( !running );
+        setEnabled( filter );
     }
 
     auto buttons = this->findChildren< QAbstractButton * >();
@@ -352,11 +373,10 @@ void CMainWindow::slotHandleProgressToggle()
     {
         if ( button == fCancelButton )
             continue;
-        button->setEnabled( !running );
+        setEnabled( button );
     }
 
-    if ( !running )
-        slotUpdateActions();
+    updateActions();
 }
 
 CStatusProgress *CMainWindow::addStatusBar( QString label, CWidgetWithStatus *object )

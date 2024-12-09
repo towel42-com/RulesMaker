@@ -47,15 +47,61 @@ protected Q_SLOTS:
 
     void slotHandleProgressToggle();
     void slotUpdateActions();
+
     void slotAddFolderForSelectedEmail();
 
-    void slotStatusMessage( const QString & msg );
+    void slotStatusMessage( const QString &msg );
     void slotSetStatus( const QString &label, int curr, int max );
     void slotInitStatus( const QString &label, int max );
-    void slotIncStatusValue( const QString &label );;
+    void slotIncStatusValue( const QString &label );
+    ;
     void slotFinishedStatus( const QString &label );
 
 protected:
+    void updateActions();
+
+    template< typename T >
+    void setEnabled( T *item )
+    {
+        setEnabled( item, true, QStringList() );
+    }
+    template< typename T >
+    void setEnabled( T *item, bool enabled, const QString &reason )
+    {
+        setEnabled( item, enabled, QStringList() << reason );
+    }
+    template< typename T >
+    void setEnabled( T *item, bool enabled, QStringList reasons )
+    {
+        bool isRunning = running();
+        if ( isRunning )
+        {
+            reasons = QStringList() << "Cannot execute while currently running";
+            enabled = false;
+        }
+
+        item->setEnabled( enabled );
+        if ( enabled )
+            item->setToolTip( item->text() );
+        else
+        {
+            QString msg;
+            if ( reasons.size() == 1 )
+            {
+                msg = item->text() + " - " + reasons.front();
+            }
+            else
+            {
+                for ( auto &&ii : reasons )
+                {
+                    ii = "<li>" + ii + "<li>";
+                }
+                msg = reasons.join( "\n" );
+                msg = item->text() + ":<ul>\n" + msg + "</ul>";
+            }
+            item->setToolTip( msg );
+        }
+    }
     CStatusProgress *getProgressBar( const QString &label );
     void setupStatusBar();
 
