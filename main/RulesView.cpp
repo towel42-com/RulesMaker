@@ -142,11 +142,6 @@ std::shared_ptr< Outlook::Rule > CRulesView::selectedRule() const
     return fModel->getRule( currentIndex() );
 }
 
-void CRulesView::runSelectedRule() const
-{
-    return fModel->runRule( currentIndex() );
-}
-
 void CRulesView::slotItemSelected( const QModelIndex & index )
 {
     emit sigRuleSelected();
