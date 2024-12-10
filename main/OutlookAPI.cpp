@@ -24,7 +24,6 @@ COutlookAPI::COutlookAPI( QWidget *parent )
     QSettings settings;
     setOnlyProcessUnread( settings.value( "OnlyProcessUnread", true ).toBool(), false );
     setProcessAllEmailWhenLessThan200Emails( settings.value( "ProcessAllEmailWhenLessThan200Emails", true ).toBool(), false );
-    setLoadEmailFromJunkFolder( settings.value( "LoadEmailFromJunkFolder", true ).toBool(), false );
     setRootFolder( settings.value( "RootFolder", R"(\Inbox)" ).toString(), false );
 
     qRegisterMetaType< std::shared_ptr< Outlook::Rule > >();
@@ -279,27 +278,27 @@ std::shared_ptr< Outlook::Folder > COutlookAPI::rootProcessFolder()
     if ( fRootFolder )
         return fRootFolder;
 
-    if ( fLoadEmailFromJunkFolder )
-        return getJunkFolder();
-
     return getInbox();
 }
 
 QString COutlookAPI::rootProcessFolderName()
 {
-    return getFolderPath( rootProcessFolder(), true );
+    return getFolderPath( rootProcessFolder() );
 }
 
-QString COutlookAPI::getFolderPath( const std::shared_ptr< Outlook::Folder > &folder, bool removeTrailingSlash ) const
+QString COutlookAPI::getFolderPath( const std::shared_ptr< Outlook::Folder > &folder, bool removeLeadingSlashes ) const
 {
     if ( !folder )
         return {};
 
-    auto retVal = QString( folder->FullFolderPath() );
+    auto retVal = folder->FullFolderPath();
 
-    retVal = retVal.mid( this->accountName().length() + 2 );
-    auto slash = QString( R"(\)" );
-    while ( removeTrailingSlash && retVal.startsWith( slash ) )
+    auto accountName = this->accountName();
+    auto pos = retVal.indexOf( accountName + R"(\)" );
+    if ( pos != -1 )
+        retVal = retVal.remove( pos, accountName.length() + 1 );
+
+    while ( removeLeadingSlashes && retVal.startsWith( R"(\)" ) )
         retVal = retVal.mid( 1 );
     return retVal;
 }
@@ -334,7 +333,7 @@ std::shared_ptr< Outlook::Rules > COutlookAPI::selectRules()
     return getRules( rules );
 }
 
-std::pair< std::shared_ptr< Outlook::Folder >, bool > COutlookAPI::selectFolder( const QString &folderName, std::function< bool( const std::shared_ptr< Outlook::Folder > &folder ) > acceptFolder, std::function< bool( const std::shared_ptr< Outlook::Folder > &folder ) > checkChildFolders, bool singleOnly )
+std::pair< std::shared_ptr< Outlook::Folder >, bool > COutlookAPI::selectFolder( const QString &folderName, const TFolderFunc &acceptFolder, const TFolderFunc &checkChildFolders, bool singleOnly )
 {
     auto &&folders = getFolders( false, acceptFolder, checkChildFolders );
     return selectFolder( folderName, folders, singleOnly );
@@ -371,7 +370,7 @@ std::pair< std::shared_ptr< Outlook::Folder >, bool > COutlookAPI::selectFolder(
     return { ( *pos ).second, true };
 }
 
-std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( bool recursive, std::function< bool( const std::shared_ptr< Outlook::Folder > &folder ) > acceptFolder, std::function< bool( const std::shared_ptr< Outlook::Folder > &folder ) > checkChildFolders )
+std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( bool recursive, const TFolderFunc &acceptFolder, const TFolderFunc &checkChildFolders )
 {
     if ( !fAccount )
     {
@@ -392,7 +391,7 @@ std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( bool re
     return retVal;
 }
 
-std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( const std::shared_ptr< Outlook::Folder > &parent, bool recursive, std::function< bool( const std::shared_ptr< Outlook::Folder > &folder ) > acceptFolder, std::function< bool( const std::shared_ptr< Outlook::Folder > &folder ) > checkChildFolders )
+std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( const std::shared_ptr< Outlook::Folder > &parent, bool recursive, const TFolderFunc &acceptFolder, const TFolderFunc &checkChildFolders )
 {
     if ( !parent )
         return {};
@@ -417,11 +416,23 @@ std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( const s
         }
     }
 
+    retVal.sort(
+        []( const std::shared_ptr< Outlook::Folder > &lhs, const std::shared_ptr< Outlook::Folder > &rhs )
+        {
+            if ( !lhs )
+                return false;
+            if ( !rhs )
+                return true;
+            return lhs->FullFolderPath() < rhs->FullFolderPath();
+        } );
     return retVal;
 }
 
 int COutlookAPI::recursiveSubFolderCount( const Outlook::Folder *parent )
 {
+    if ( !parent )
+        return 0;
+
     emit sigInitStatus( "Counting Folders:", 0 );
     auto retVal = subFolderCount( parent, true );
     emit sigStatusFinished( "Counting Folders:" );
@@ -508,7 +519,7 @@ QString COutlookAPI::folderName( const std::shared_ptr< Outlook::Folder > &folde
     return folderName( folder.get() );
 }
 
-QString COutlookAPI::folderName( Outlook::Folder *folder )
+QString COutlookAPI::folderName( const Outlook::Folder *folder )
 {
     if ( !folder )
         return {};
@@ -551,7 +562,7 @@ bool COutlookAPI::addRule( const std::shared_ptr< Outlook::Folder > &folder, con
 
     saveRules();
 
-    bool retVal = execute( rule );
+    bool retVal = runRule( rule );
     emit sigRuleAdded( rule );
     return retVal;
 }
@@ -575,7 +586,7 @@ bool COutlookAPI::addToRule( std::shared_ptr< Outlook::Rule > rule, const QStrin
 
     saveRules();
 
-    bool retVal = execute( rule );
+    bool retVal = runRule( rule );
     emit sigRuleChanged( rule );
     return retVal;
 }
@@ -598,22 +609,76 @@ bool COutlookAPI::deleteRule( std::shared_ptr< Outlook::Rule > rule )
     return true;
 }
 
-bool COutlookAPI::execute( std::shared_ptr< Outlook::Rule > rule )
+bool COutlookAPI::runAllRulesOnAllFolders()
 {
-    return execute( std::vector< std::shared_ptr< Outlook::Rule > >( { rule } ) );
+    auto allRules = getAllRules();
+    auto inbox = getInbox();
+    auto junk = getJunkFolder();
+
+    bool retVal = true;
+
+    int numFolders = recursiveSubFolderCount( inbox.get() );
+
+    auto msg = QString( "Running All Rules on All Folders:" );
+    auto totalFolders = numFolders + ( junk ? 1 : 0 );
+    emit sigInitStatus( msg, totalFolders );
+
+    if ( inbox )
+        retVal = runRules( allRules, inbox, true, msg ) && retVal;
+
+    if ( junk )
+        retVal = runRules( allRules, junk, false, msg ) && retVal;
+    return retVal;
 }
 
-bool COutlookAPI::execute( const std::vector< std::shared_ptr< Outlook::Rule > > &rules )
+bool COutlookAPI::runAllRules( const std::shared_ptr< Outlook::Folder > &folder )
 {
-    auto folder = rootProcessFolder();
+    return runRules( {}, folder );
+}
+
+std::vector< std::shared_ptr< Outlook::Rule > > COutlookAPI::getAllRules()
+{
+    if ( !fRules )
+        return {};
+
+    std::vector< std::shared_ptr< Outlook::Rule > > rules;
+    rules.reserve( fRules->Count() );
+    auto numRules = fRules->Count();
+    for ( int ii = 1; ii <= numRules; ++ii )
+    {
+        auto rule = getRule( fRules->Item( ii ) );
+        rules.push_back( rule );
+    }
+    return rules;
+}
+
+bool COutlookAPI::runRule( std::shared_ptr< Outlook::Rule > rule, const std::shared_ptr< Outlook::Folder > &folder )
+{
+    return runRules( std::vector< std::shared_ptr< Outlook::Rule > >( { rule } ), folder );
+}
+
+bool COutlookAPI::runRules( std::vector< std::shared_ptr< Outlook::Rule > > rules, std::shared_ptr< Outlook::Folder > folder, bool recursive, const std::optional< QString > & perFolderMsg /*={}*/ )
+{
+    if ( !folder )
+        folder = rootProcessFolder();
+
     if ( !folder )
         return false;
 
     auto folderPtr = reinterpret_cast< Outlook::MAPIFolder * >( folder.get() );
     auto folderTypeID = qRegisterMetaType< Outlook::MAPIFolder * >( "MAPIFolder*", &folderPtr );
 
-    auto msg = QString( "Running Rules on '%1':" ).arg( rootProcessFolderName() );
+    auto msg = QString( "Running Rules on '%1':" ).arg( getFolderPath( folder ) );
     emit sigInitStatus( msg, static_cast< int >( rules.size() ) );
+
+
+    if ( perFolderMsg.has_value() )
+    {
+        emit sigIncStatusValue( perFolderMsg.value() );
+    }
+
+    if ( rules.empty() )
+        rules = getAllRules();
 
     for ( auto &&rule : rules )
     {
@@ -624,11 +689,23 @@ bool COutlookAPI::execute( const std::vector< std::shared_ptr< Outlook::Rule > >
             continue;
 
         auto inboxPtr = fInbox.get();
-        emit sigStatusMessage( QString( "Running Rule: %1 on Folder: %2" ).arg( rule->Name() ).arg( folderPtr->FullFolderPath() ) );
+        emit sigStatusMessage( QString( "Running Rule: %1 on Folder: %2" ).arg( rule->Name() ).arg( getFolderPath( folder ) ) );
         rule->Execute( false, QVariant( folderTypeID, &folderPtr ) );
         emit sigIncStatusValue( msg );
     }
-    return true;
+
+    bool retVal = true;
+    if ( recursive )
+    {
+        auto childFolders = getFolders( folder, false );
+
+        for ( auto &&ii : childFolders )
+        {
+            retVal = runRules( rules, ii, recursive, perFolderMsg ) && retVal;
+        }
+    }
+
+    return retVal;
 }
 
 bool COutlookAPI::addRecipientsToRule( Outlook::Rule *rule, const QStringList &recipients, QStringList &msgs )
@@ -1452,23 +1529,6 @@ bool COutlookAPI::mergeRules()
     return !toRemove.empty();
 }
 
-void COutlookAPI::runAllRules()
-{
-    if ( !fRules )
-        return;
-
-    std::vector< std::shared_ptr< Outlook::Rule > > rules;
-    rules.reserve( fRules->Count() );
-    auto numRules = fRules->Count();
-    for ( int ii = 1; ii <= numRules; ++ii )
-    {
-        auto rule = getRule( fRules->Item( ii ) );
-        rules.push_back( rule );
-    }
-
-    execute( rules );
-}
-
 std::shared_ptr< Outlook::Application > COutlookAPI::getApplication()
 {
     if ( !fOutlookApp )
@@ -1491,18 +1551,18 @@ std::shared_ptr< Outlook::MailItem > COutlookAPI::getMailItem( IDispatch *item )
     return connectToException( std::make_shared< Outlook::MailItem >( item ) );
 }
 
-std::shared_ptr< Outlook::Folder > COutlookAPI::getMailFolder( Outlook::Folder *item )
+std::shared_ptr< Outlook::Folder > COutlookAPI::getMailFolder( const Outlook::Folder *item )
 {
     if ( !item )
         return {};
-    return connectToException( std::shared_ptr< Outlook::Folder >( item ) );
+    return connectToException( std::shared_ptr< Outlook::Folder >( const_cast< Outlook::Folder * >( item ) ) );
 }
 
-std::shared_ptr< Outlook::Folder > COutlookAPI::getMailFolder( Outlook::MAPIFolder *item )
+std::shared_ptr< Outlook::Folder > COutlookAPI::getMailFolder( const Outlook::MAPIFolder *item )
 {
     if ( !item )
         return {};
-    return getMailFolder( reinterpret_cast< Outlook::Folder * >( item ) );
+    return getMailFolder( reinterpret_cast< const Outlook::Folder * >( item ) );
 }
 
 std::shared_ptr< Outlook::Items > COutlookAPI::getItems( Outlook::_Items *item )
@@ -1544,31 +1604,13 @@ void COutlookAPI::setProcessAllEmailWhenLessThan200Emails( bool value, bool upda
         emit sigOptionChanged();
 }
 
-void COutlookAPI::setLoadEmailFromJunkFolder( bool value, bool update )
-{
-    fLoadEmailFromJunkFolder = value;
-
-    QSettings settings;
-    settings.setValue( "LoadEmailFromJunkFolder", value );
-    if ( accountSelected() )
-    {
-        if ( fLoadEmailFromJunkFolder )
-            setRootFolder( getJunkFolder(), update );
-        else
-            setRootFolder( getInbox(), update );
-    }
-    if ( update )
-        emit sigOptionChanged();
-}
-
 void COutlookAPI::setRootFolder( const std::shared_ptr< Outlook::Folder > &folder, bool update )
 {
     fRootFolder = folder;
 
     QSettings settings;
-    settings.setValue( "LoadEmailFromJunkFolder", getFolderPath( folder, true ).startsWith( "Junk" ) );
     if ( folder )
-        settings.setValue( "RootFolder", getFolderPath( folder, true ) );
+        settings.setValue( "RootFolder", getFolderPath( folder ) );
     else
         settings.remove( "RootFolder" );
     if ( update )

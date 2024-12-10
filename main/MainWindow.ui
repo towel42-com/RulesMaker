@@ -57,7 +57,12 @@
     <addaction name="actionAddToSelectedRule"/>
     <addaction name="separator"/>
     <addaction name="actionRunSelectedRule"/>
+    <addaction name="actionRunSelectedRuleOnSelectedFolder"/>
+    <addaction name="separator"/>
     <addaction name="actionRunAllRules"/>
+    <addaction name="actionRunAllRulesOnSelectedFolder"/>
+    <addaction name="separator"/>
+    <addaction name="actionRunAllRulesOnAllFolders"/>
    </widget>
    <widget class="QMenu" name="menuTool">
     <property name="title">
@@ -75,7 +80,6 @@
     </property>
     <addaction name="actionOnlyProcessUnread"/>
     <addaction name="actionProcessAllEmailWhenLessThan200Emails"/>
-    <addaction name="actionLoadEmailFromJunkFolder"/>
    </widget>
    <widget class="QMenu" name="menuFolders">
     <property name="title">
@@ -288,14 +292,6 @@
     <string>Run All Rules</string>
    </property>
   </action>
-  <action name="actionLoadEmailFromJunkFolder">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Load Email from Junk Folder?</string>
-   </property>
-  </action>
   <action name="actionAddFolderForSelectedEmail">
    <property name="icon">
     <iconset resource="app.qrc">
@@ -312,6 +308,33 @@
    </property>
    <property name="text">
     <string>Enable All Rules</string>
+   </property>
+  </action>
+  <action name="actionRunAllRulesOnSelectedFolder">
+   <property name="icon">
+    <iconset resource="app.qrc">
+     <normaloff>:/resources/run.png</normaloff>:/resources/run.png</iconset>
+   </property>
+   <property name="text">
+    <string>Run All Rules on Selected Folder</string>
+   </property>
+  </action>
+  <action name="actionRunSelectedRuleOnSelectedFolder">
+   <property name="icon">
+    <iconset resource="app.qrc">
+     <normaloff>:/resources/run.png</normaloff>:/resources/run.png</iconset>
+   </property>
+   <property name="text">
+    <string>Run Selected Rule on Selected Folder</string>
+   </property>
+  </action>
+  <action name="actionRunAllRulesOnAllFolders">
+   <property name="icon">
+    <iconset resource="app.qrc">
+     <normaloff>:/resources/run.png</normaloff>:/resources/run.png</iconset>
+   </property>
+   <property name="text">
+    <string>Run All Rules on All Folders</string>
    </property>
   </action>
  </widget>

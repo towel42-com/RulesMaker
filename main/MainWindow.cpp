@@ -37,13 +37,16 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     connect( fImpl->actionAddFolderForSelectedEmail, &QAction::triggered, this, &CMainWindow::slotAddFolderForSelectedEmail );
 
     connect( fImpl->actionAddRule, &QAction::triggered, this, &CMainWindow::slotAddRule );
-    connect( fImpl->actionRunSelectedRule, &QAction::triggered, this, &CMainWindow::slotRunSelectedRule );
-    connect( fImpl->actionRunAllRules, &QAction::triggered, this, &CMainWindow::slotRunAllRules );
     connect( fImpl->actionAddToSelectedRule, &QAction::triggered, this, &CMainWindow::slotAddToSelectedRule );
+
+    connect( fImpl->actionRunAllRules, &QAction::triggered, this, &CMainWindow::slotRunAllRules );
+    connect( fImpl->actionRunAllRulesOnAllFolders, &QAction::triggered, this, &CMainWindow::slotRunAllRulesOnAllFolders );
+    connect( fImpl->actionRunSelectedRule, &QAction::triggered, this, &CMainWindow::slotRunSelectedRule );
+    connect( fImpl->actionRunAllRulesOnSelectedFolder, &QAction::triggered, this, &CMainWindow::slotRunAllRulesOnSelectedFolder );
+    connect( fImpl->actionRunSelectedRuleOnSelectedFolder, &QAction::triggered, this, &CMainWindow::slotRunSelectedRuleOnSelectedFolder );
 
     connect( fImpl->actionProcessAllEmailWhenLessThan200Emails, &QAction::triggered, [ = ]() { api->setProcessAllEmailWhenLessThan200Emails( fImpl->actionProcessAllEmailWhenLessThan200Emails->isChecked() ); } );
     connect( fImpl->actionOnlyProcessUnread, &QAction::triggered, [ = ]() { api->setOnlyProcessUnread( fImpl->actionOnlyProcessUnread->isChecked() ); } );
-    connect( fImpl->actionLoadEmailFromJunkFolder, &QAction::triggered, [ = ]() { api->setLoadEmailFromJunkFolder( fImpl->actionLoadEmailFromJunkFolder->isChecked() ); } );
 
     connect( COutlookAPI::getInstance().get(), &COutlookAPI::sigOptionChanged, this, &CMainWindow::updateWindowTitle );
 
@@ -73,7 +76,6 @@ CMainWindow::CMainWindow( QWidget *parent ) :
 
     fImpl->actionProcessAllEmailWhenLessThan200Emails->setChecked( api->processAllEmailWhenLessThan200Emails() );
     fImpl->actionOnlyProcessUnread->setChecked( api->onlyProcessUnread() );
-    fImpl->actionLoadEmailFromJunkFolder->setChecked( api->loadEmailFromJunkFolder() );
 
     updateWindowTitle();
 
@@ -105,58 +107,49 @@ void CMainWindow::slotUpdateActions()
 
 void CMainWindow::updateActions()
 {
-    bool accountSelected = COutlookAPI::getInstance()->accountSelected();
-    setEnabled( fImpl->actionReloadAllData, accountSelected, "Account not selected" );
-    setEnabled( fImpl->actionReloadEmail, accountSelected, "Account not selected" );
-    setEnabled( fImpl->actionReloadFolders, accountSelected, "Account not selected" );
-    setEnabled( fImpl->actionReloadRules, accountSelected, "Account not selected" );
-    setEnabled( fImpl->actionSortRules, accountSelected, "Account not selected" );
-    setEnabled( fImpl->actionRenameRules, accountSelected, "Account not selected" );
-    setEnabled( fImpl->actionMoveFromToAddress, accountSelected, "Account not selected" );
-    setEnabled( fImpl->actionReloadAllData, accountSelected, "Account not selected" );
-    setEnabled( fImpl->actionRunAllRules, accountSelected, "Account not selected" );
+    TReason accountSelected( COutlookAPI::getInstance()->accountSelected(), "Rule not selected" );
+    TReason emailSelected( !fImpl->email->getRulesForSelection().isEmpty(), "Email not selected" );
+    TReason emailHasDisplayName( !fImpl->email->getSelectedDisplayName().isEmpty(), "Selected email does not have a display name" );
+    TReason ruleSelected( fImpl->rules->ruleSelected(), "Rule not selected" );
+    TReason folderSelected( !fImpl->folders->selectedPath().isEmpty(), "Folder not selected" );
+    TReason folderSame( true, "Selected folder does not match selected rule's target folder" );
 
-    auto emailHasDisplayName = !fImpl->email->getSelectedDisplayName().isEmpty();
-    auto emailSelected = !fImpl->email->getRulesForSelection().isEmpty();
-    setEnabled( fImpl->actionAddFolderForSelectedEmail, emailHasDisplayName, emailSelected ? "Selected email does not have a display name" : "Email not selected" );
+    setEnabled( fImpl->actionReloadAllData, accountSelected );
+    setEnabled( fImpl->actionReloadEmail, accountSelected );
+    setEnabled( fImpl->actionReloadFolders, accountSelected );
+    setEnabled( fImpl->actionReloadRules, accountSelected );
+    setEnabled( fImpl->actionSortRules, accountSelected );
+    setEnabled( fImpl->actionRenameRules, accountSelected );
+    setEnabled( fImpl->actionMoveFromToAddress, accountSelected );
+    setEnabled( fImpl->actionReloadAllData, accountSelected );
+    setEnabled( fImpl->actionRunAllRules, accountSelected );
+    setEnabled( fImpl->actionRunAllRulesOnAllFolders, accountSelected );
 
-    auto ruleSelected = fImpl->rules->ruleSelected();
-    setEnabled( fImpl->actionRunSelectedRule, ruleSelected, "Rule not selected" );
-
-    QStringList reasons;
-    if ( !emailSelected )
-        reasons << "Email not selected";
-    if ( !ruleSelected )
-        reasons << "Rule not selected";
-
-    bool folderSame = false;
-    if ( emailSelected && ruleSelected )
+    if ( emailSelected.first && ruleSelected.first )
     {
         auto selectedFolder = fImpl->folders->selectedFolder();
         if ( selectedFolder )
         {
             auto ruleFolder = fImpl->rules->folderForSelectedRule();
             auto selectedFolderPath = selectedFolder->FullFolderPath();
-            folderSame = ruleFolder == selectedFolderPath;
+            folderSame.first = ruleFolder == selectedFolderPath;
         }
         else
-            folderSame = true;
+            folderSame.first = true;
     }
-    if ( !folderSame )
-        reasons << "Selected folder does not match selected rule's target folder";
 
-    setEnabled( fImpl->actionAddToSelectedRule, emailSelected && ruleSelected && folderSame, reasons );
+    if ( emailSelected.first && !emailHasDisplayName.first )
+        setEnabled( fImpl->actionAddFolderForSelectedEmail, emailHasDisplayName );
+    else
+        setEnabled( fImpl->actionAddFolderForSelectedEmail, emailSelected );
 
-    auto folderSelected = !fImpl->folders->selectedPath().isEmpty();
-    reasons.clear();
-    if ( !accountSelected )
-        reasons << "Account not selected";
-    if ( !folderSelected )
-        reasons << "Target folder not selected";
-    if ( !emailSelected )
-        reasons << "Email not selected";
+    setEnabled( fImpl->actionRunSelectedRule, ruleSelected );
+    setEnabled( fImpl->actionAddToSelectedRule, { emailSelected, ruleSelected, folderSame } );
 
-    setEnabled( fImpl->actionAddRule, accountSelected && folderSelected && emailSelected, reasons );
+    setEnabled( fImpl->actionRunAllRulesOnSelectedFolder, folderSelected );
+    setEnabled( fImpl->actionRunSelectedRuleOnSelectedFolder, { folderSelected, ruleSelected } );
+
+    setEnabled( fImpl->actionAddRule, { accountSelected, folderSelected, emailSelected } );
 }
 
 void CMainWindow::clearSelection()
@@ -257,10 +250,53 @@ void CMainWindow::slotRunAllRules()
     qApp->restoreOverrideCursor();
 }
 
+void CMainWindow::slotRunAllRulesOnAllFolders()
+{
+    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    COutlookAPI::getInstance()->runAllRulesOnAllFolders();
+    slotReloadEmail();
+    qApp->restoreOverrideCursor();
+}
+
 void CMainWindow::slotRunSelectedRule()
 {
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
-    fImpl->rules->runSelectedRule();
+    auto selectedRule = fImpl->rules->selectedRule();
+    if ( !selectedRule )
+        return;
+
+    COutlookAPI::getInstance()->runRule( selectedRule );
+
+    slotReloadEmail();
+    qApp->restoreOverrideCursor();
+}
+
+void CMainWindow::slotRunAllRulesOnSelectedFolder()
+{
+    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    auto destFolder = fImpl->folders->selectedFolder();
+    if ( !destFolder )
+        return;
+
+    COutlookAPI::getInstance()->runAllRules( destFolder );
+
+    slotReloadEmail();
+    qApp->restoreOverrideCursor();
+}
+
+void CMainWindow::slotRunSelectedRuleOnSelectedFolder()
+{
+    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    auto destFolder = fImpl->folders->selectedFolder();
+    if ( !destFolder )
+        return;
+
+    auto selectedRule = fImpl->rules->selectedRule();
+    if ( !selectedRule )
+        return;
+
+    COutlookAPI::getInstance()->runRule( selectedRule, destFolder );
+
     slotReloadEmail();
     qApp->restoreOverrideCursor();
 }
