@@ -54,9 +54,6 @@ public:
     QStandardItem *getRuleItem( const QModelIndex &index ) const;
     QStandardItem *getRuleItem( QStandardItem *item ) const;
 
-    void runRule( const QModelIndex &index ) const;
-    void runRule( QStandardItem *item ) const;
-
     std::shared_ptr< Outlook::Rule > getRule( const QModelIndex &index ) const;
     std::shared_ptr< Outlook::Rule > getRule( QStandardItem *item ) const;
 

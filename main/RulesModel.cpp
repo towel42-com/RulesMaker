@@ -526,20 +526,6 @@ QStandardItem *CRulesModel::getRuleItem( QStandardItem *item ) const
     return item;
 }
 
-void CRulesModel::runRule( const QModelIndex &index ) const
-{
-    auto item = itemFromIndex( index );
-    return runRule( item );
-}
-
-void CRulesModel::runRule( QStandardItem *item ) const
-{
-    auto rule = getRule( item );
-    if ( !rule )
-        return;
-    COutlookAPI::getInstance()->execute( rule );
-}
-
 std::shared_ptr< Outlook::Rule > CRulesModel::getRule( const QModelIndex &index ) const
 {
     auto item = itemFromIndex( index );
