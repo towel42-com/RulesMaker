@@ -1,7 +1,6 @@
 #include "MainWindow.h"
 #include "OutlookAPI.h"
 #include "StatusProgress.h"
-#include "MSOUTL.h"
 
 #include "ui_MainWindow.h"
 
@@ -17,7 +16,7 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     QMainWindow( parent ),
     fImpl( new Ui::CMainWindow )
 {
-    auto api = COutlookAPI::getInstance( this );
+    auto api = COutlookAPI::instance( this );
 
     fImpl->setupUi( this );
 
@@ -48,7 +47,7 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     connect( fImpl->actionProcessAllEmailWhenLessThan200Emails, &QAction::triggered, [ = ]() { api->setProcessAllEmailWhenLessThan200Emails( fImpl->actionProcessAllEmailWhenLessThan200Emails->isChecked() ); } );
     connect( fImpl->actionOnlyProcessUnread, &QAction::triggered, [ = ]() { api->setOnlyProcessUnread( fImpl->actionOnlyProcessUnread->isChecked() ); } );
 
-    connect( COutlookAPI::getInstance().get(), &COutlookAPI::sigOptionChanged, this, &CMainWindow::updateWindowTitle );
+    connect( COutlookAPI::instance().get(), &COutlookAPI::sigOptionChanged, this, &CMainWindow::updateWindowTitle );
 
     connect( fImpl->folders, &CFoldersView::sigFolderSelected, this, &CMainWindow::slotUpdateActions );
     connect( fImpl->email, &CEmailView::sigRuleSelected, this, &CMainWindow::slotUpdateActions );
@@ -97,7 +96,7 @@ CMainWindow::CMainWindow( QWidget *parent ) :
 CMainWindow::~CMainWindow()
 {
     clearViews();
-    COutlookAPI::getInstance()->logout( false );
+    COutlookAPI::instance()->logout( false );
 }
 
 void CMainWindow::slotUpdateActions()
@@ -107,7 +106,7 @@ void CMainWindow::slotUpdateActions()
 
 void CMainWindow::updateActions()
 {
-    TReason accountSelected( COutlookAPI::getInstance()->accountSelected(), "Rule not selected" );
+    TReason accountSelected( COutlookAPI::instance()->accountSelected(), "Rule not selected" );
     TReason emailSelected( !fImpl->email->getRulesForSelection().isEmpty(), "Email not selected" );
     TReason emailHasDisplayName( !fImpl->email->getSelectedDisplayName().isEmpty(), "Selected email does not have a display name" );
     TReason ruleSelected( fImpl->rules->ruleSelected(), "Rule not selected" );
@@ -131,7 +130,7 @@ void CMainWindow::updateActions()
         if ( selectedFolder )
         {
             auto ruleFolder = fImpl->rules->folderForSelectedRule();
-            auto selectedFolderPath = selectedFolder->FullFolderPath();
+            auto selectedFolderPath = fImpl->folders->selectedFullPath();
             folderSame.first = ruleFolder == selectedFolderPath;
         }
         else
@@ -177,7 +176,7 @@ void CMainWindow::slotAddRule()
     auto rules = fImpl->email->getRulesForSelection();
 
     QStringList msgs;
-    if ( !COutlookAPI::getInstance()->addRule( destFolder, rules, msgs ) )
+    if ( !COutlookAPI::instance()->addRule( destFolder, rules, msgs ) )
     {
         QMessageBox::critical( this, "Error", "Could not create rule\n" + msgs.join( "\n" ) );
     }
@@ -193,7 +192,7 @@ void CMainWindow::slotAddToSelectedRule()
     auto rules = fImpl->email->getRulesForSelection();
 
     QStringList msgs;
-    if ( !COutlookAPI::getInstance()->addToRule( rule, rules, msgs ) )
+    if ( !COutlookAPI::instance()->addToRule( rule, rules, msgs ) )
     {
         QMessageBox::critical( this, "Error", "Could not modify rule\n" + msgs.join( "\n" ) );
     }
@@ -205,7 +204,7 @@ void CMainWindow::slotAddToSelectedRule()
 void CMainWindow::slotMergeRules()
 {
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
-    if ( COutlookAPI::getInstance()->mergeRules() )
+    if ( COutlookAPI::instance()->mergeRules() )
         slotReloadRules();
     qApp->restoreOverrideCursor();
 }
@@ -213,7 +212,7 @@ void CMainWindow::slotMergeRules()
 void CMainWindow::slotRenameRules()
 {
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
-    if ( COutlookAPI::getInstance()->renameRules() )
+    if ( COutlookAPI::instance()->renameRules() )
         slotReloadRules();
     qApp->restoreOverrideCursor();
 }
@@ -221,7 +220,7 @@ void CMainWindow::slotRenameRules()
 void CMainWindow::slotSortRules()
 {
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
-    if ( COutlookAPI::getInstance()->sortRules() )
+    if ( COutlookAPI::instance()->sortRules() )
         slotReloadRules();
     qApp->restoreOverrideCursor();
 }
@@ -229,7 +228,7 @@ void CMainWindow::slotSortRules()
 void CMainWindow::slotMoveFromToAddress()
 {
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
-    if ( COutlookAPI::getInstance()->moveFromToAddress() )
+    if ( COutlookAPI::instance()->moveFromToAddress() )
         slotReloadRules();
     qApp->restoreOverrideCursor();
 }
@@ -237,7 +236,7 @@ void CMainWindow::slotMoveFromToAddress()
 void CMainWindow::slotEnableAllRules()
 {
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
-    if ( COutlookAPI::getInstance()->enableAllRules() )
+    if ( COutlookAPI::instance()->enableAllRules() )
         slotReloadRules();
     qApp->restoreOverrideCursor();
 }
@@ -245,7 +244,7 @@ void CMainWindow::slotEnableAllRules()
 void CMainWindow::slotRunAllRules()
 {
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
-    COutlookAPI::getInstance()->runAllRules();
+    COutlookAPI::instance()->runAllRules();
     slotReloadEmail();
     qApp->restoreOverrideCursor();
 }
@@ -253,7 +252,7 @@ void CMainWindow::slotRunAllRules()
 void CMainWindow::slotRunAllRulesOnAllFolders()
 {
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
-    COutlookAPI::getInstance()->runAllRulesOnAllFolders();
+    COutlookAPI::instance()->runAllRulesOnAllFolders();
     slotReloadEmail();
     qApp->restoreOverrideCursor();
 }
@@ -265,7 +264,7 @@ void CMainWindow::slotRunSelectedRule()
     if ( !selectedRule )
         return;
 
-    COutlookAPI::getInstance()->runRule( selectedRule );
+    COutlookAPI::instance()->runRule( selectedRule );
 
     slotReloadEmail();
     qApp->restoreOverrideCursor();
@@ -278,7 +277,7 @@ void CMainWindow::slotRunAllRulesOnSelectedFolder()
     if ( !destFolder )
         return;
 
-    COutlookAPI::getInstance()->runAllRules( destFolder );
+    COutlookAPI::instance()->runAllRules( destFolder );
 
     slotReloadEmail();
     qApp->restoreOverrideCursor();
@@ -295,7 +294,7 @@ void CMainWindow::slotRunSelectedRuleOnSelectedFolder()
     if ( !selectedRule )
         return;
 
-    COutlookAPI::getInstance()->runRule( selectedRule, destFolder );
+    COutlookAPI::instance()->runRule( selectedRule, destFolder );
 
     slotReloadEmail();
     qApp->restoreOverrideCursor();
@@ -305,7 +304,7 @@ void CMainWindow::slotReloadAll()
 {
     clearViews();
     updateWindowTitle();
-    if ( COutlookAPI::getInstance()->accountSelected() )
+    if ( COutlookAPI::instance()->accountSelected() )
     {
         fImpl->folders->reload( true );
         fImpl->rules->reload( true );
@@ -318,10 +317,10 @@ void CMainWindow::slotReloadAll()
 void CMainWindow::updateWindowTitle()
 {
     auto windowTitle = tr( "Outlook Rules Maker" );
-    if ( COutlookAPI::getInstance()->accountSelected() )
+    if ( COutlookAPI::instance()->accountSelected() )
     {
-        windowTitle += tr( " - %1" ).arg( COutlookAPI::getInstance()->accountName() );
-        windowTitle += tr( " - %1" ).arg( COutlookAPI::getInstance()->rootProcessFolderName() );
+        windowTitle += tr( " - %1" ).arg( COutlookAPI::instance()->accountName() );
+        windowTitle += tr( " - %1" ).arg( COutlookAPI::instance()->rootFolderName() );
     }
     setWindowTitle( windowTitle );
 }
@@ -329,7 +328,7 @@ void CMainWindow::updateWindowTitle()
 void CMainWindow::slotReloadEmail()
 {
     fImpl->email->clear();
-    if ( COutlookAPI::getInstance()->accountSelected() )
+    if ( COutlookAPI::instance()->accountSelected() )
         fImpl->email->reload( false );
     updateActions();
 }
@@ -337,7 +336,7 @@ void CMainWindow::slotReloadEmail()
 void CMainWindow::slotReloadFolders()
 {
     fImpl->folders->clear();
-    if ( COutlookAPI::getInstance()->accountSelected() )
+    if ( COutlookAPI::instance()->accountSelected() )
         fImpl->folders->reload( false );
     updateActions();
 }
@@ -345,7 +344,7 @@ void CMainWindow::slotReloadFolders()
 void CMainWindow::slotReloadRules()
 {
     fImpl->rules->clear();
-    if ( COutlookAPI::getInstance()->accountSelected() )
+    if ( COutlookAPI::instance()->accountSelected() )
         fImpl->rules->reload( false );
     updateActions();
 }
@@ -359,7 +358,7 @@ void CMainWindow::clearViews()
 
 void CMainWindow::slotSelectServer()
 {
-    auto account = COutlookAPI::getInstance()->selectAccount( false );
+    auto account = COutlookAPI::instance()->selectAccount( false );
     if ( !account )
         return;
 
@@ -445,7 +444,7 @@ void CMainWindow::setupStatusBar()
     addStatusBar( {}, fImpl->rules );
 
     fCancelButton = new QPushButton( "&Cancel" );
-    connect( fCancelButton, &QPushButton::clicked, COutlookAPI::getInstance().get(), &COutlookAPI::slotCanceled );
+    connect( fCancelButton, &QPushButton::clicked, COutlookAPI::instance().get(), &COutlookAPI::slotCanceled );
     connect(
         fCancelButton, &QPushButton::clicked, this,
         [ = ]()

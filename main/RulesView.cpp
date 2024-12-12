@@ -10,8 +10,6 @@
 #include <QCursor>
 #include <QApplication>
 
-#include "MSOUTL.h"
-
 CRulesView::CRulesView( QWidget *parent ) :
     CWidgetWithStatus( parent ),
     fImpl( new Ui::CRulesView )
@@ -35,11 +33,7 @@ void CRulesView::init()
         {
             auto lhsRule = fModel->getRule( lhs );
             auto rhsRule = fModel->getRule( rhs );
-            if ( !lhsRule )
-                return false;
-            if ( !rhsRule )
-                return true;
-            return lhsRule->ExecutionOrder() < rhsRule->ExecutionOrder();
+            return COutlookAPI::instance()->ruleLessThan( lhsRule, rhsRule );
         } );
     fFilterModel->setSourceModel( fModel );
     fImpl->rules->setModel( fFilterModel );
@@ -126,15 +120,7 @@ bool CRulesView::ruleSelected() const
 QString CRulesView::folderForSelectedRule() const
 {
     auto rule = selectedRule();
-    if ( !rule )
-        return {};
-
-    auto moveAction = rule->Actions()->MoveToFolder();
-    if ( !moveAction || !moveAction->Enabled() || !moveAction->Folder() )
-        return {};
-
-    auto folderName = moveAction->Folder()->FolderPath();
-    return folderName;
+    return COutlookAPI::instance()->moveTargetFolderForRule( rule );
 }
 
 std::shared_ptr< Outlook::Rule > CRulesView::selectedRule() const
@@ -157,6 +143,6 @@ void CRulesView::slotDeleteCurrent()
     if ( !rule )
         return;
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
-    COutlookAPI::getInstance()->deleteRule( rule );
+    COutlookAPI::instance()->deleteRule( rule );
     qApp->restoreOverrideCursor();
 }

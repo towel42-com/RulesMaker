@@ -54,7 +54,6 @@ private:
     void addSubFolders( QStandardItem *item, const std::shared_ptr< Outlook::Folder > &parentFolder );
 
     [[nodiscard]] QStandardItem *addFolder( const std::shared_ptr< Outlook::Folder > &rootFolder, QStandardItem *parentItem );
-    [[nodiscard]] QStandardItem *addFolder( const Outlook::Folder *rootFolder, QStandardItem *parentItem );
 
     std::unordered_map< QStandardItem *, std::unique_ptr< SCurrFolderInfo > > fFolders;
     std::unordered_map< QStandardItem *, std::shared_ptr< Outlook::Folder > > fFolderMap;

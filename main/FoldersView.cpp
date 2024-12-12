@@ -109,7 +109,7 @@ void CFoldersView::slotSetRootFolder()
     auto folder = fModel->folderForItem( idx );
     if ( !folder )
         return;
-    COutlookAPI::getInstance()->setRootFolder( folder );
+    COutlookAPI::instance()->setRootFolder( folder );
 }
 
 void CFoldersView::slotItemSelected( const QModelIndex &index )

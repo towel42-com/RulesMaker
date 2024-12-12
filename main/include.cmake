@@ -28,7 +28,7 @@ ADD_CUSTOM_COMMAND(
     OUTPUT 
         ${CMAKE_CURRENT_BINARY_DIR}/MSOUTL.cpp ${CMAKE_CURRENT_BINARY_DIR}/MSOUTL.h
     COMMAND ${CMAKE_COMMAND} -E env "PATH=C:/Qt/Qt5.12.12/5.12.12/msvc2017_64/bin;$ENV{PATH}" "${DUMPCPP_EXECUTABLE}" "${MSOUTL_OLB}" -o MSOUTL
-    COMMENT "[DUMPCPP] Generating MSOUTL.cpp and MSOUT.h from ${MSOUTL_OLB}"
+    COMMENT "[DUMPCPP] Generating MSOUTL.cpp and MSOUT.h from '${MSOUTL_OLB}' using '${DUMPCPP_EXECUTABLE}'"
     VERBATIM
     DEPENDS
        ${MSOUTL_OLB}
@@ -51,7 +51,12 @@ set(project_SRCS
     main.cpp
     MainWindow.cpp
     OutlookAPI.cpp
-    OutlookAPI_getEmailAddresses.cpp
+    OutlookAPI_account.cpp
+    OutlookAPI_dump.cpp
+    OutlookAPI_email.cpp
+    OutlookAPI_folders.cpp
+    OutlookAPI_rules.cpp
+    OutlookAPI_toString.cpp
     RulesModel.cpp
     RulesView.cpp
     StatusProgress.cpp

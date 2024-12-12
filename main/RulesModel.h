@@ -16,25 +16,6 @@ namespace Outlook
     class RuleConditions;
     class Folder;
 
-    class AccountRuleCondition;
-    class AddressRuleCondition;
-    class CategoryRuleCondition;
-    class FormNameRuleCondition;
-    class FromRssFeedRuleCondition;
-    class ImportanceRuleCondition;
-    class RuleCondition;
-    class SenderInAddressListRuleCondition;
-    class SensitivityRuleCondition;
-    class TextRuleCondition;
-    class ToOrFromRuleCondition;
-
-    class AssignToCategoryRuleAction;
-    class MarkAsTaskRuleAction;
-    class MoveOrCopyRuleAction;
-    class NewItemAlertRuleAction;
-    class PlaySoundRuleAction;
-    class RuleAction;
-    class SendRuleAction;
 }
 
 class CRulesModel : public QStandardItemModel
@@ -74,50 +55,15 @@ private Q_SLOTS:
 private:
     void updateAllRules();
     bool beenLoaded( const QModelIndex &parent ) const;
-    bool beenLoaded( QStandardItem *parent ) const;
 
     void loadRules();
-
-    void loadRuleData( QStandardItem *ruleItem, std::shared_ptr< Outlook::Rule > rule );
 
     bool loadRule( std::shared_ptr< Outlook::Rule > rule );
     bool updateRule( std::shared_ptr< Outlook::Rule > rule );
 
-    void addAttribute( QStandardItem *parent, const QString &label, const QString &value );
-    void addAttribute( QStandardItem *parent, const QString &label, QStringList value, const QString &separator );
-    void addAttribute( QStandardItem *parent, const QString &label, bool value );
-    void addAttribute( QStandardItem *parent, const QString &label, int value );
-    void addAttribute( QStandardItem *parent, const QString &label, const char *value );
-
-    void addConditions( QStandardItem *parent, std::shared_ptr< Outlook::Rule > rule );
-    void addExceptions( QStandardItem *parent, std::shared_ptr< Outlook::Rule > rule );
-    void addConditions( QStandardItem *parent, std::shared_ptr< Outlook::Rule > rule, bool exceptions );
-
-    bool addCondition( QStandardItem *parent, Outlook::AccountRuleCondition *condition );
-    bool addCondition( QStandardItem *parent, Outlook::RuleCondition *condition, const QString &ruleName );
-    bool addCondition( QStandardItem *parent, Outlook::TextRuleCondition *condition, const QString &ruleName );
-    bool addCondition( QStandardItem *parent, Outlook::CategoryRuleCondition *condition, const QString &ruleName );
-    bool addCondition( QStandardItem *parent, Outlook::ToOrFromRuleCondition *condition, bool from );
-    bool addCondition( QStandardItem *parent, Outlook::FormNameRuleCondition *condition );
-    bool addCondition( QStandardItem *parent, Outlook::FromRssFeedRuleCondition *condition );
-    bool addCondition( QStandardItem *parent, Outlook::ImportanceRuleCondition *condition );
-    bool addCondition( QStandardItem *parent, Outlook::AddressRuleCondition *condition );
-    bool addCondition( QStandardItem *parent, Outlook::SenderInAddressListRuleCondition *condition );
-    bool addCondition( QStandardItem *parent, Outlook::SensitivityRuleCondition *condition );
-
-    void addActions( QStandardItem *parent, std::shared_ptr< Outlook::Rule > rule );
-    bool addAction( QStandardItem *parent, Outlook::AssignToCategoryRuleAction *action );
-    bool addAction( QStandardItem *parent, Outlook::MarkAsTaskRuleAction *action );
-    bool addAction( QStandardItem *parent, Outlook::MoveOrCopyRuleAction *action, const QString &actionName );
-    bool addAction( QStandardItem *parent, Outlook::NewItemAlertRuleAction *action );
-    bool addAction( QStandardItem *parent, Outlook::PlaySoundRuleAction *action );
-    bool addAction( QStandardItem *parent, Outlook::RuleAction *action, const QString &actionName );
-    bool addAction( QStandardItem *parent, Outlook::SendRuleAction *action, const QString &actionName );
-
-    std::shared_ptr< Outlook::Rules > fRules{ nullptr };
+    std::pair< std::shared_ptr< Outlook::Rules >, int > fRules{ nullptr, 0 };
     std::unordered_map< QStandardItem *, std::shared_ptr< Outlook::Rule > > fRuleMap;
     std::unordered_map< std::shared_ptr< Outlook::Rule >, QStandardItem * > fReverseRuleMap;
-    std::unordered_set< QStandardItem * > fBeenLoaded;
     int fCurrPos{ 1 };
 };
 

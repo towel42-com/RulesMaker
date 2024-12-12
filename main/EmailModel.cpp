@@ -1,8 +1,6 @@
 #include "EmailModel.h"
 #include "OutlookAPI.h"
 
-#include "MSOUTL.h"
-
 #include <QTimer>
 #include <algorithm>
 #include <QDebug>
@@ -14,7 +12,7 @@ CEmailModel::CEmailModel( QObject *parent ) :
     QStandardItemModel( parent )
 {
     clear();
-    connect( COutlookAPI::getInstance().get(), &COutlookAPI::sigOptionChanged, this, &CEmailModel::reload );
+    connect( COutlookAPI::instance().get(), &COutlookAPI::sigOptionChanged, this, &CEmailModel::reload );
 }
 
 void CEmailModel::clear()
@@ -30,40 +28,19 @@ void CEmailModel::clear()
     fCache.clear();
     fDomainCache.clear();
     fEmailCache.clear();
-    fCountCache.reset();
+    fItemCountCache.reset();
     fCurrPos = 1;
     endResetModel();
 }
 
 void CEmailModel::reload()
 {
-    COutlookAPI::getInstance()->slotClearCanceled();
+    COutlookAPI::instance()->slotClearCanceled();
 
     beginResetModel();
     clear();
-    auto folder = COutlookAPI::getInstance()->rootProcessFolder();
-    if ( !folder )
-        return;
-    auto fn = folder->FullFolderPath();
 
-    auto items = folder->Items();
-    if ( items )
-    {
-        auto limitToUnread = COutlookAPI::getInstance()->onlyProcessUnread();
-        if ( limitToUnread && ( items->Count() < 200 ) )
-            limitToUnread = !COutlookAPI::getInstance()->processAllEmailWhenLessThan200Emails();
-
-        if ( limitToUnread )
-        {
-            auto subItems = items->Restrict( "[UNREAD]=TRUE" );
-            if ( subItems )
-                fItems = COutlookAPI::getInstance()->getItems( subItems );
-        }
-        if ( !fItems )
-            fItems = COutlookAPI::getInstance()->getItems( items );
-        if ( fItems )
-            fCountCache = fItems->Count();
-    }
+    std::tie( fItems, fItemCountCache ) = COutlookAPI::instance()->getEmailItemsForRootFolder();
 
     endResetModel();
     fCurrPos = 1;
@@ -72,36 +49,30 @@ void CEmailModel::reload()
 
 void CEmailModel::slotGroupNextMailItemBySender()
 {
-    if ( !fItems || !fCountCache.has_value() )
+    if ( !fItems || !fItemCountCache.has_value() )
         return;
 
-    if ( fCurrPos > fCountCache.value() )
+    if ( fCurrPos > fItemCountCache.value() )
         return;
 
-    if ( COutlookAPI::getInstance()->canceled() )
+    if ( COutlookAPI::instance()->canceled() )
     {
         clear();
         emit sigFinishedGrouping();
         return;
     }
 
-    auto item = fItems->Item( fCurrPos );
-    if ( !item )
-        return;
+    auto mailItem = COutlookAPI::instance()->getEmailItem( fItems, fCurrPos );
+    if ( mailItem )
+        addEmailAddress( mailItem );
 
-    if ( COutlookAPI::getObjectClass( item ) == Outlook::OlObjectClass::olMail )
-    {
-        auto mail = COutlookAPI::getInstance()->getMailItem( item );
-        addEmailAddress( mail );
-    }
-
-    emit sigSetStatus( fCurrPos, fCountCache.value() );
+    emit sigSetStatus( fCurrPos, fItemCountCache.value() );
 
 #ifdef LIMIT_EMAIL_READ
     if ( fCurrPos >= 100 )
         return;
 #endif
-    if ( fCurrPos == fCountCache.value() )
+    if ( fCurrPos == fItemCountCache.value() )
     {
         sortAll( nullptr );
         emit sigFinishedGrouping();
@@ -234,6 +205,23 @@ QString CEmailModel::displayNameForItem( QStandardItem *item ) const
     return displayNameForIndex( indexFromItem( item ) );
 }
 
+void CEmailModel::displayEmail( const QModelIndex &idx ) const
+{
+    auto item = itemFromIndex( idx );
+    displayEmail( item );
+}
+
+void CEmailModel::displayEmail( QStandardItem *item ) const
+{
+    if ( !item )
+        return;
+
+    auto emailItem = emailItemFromItem( item );
+    if ( !emailItem )
+        return;
+    COutlookAPI::instance()->displayEmail( emailItem );
+}
+
 QStringList CEmailModel::rulesForIndex( const QModelIndex &idx ) const
 {
     if ( !idx.isValid() )
@@ -299,15 +287,20 @@ std::shared_ptr< Outlook::MailItem > CEmailModel::emailItemFromIndex( const QMod
     if ( !idx.isValid() )
         return {};
     auto item = itemFromIndex( idx );
+    return emailItemFromItem( item );
+}
+
+std::shared_ptr< Outlook::MailItem > CEmailModel::emailItemFromItem( QStandardItem * item ) const 
+{
     if ( !item )
         return {};
     auto pos = fEmailCache.find( item );
     if ( pos == fEmailCache.end() )
     {
-        if ( idx.column() != 1 )
+        if ( item->column() != 1 )
         {
-            auto otherIdx = this->index( idx.row(), 1, idx.parent() );
-            return emailItemFromIndex( otherIdx );
+            auto sibling = item->parent()->child( item->row(), 1 );
+            return emailItemFromItem( sibling );
         }
         return {};
     }

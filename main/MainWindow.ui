@@ -53,6 +53,16 @@
     <property name="title">
      <string>&amp;Rules</string>
     </property>
+    <widget class="QMenu" name="menuTools">
+     <property name="title">
+      <string>Tools</string>
+     </property>
+     <addaction name="actionRenameRules"/>
+     <addaction name="actionSortRules"/>
+     <addaction name="actionMoveFromToAddress"/>
+     <addaction name="actionMergeRules"/>
+     <addaction name="actionEnableAllRules"/>
+    </widget>
     <addaction name="actionAddRule"/>
     <addaction name="actionAddToSelectedRule"/>
     <addaction name="separator"/>
@@ -63,16 +73,8 @@
     <addaction name="actionRunAllRulesOnSelectedFolder"/>
     <addaction name="separator"/>
     <addaction name="actionRunAllRulesOnAllFolders"/>
-   </widget>
-   <widget class="QMenu" name="menuTool">
-    <property name="title">
-     <string>Tools</string>
-    </property>
-    <addaction name="actionRenameRules"/>
-    <addaction name="actionSortRules"/>
-    <addaction name="actionMoveFromToAddress"/>
-    <addaction name="actionMergeRules"/>
-    <addaction name="actionEnableAllRules"/>
+    <addaction name="separator"/>
+    <addaction name="menuTools"/>
    </widget>
    <widget class="QMenu" name="menuSettings">
     <property name="title">
@@ -101,7 +103,6 @@
    <addaction name="menuLoad"/>
    <addaction name="menuFolders"/>
    <addaction name="menu_Edit"/>
-   <addaction name="menuTool"/>
    <addaction name="menuSettings"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>

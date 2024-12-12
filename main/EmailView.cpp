@@ -2,7 +2,6 @@
 #include "EmailModel.h"
 
 #include "ui_EmailView.h"
-#include "MSOUTL.h"
 
 #include <list>
 #include <set>
@@ -136,10 +135,7 @@ void CEmailView::slotItemDoubleClicked( const QModelIndex &idx )
 {
     if ( !idx.isValid() )
         return;
-    auto item = fGroupedModel->emailItemFromIndex( idx );
-    if ( !item )
-        return;
-    item->Display();
+    fGroupedModel->displayEmail( idx );
 }
 
 void CEmailView::reload( bool notifyOnFinish )

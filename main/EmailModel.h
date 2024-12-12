@@ -41,11 +41,16 @@ public:
     void clear();
 
     std::shared_ptr< Outlook::MailItem > emailItemFromIndex( const QModelIndex &idx ) const;
+    std::shared_ptr< Outlook::MailItem > emailItemFromItem( QStandardItem * item ) const;
+
     QStringList rulesForIndex( const QModelIndex &idx ) const;
     QStringList rulesForItem( QStandardItem *item ) const;
 
     QString displayNameForIndex( const QModelIndex &idx ) const;
     QString displayNameForItem( QStandardItem *item ) const;
+
+    void displayEmail( const QModelIndex &idx ) const;
+    void displayEmail( QStandardItem *item ) const;
 
 Q_SIGNALS:
     void sigFinishedGrouping();
@@ -63,12 +68,12 @@ private:
     void addToDisplayName( CEmailAddressSection *currItem, const QString &displayName );
 
     std::shared_ptr< Outlook::Items > fItems{ nullptr };
+    mutable std::optional< int > fItemCountCache;
 
     std::map< QString, CEmailAddressSection * > fRootItems;
     std::map< QString, CEmailAddressSection * > fCache;
     std::map< QString, CEmailAddressSection * > fDomainCache;
     std::map< QStandardItem *, std::shared_ptr< Outlook::MailItem > > fEmailCache;
-    mutable std::optional< int > fCountCache;
     int fCurrPos{ 1 };
 };
 
