@@ -1,7 +1,7 @@
 #include "FoldersView.h"
 #include "FoldersModel.h"
 #include "ui_FoldersView.h"
-#include "OutlookAPI.h"
+#include "OutlookAPI/OutlookAPI.h"
 #include "ListFilterModel.h"
 
 #include <QTimer>

@@ -23,7 +23,7 @@ set_target_properties( ${PROJECT_NAME} PROPERTIES FOLDER ${FOLDER_NAME}
                                     VS_DEBUGGER_ENVIRONMENT "PATH=${DEBUG_PATH}" 
                                     )
 
-target_include_directories( ${PROJECT_NAME} PUBLIC ${_PROJECT_INCLUDE_DIRECTORIES} ${CMAKE_BINARY_DIR}/src/vpe )
+target_include_directories( ${PROJECT_NAME} PUBLIC ${_PROJECT_INCLUDE_DIRECTORIES} )
 
 target_link_directories( ${PROJECT_NAME}
     PUBLIC
@@ -34,7 +34,7 @@ target_link_directories( ${PROJECT_NAME}
 
 target_link_libraries( ${PROJECT_NAME}
     PUBLIC
-       ${project_pub_DEPS} Qt5::Widgets Qt5::AxContainer 
+       ${project_pub_DEPS}
     PRIVATE 
        ${project_pri_DEPS}
 )

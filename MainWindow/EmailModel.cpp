@@ -1,5 +1,5 @@
 #include "EmailModel.h"
-#include "OutlookAPI.h"
+#include "OutlookAPI/OutlookAPI.h"
 
 #include <QTimer>
 #include <algorithm>
