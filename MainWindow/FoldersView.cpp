@@ -91,8 +91,6 @@ QModelIndex CFoldersView::sourceIndex( const QModelIndex &idx ) const
 
 QModelIndex CFoldersView::currentIndex() const
 {
-    if ( !fImpl->folders->selectionModel()->hasSelection() )
-        return {};
     auto filterIdx = fImpl->folders->currentIndex();
     if ( !filterIdx.isValid() )
         return filterIdx;
@@ -112,11 +110,12 @@ void CFoldersView::slotSetRootFolder()
 
 void CFoldersView::slotItemSelected( const QModelIndex &index )
 {
-    auto currentPath = index.isValid() ? fModel->pathForItem( sourceIndex( index ) ) : QString();
+    auto path = index.isValid() ? fModel->pathForItem( index ) : QString();
+
     fImpl->setRootFolderBtn->setEnabled( index.isValid() );
     fImpl->addFolder->setEnabled( index.isValid() );
 
-    emit sigFolderSelected( currentPath );
+    emit sigFolderSelected( path );
 }
 
 void CFoldersView::addFolder( const QString &folderName )
