@@ -297,7 +297,7 @@ std::shared_ptr< Outlook::MailItem > CEmailModel::emailItemFromItem( QStandardIt
     auto pos = fEmailCache.find( item );
     if ( pos == fEmailCache.end() )
     {
-        if ( item->column() != 1 )
+        if ( ( item->column() != 1 ) && item->parent() )
         {
             auto sibling = item->parent()->child( item->row(), 1 );
             return emailItemFromItem( sibling );
