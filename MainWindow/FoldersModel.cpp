@@ -60,21 +60,21 @@ void CFoldersModel::slotReload()
 {
     clear();
     auto inbox = COutlookAPI::instance()->getInbox();
-    if ( inbox )
-        QTimer::singleShot( 0, [ = ]() { addSubFolders( inbox ); } );
-
     auto junk = COutlookAPI::instance()->getJunkFolder();
-    if ( junk )
-        QTimer::singleShot( 0, [ = ]() { addSubFolders( junk ); } );
+    QTimer::singleShot( 0, [ = ]() { loadRootFolders( { inbox, junk } ); } );
 }
 
-void CFoldersModel::addSubFolders( const std::shared_ptr< Outlook::Folder > &rootFolder )
+void CFoldersModel::loadRootFolders( const std::list< std::shared_ptr< Outlook::Folder > > &rootFolders )
 {
-    fNumFolders = COutlookAPI::instance()->recursiveSubFolderCount( rootFolder.get() );
     fCurrFolderNum = 0;
+    fNumFolders = 0;
+    for ( auto &&ii : rootFolders )
+    {
+        fNumFolders += COutlookAPI::instance()->recursiveSubFolderCount( ii.get() );
 
-    auto rootItem = addFolder( rootFolder, nullptr );
-    addSubFolders( rootItem, rootFolder );
+        auto rootItem = addFolder( ii, nullptr );
+        addSubFolders( rootItem, ii );
+    }
 }
 
 void CFoldersModel::addSubFolders( QStandardItem *parent, const std::shared_ptr< Outlook::Folder > &parentFolder )

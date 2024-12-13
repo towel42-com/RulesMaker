@@ -50,7 +50,7 @@ private Q_SLOTS:
     void slotAddNextFolder( QStandardItem *parent );
 
 private:
-    void addSubFolders( const std::shared_ptr< Outlook::Folder > &rootFolder );
+    void loadRootFolders( const std::list< std::shared_ptr< Outlook::Folder > > &rootFolder );
     void addSubFolders( QStandardItem *item, const std::shared_ptr< Outlook::Folder > &parentFolder );
 
     [[nodiscard]] QStandardItem *addFolder( const std::shared_ptr< Outlook::Folder > &rootFolder, QStandardItem *parentItem );

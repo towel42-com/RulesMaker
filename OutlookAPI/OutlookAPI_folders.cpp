@@ -43,17 +43,6 @@ std::shared_ptr< Outlook::Folder > COutlookAPI::getFolder( const Outlook::Folder
     return connectToException( std::shared_ptr< Outlook::Folder >( const_cast< Outlook::Folder * >( item ) ) );
 }
 
-int COutlookAPI::recursiveSubFolderCount( const Outlook::Folder *parent )
-{
-    if ( !parent )
-        return 0;
-
-    emit sigInitStatus( "Counting Folders:", 0 );
-    auto retVal = subFolderCount( parent, true );
-    emit sigStatusFinished( "Counting Folders:" );
-    return retVal;
-}
-
 std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( const std::shared_ptr< Outlook::Folder > &parent, bool recursive, const TFolderFunc &acceptFolder, const TFolderFunc &checkChildFolders )
 {
     if ( !parent )
@@ -298,13 +287,24 @@ QString COutlookAPI::ruleNameForFolder( Outlook::Folder *folder )
     return ruleName;
 }
 
+
+int COutlookAPI::recursiveSubFolderCount( const Outlook::Folder *parent )
+{
+    if ( !parent )
+        return 0;
+
+    emit sigInitStatus( "Counting Folders:", 0 );
+    auto retVal = subFolderCount( parent, true );
+    emit sigStatusFinished( "Counting Folders:" );
+    return retVal;
+}
+
 int COutlookAPI::subFolderCount( const Outlook::Folder *parent, bool recursive )
 {
     if ( !parent )
         return 0;
 
-    if ( !recursive )
-        emit sigInitStatus( "Counting Folders:", 0 );
+    emit sigInitStatus( "Counting Folders:", 0 );
 
     auto folders = parent->Folders();
     auto folderCount = folders->Count();
