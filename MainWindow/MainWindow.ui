@@ -104,11 +104,18 @@
     <addaction name="actionReloadFolders"/>
     <addaction name="actionReloadRules"/>
    </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionAbout"/>
+   </widget>
    <addaction name="menu_File"/>
    <addaction name="menuLoad"/>
    <addaction name="menuFolders"/>
    <addaction name="menu_Edit"/>
    <addaction name="menuSettings"/>
+   <addaction name="menuHelp"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
@@ -151,10 +158,10 @@
      <normaloff>:/resources/reload.png</normaloff>:/resources/reload.png</iconset>
    </property>
    <property name="text">
-    <string>Reload All Data</string>
+    <string>Reload All</string>
    </property>
    <property name="iconText">
-    <string>All Data</string>
+    <string>All</string>
    </property>
   </action>
   <action name="actionExit">
@@ -341,6 +348,11 @@
    </property>
    <property name="text">
     <string>Run All Rules on All Folders</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About...</string>
    </property>
   </action>
  </widget>

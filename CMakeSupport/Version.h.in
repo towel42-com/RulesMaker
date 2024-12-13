@@ -1,0 +1,119 @@
+// The MIT License( MIT )
+//
+// @VERSION_FILE_COPYRIGHT@
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files( the "Software" ), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sub-license, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions :
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+#ifndef __VERSION_H
+#define __VERSION_H
+
+#ifdef QT_VERSION
+#include <QString>
+#include <QDateTime>
+#include <QApplication>
+using TStringType = QString;
+#else
+#include <string>
+using TStringType = std::string;
+#endif
+
+#include <cstdint>
+
+namespace NVersion
+{
+    inline const int         MAJOR_VERSION      =  @VERSION_FILE_MAJOR_VERSION@;
+    inline const int         MINOR_VERSION      =  @VERSION_FILE_MINOR_VERSION@;
+    inline const TStringType PATCH_VERSION      = "@VERSION_FILE_PATCH_VERSION@"; // string from git
+    inline const uint16_t    PATCH_VERSION_LOW  =  @VERSION_FILE_PATCH_VERSION_HIGH@; // string from git
+    inline const uint16_t    PATCH_VERSION_HIGH =  @VERSION_FILE_PATCH_VERSION_LOW@; // string from git
+
+    inline const bool        MODIFIED         =  @VERSION_FILE_DIFF@;
+    inline const TStringType APP_NAME         = "@VERSION_FILE_APP_NAME@";
+    inline const TStringType VENDOR           = "@VERSION_FILE_VENDOR@";
+    inline const TStringType HOMEPAGE         = "@VERSION_FILE_HOMEPAGE@";
+    inline const TStringType PRODUCT_HOMEPAGE = "@VERSION_FILE_PRODUCT_HOMEPAGE@";
+    inline const TStringType EMAIL            = "@VERSION_FILE_EMAIL@";
+    inline const TStringType COPYRIGHT        = "@VERSION_FILE_COPYRIGHT@";
+    inline const TStringType BUILD_DATE       =  TStringType( "@VERSION_FILE_BUILD_DATE@" ) + "Z"; // IN UTC
+    inline const TStringType BUILD_TIME       =  TStringType( "@VERSION_FILE_BUILD_TIME@" ) + "Z"; // IN UTC
+
+#ifdef QT_VERSION
+    inline QDateTime buildDateTime()
+    { 
+        auto retVal = QDateTime::fromString( NVersion::BUILD_DATE + " " + NVersion::BUILD_TIME, "MM/dd/yyyyZ HH:mm:ssZ" );
+        retVal.setTimeSpec( Qt::TimeSpec::UTC );
+        return retVal;
+    }
+#endif
+
+    template< typename T >
+    TStringType toString( T value )
+    {
+#ifdef QT_VERSION
+        return QString::number( value );
+#else
+        return std::to_string( value );
+#endif
+    }
+
+    inline bool isEmpty( const TStringType & value )
+    {
+#ifdef QT_VERSION
+        return value.isEmpty();
+#else
+        return value.empty();
+#endif
+    }
+
+    inline TStringType getVersionString(bool full) 
+    { 
+        auto retVal = toString( MAJOR_VERSION ) + ".";
+#ifdef VERSION_FILE_FORCE_TWODIGITS_MINOR
+        if ( MINOR_VERSION < 10 )
+            retVal += '0';
+#endif
+        retVal += toString( MINOR_VERSION );
+        if ( full )
+            retVal += "." + PATCH_VERSION;
+        if ( MODIFIED )
+            retVal += "*";
+        if ( !isEmpty( BUILD_DATE ) )
+            retVal += " Build Date: " + BUILD_DATE;
+        return retVal;
+    }
+
+    inline TStringType getWindowTitle() 
+    { 
+        auto retVal = APP_NAME + " v" + getVersionString( true ) + " - http://" + HOMEPAGE;
+        return retVal;
+    }
+
+#ifdef QT_VERSION
+    inline void setupApplication( QCoreApplication & appl, bool useProductHomepage )
+    {
+        appl.setApplicationName( APP_NAME );
+        appl.setApplicationVersion( getVersionString( true ) );
+        appl.setOrganizationName( VENDOR );
+        appl.setOrganizationDomain( useProductHomepage ? PRODUCT_HOMEPAGE : HOMEPAGE ); 
+    }
+#endif
+}
+
+#endif
+

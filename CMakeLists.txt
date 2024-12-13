@@ -2,11 +2,13 @@ cmake_minimum_required(VERSION 3.22)
 
 project(root-RulesMaker 
     VERSION 1.0 
-    DESCRIPTION "Tool for generating outlook rules"
+    DESCRIPTION "Tool for generating Outlook Rules"
     HOMEPAGE_URL http://towel42.com
     ) 
 
 SET(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMakeSupport ${CMAKE_MODULE_PATH})
+
+include( ${CMAKE_SOURCE_DIR}/VersionInfo.cmake )
 
 file( REAL_PATH ~/bin/RulesMaker CMAKE_INSTALL_PREFIX EXPAND_TILDE)
 file( REAL_PATH ~/bin HOME_BIN_DIR EXPAND_TILDE)

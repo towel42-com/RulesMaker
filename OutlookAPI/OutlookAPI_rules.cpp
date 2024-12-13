@@ -651,7 +651,6 @@ bool COutlookAPI::runRules( std::vector< std::shared_ptr< Outlook::Rule > > rule
     auto folderTypeID = qRegisterMetaType< Outlook::MAPIFolder * >( "MAPIFolder*", &folderPtr );
 
     auto msg = QString( "Running Rules on '%1':" ).arg( folderDisplayPath( folder ) );
-    emit sigInitStatus( msg, static_cast< int >( rules.size() ) );
 
     if ( perFolderMsg.has_value() )
     {
@@ -660,6 +659,7 @@ bool COutlookAPI::runRules( std::vector< std::shared_ptr< Outlook::Rule > > rule
 
     if ( rules.empty() )
         rules = getAllRules();
+    emit sigInitStatus( msg, static_cast< int >( rules.size() ) );
 
     for ( auto &&rule : rules )
     {
@@ -685,7 +685,7 @@ bool COutlookAPI::runRules( std::vector< std::shared_ptr< Outlook::Rule > > rule
             retVal = runRules( rules, ii, recursive, perFolderMsg ) && retVal;
         }
     }
-
+    sigStatusFinished( msg );
     return retVal;
 }
 

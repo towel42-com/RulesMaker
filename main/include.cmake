@@ -12,6 +12,7 @@ set(qtproject_H
 )
 
 set(project_H
+    ${CMAKE_BINARY_DIR}/Version.h
 )
 
 set( project_pub_LIB_DIRS 
@@ -31,5 +32,4 @@ set( project_pri_DEPS
 )
 
 set(qtproject_QRC
-    app.qrc
 )

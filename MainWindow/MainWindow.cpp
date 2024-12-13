@@ -1,6 +1,7 @@
 #include "MainWindow.h"
 #include "OutlookAPI/OutlookAPI.h"
 #include "StatusProgress.h"
+#include "Version.h"
 
 #include "ui_MainWindow.h"
 
@@ -53,9 +54,10 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     connect( fImpl->email, &CEmailView::sigRuleSelected, this, &CMainWindow::slotUpdateActions );
     connect( fImpl->rules, &CRulesView::sigRuleSelected, this, &CMainWindow::slotUpdateActions );
 
+    connect( fImpl->actionAbout, &QAction::triggered, this, &CMainWindow::slotAbout );
     setupStatusBar();
 
-    setWindowTitle( QObject::tr( "Rules Maker" ) );
+    setWindowTitle( NVersion::APP_NAME );
 
     connect(
         api.get(), &COutlookAPI::sigAccountChanged,
@@ -316,7 +318,7 @@ void CMainWindow::slotReloadAll()
 
 void CMainWindow::updateWindowTitle()
 {
-    auto windowTitle = tr( "Outlook Rules Maker" );
+    auto windowTitle = NVersion::APP_NAME + " - " + NVersion::getVersionString( true );
     if ( COutlookAPI::instance()->accountSelected() )
     {
         windowTitle += tr( " - %1" ).arg( COutlookAPI::instance()->accountName() );
@@ -452,6 +454,7 @@ void CMainWindow::setupStatusBar()
             for ( auto &&ii : fProgressBars )
                 ii.second->hide();
             fCancelButton->hide();
+            slotHandleProgressToggle();
         } );
     statusBar()->addPermanentWidget( fCancelButton );
 
@@ -507,4 +510,35 @@ void CMainWindow::slotIncStatusValue( const QString &label )
     if ( !bar )
         return;
     bar->slotIncValue();
+}
+
+void CMainWindow::slotAbout()
+{
+    auto title = tr( "About %1" ).arg( NVersion::APP_NAME );
+    auto caption = tr( "<h3>About %1</h3>"
+                       "<p>%1 version %2</p>"
+                       "<p>It is an opensource application licensed under the MIT license.</p>" )
+                       .arg( NVersion::APP_NAME )
+                       .arg( NVersion::getVersionString( true ) );
+    auto aboutText = tr( "<p>It is a tool to help create and maintain Outlook Rules to keep your inbox clean.</p>"
+                         "<p>It is designed to work with Microsoft Outlook.</p>"
+                         "<p>It is provided under the terms of the MIT License.</p>"
+                         "<p>For more information, please visit <a href=\"%1\">%1</a>.</p>"
+                         R"(<hr style="width:50%;text-align:left;margin-left:0">)"
+                         "<p>%2</p>" )
+                         .arg( "https://" + NVersion::PRODUCT_HOMEPAGE, NVersion::COPYRIGHT );
+
+    auto msgBox = new QMessageBox( this );
+    msgBox->setAttribute( Qt::WA_DeleteOnClose );
+    msgBox->setWindowTitle( title );
+    msgBox->setText( caption );
+    msgBox->setInformativeText( aboutText );
+    msgBox->setTextInteractionFlags( Qt::TextBrowserInteraction );
+    auto btn = msgBox->addButton( "&About Qt", QMessageBox::ActionRole );
+    connect( btn, &QAbstractButton::clicked, [ = ]() { QMessageBox::aboutQt( msgBox ); } );
+    msgBox->addButton( QMessageBox::Ok );
+    QPixmap pm( QLatin1String( ":resources/app.png" ) );
+    if ( !pm.isNull() )
+        msgBox->setIconPixmap( pm );
+    msgBox->exec();
 }

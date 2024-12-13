@@ -63,6 +63,7 @@ protected Q_SLOTS:
     void slotIncStatusValue( const QString &label );
 
     void slotFinishedStatus( const QString &label );
+    void slotAbout();
 
 protected:
     void updateActions();
