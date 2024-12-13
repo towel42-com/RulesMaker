@@ -50,7 +50,7 @@ namespace NVersion
     inline const TStringType PRODUCT_HOMEPAGE = "@VERSION_FILE_PRODUCT_HOMEPAGE@";
     inline const TStringType EMAIL            = "@VERSION_FILE_EMAIL@";
     inline const TStringType COPYRIGHT        = "@VERSION_FILE_COPYRIGHT@";
-    inline const TStringType BUILD_DATE       =  TStringType( "@VERSION_FILE_BUILD_DATE@" ) + "Z"; // IN UTC
+    inline const TStringType BUILD_DATE       =  TStringType( "@VERSION_FILE_BUILD_DATE@" ); // IN UTC
     inline const TStringType BUILD_TIME       =  TStringType( "@VERSION_FILE_BUILD_TIME@" ) + "Z"; // IN UTC
 
 #ifdef QT_VERSION
@@ -95,12 +95,14 @@ namespace NVersion
             retVal += "*";
         if ( !isEmpty( BUILD_DATE ) )
             retVal += " Build Date: " + BUILD_DATE;
+        if ( !isEmpty( BUILD_TIME ) )
+            retVal += " @" + BUILD_TIME;
         return retVal;
     }
 
     inline TStringType getWindowTitle() 
     { 
-        auto retVal = APP_NAME + " v" + getVersionString( true ) + " - http://" + HOMEPAGE;
+        auto retVal = APP_NAME + " v" + getVersionString( true ) + " - https://" + HOMEPAGE;
         return retVal;
     }
 
