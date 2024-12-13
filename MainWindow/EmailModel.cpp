@@ -222,32 +222,32 @@ void CEmailModel::displayEmail( QStandardItem *item ) const
     COutlookAPI::instance()->displayEmail( emailItem );
 }
 
-QStringList CEmailModel::rulesForIndex( const QModelIndex &idx ) const
+QStringList CEmailModel::matchTextForIndex( const QModelIndex &idx ) const
 {
     if ( !idx.isValid() )
         return {};
     auto item = itemFromIndex( idx );
-    return rulesForItem( item );
+    return matchTextListForItem( item );
 }
 
-QStringList CEmailModel::rulesForItem( QStandardItem *item ) const
+QStringList CEmailModel::matchTextListForItem( QStandardItem *item ) const
 {
     QStringList retVal;
 
     if ( item->parent() )
     {
-        auto rule = ruleForItem( item );
-        if ( ( item->column() == 0 ) && ( rule.indexOf( '@' ) == -1 ) )
-            rule = "@" + rule;
-        retVal.push_back( rule );
+        auto matchText = matchTextForItem( item );
+        if ( ( item->column() == 0 ) && ( matchText.indexOf( '@' ) == -1 ) )
+            matchText = "@" + matchText;
+        retVal.push_back( matchText );
     }
     for ( auto &&ii = 0; ii < item->rowCount(); ++ii )
     {
         auto child = item->child( ii, 0 );
         if ( !child || child->text().isEmpty() )
             continue;
-        //retVal.push_back( "@" + ruleForItem( child ) );
-        auto curr = rulesForItem( child );
+
+        auto curr = matchTextListForItem( child );
         if ( !curr.isEmpty() )
             retVal << curr;
     }
@@ -256,7 +256,7 @@ QStringList CEmailModel::rulesForItem( QStandardItem *item ) const
     return retVal;
 }
 
-QString CEmailModel::ruleForItem( QStandardItem *item ) const
+QString CEmailModel::matchTextForItem( QStandardItem *item ) const
 {
     if ( !item )
         return {};
@@ -277,7 +277,7 @@ QString CEmailModel::ruleForItem( QStandardItem *item ) const
 
     auto parent = item->parent();
     if ( parent )
-        path.push_back( ruleForItem( parent ) );
+        path.push_back( matchTextForItem( parent ) );
 
     return path.join( separator );
 }

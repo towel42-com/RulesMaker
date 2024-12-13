@@ -80,25 +80,30 @@ void CEmailView::clearSelection()
 
 void CEmailView::slotSelectionChanged()
 {
-    auto rules = getRulesForSelection();
-    fImpl->rule->setText( rules.join( " or " ) );
-    emit sigRuleSelected();
+    fImpl->matchText->setText( getDisplayTextForSelection() );
+    emit sigEmailSelected();
 }
 
-QStringList CEmailView::getRulesForSelection() const
+QString CEmailView::getDisplayTextForSelection() const
+{
+    auto text = getMatchTextForSelection();
+    return text.join( " or " );
+}
+
+QStringList CEmailView::getMatchTextForSelection() const
 {
     auto rows = getSelectedRows();
     QStringList retVal;
     for ( auto &&row : rows )
     {
-        retVal << fGroupedModel->rulesForIndex( row );
+        retVal << fGroupedModel->matchTextForIndex( row );
     }
     retVal.removeDuplicates();
     retVal.removeAll( QString() );
     return retVal;
 }
 
-QString CEmailView::getSelectedDisplayName() const
+QString CEmailView::getEmailDisplayNameForSelection() const
 {
     auto rows = getSelectedRows();
     if ( rows.empty() )
@@ -111,7 +116,7 @@ QModelIndexList CEmailView::getSelectedRows() const
     auto selection = fImpl->groupedEmails->selectionModel()->selectedIndexes();
 
     std::set< std::list< int > > rows;
-    QModelIndexList retVal; 
+    QModelIndexList retVal;
     for ( auto &&ii : selection )
     {
         std::list< int > currRows;

@@ -43,8 +43,8 @@ public:
     std::shared_ptr< Outlook::MailItem > emailItemFromIndex( const QModelIndex &idx ) const;
     std::shared_ptr< Outlook::MailItem > emailItemFromItem( QStandardItem * item ) const;
 
-    QStringList rulesForIndex( const QModelIndex &idx ) const;
-    QStringList rulesForItem( QStandardItem *item ) const;
+    QStringList matchTextForIndex( const QModelIndex &idx ) const;
+    QStringList matchTextListForItem( QStandardItem *item ) const;
 
     QString displayNameForIndex( const QModelIndex &idx ) const;
     QString displayNameForItem( QStandardItem *item ) const;
@@ -61,7 +61,7 @@ private Q_SLOTS:
 
 private:
     void sortAll( QStandardItem *root );
-    QString ruleForItem( QStandardItem *item ) const;
+    QString matchTextForItem( QStandardItem *item ) const;
     void addEmailAddress( std::shared_ptr< Outlook::MailItem > mailItem );
     CEmailAddressSection *findOrAddEmailAddressSection( const QStringRef &curr, const QVector< QStringRef > &remaining, CEmailAddressSection *parent, const QString &displayName );
 

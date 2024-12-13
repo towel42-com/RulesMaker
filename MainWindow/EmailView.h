@@ -25,15 +25,16 @@ public:
     void clearSelection();
     void reload( bool notifyOnFinished );
 
-    QStringList getRulesForSelection() const;
+    QStringList getMatchTextForSelection() const;
+    QString getDisplayTextForSelection() const;
 
-    QString getSelectedDisplayName() const;
+    QString getEmailDisplayNameForSelection() const;
 
     
 Q_SIGNALS:
     void sigFinishedLoading();
     void sigFinishedGrouping();
-    void sigRuleSelected();
+    void sigEmailSelected();
 
 protected Q_SLOTS:
     void slotSelectionChanged();
