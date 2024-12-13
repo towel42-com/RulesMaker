@@ -41,7 +41,7 @@
      <height>21</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menu_File">
+   <widget class="QMenu" name="menuFile">
     <property name="title">
      <string>&amp;File</string>
     </property>
@@ -49,7 +49,7 @@
     <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
-   <widget class="QMenu" name="menu_Edit">
+   <widget class="QMenu" name="menuRules">
     <property name="title">
      <string>&amp;Rules</string>
     </property>
@@ -83,20 +83,20 @@
    </widget>
    <widget class="QMenu" name="menuSettings">
     <property name="title">
-     <string>Settings</string>
+     <string>&amp;Settings</string>
     </property>
     <addaction name="actionOnlyProcessUnread"/>
     <addaction name="actionProcessAllEmailWhenLessThan200Emails"/>
    </widget>
    <widget class="QMenu" name="menuFolders">
     <property name="title">
-     <string>Folders</string>
+     <string>F&amp;olders</string>
     </property>
     <addaction name="actionAddFolderForSelectedEmail"/>
    </widget>
-   <widget class="QMenu" name="menuLoad">
+   <widget class="QMenu" name="menuReload">
     <property name="title">
-     <string>Load</string>
+     <string>R&amp;eload</string>
     </property>
     <addaction name="actionReloadAllData"/>
     <addaction name="separator"/>
@@ -106,14 +106,14 @@
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
-     <string>Help</string>
+     <string>&amp;Help</string>
     </property>
     <addaction name="actionAbout"/>
    </widget>
-   <addaction name="menu_File"/>
-   <addaction name="menuLoad"/>
+   <addaction name="menuFile"/>
+   <addaction name="menuReload"/>
    <addaction name="menuFolders"/>
-   <addaction name="menu_Edit"/>
+   <addaction name="menuRules"/>
    <addaction name="menuSettings"/>
    <addaction name="menuHelp"/>
   </widget>
@@ -145,7 +145,7 @@
   </widget>
   <action name="actionSelectServer">
    <property name="icon">
-    <iconset resource="../main/app.qrc">
+    <iconset resource="app.qrc">
      <normaloff>:/resources/server.png</normaloff>:/resources/server.png</iconset>
    </property>
    <property name="text">
@@ -154,7 +154,7 @@
   </action>
   <action name="actionReloadAllData">
    <property name="icon">
-    <iconset resource="../main/app.qrc">
+    <iconset resource="app.qrc">
      <normaloff>:/resources/reload.png</normaloff>:/resources/reload.png</iconset>
    </property>
    <property name="text">
@@ -177,7 +177,7 @@
   </action>
   <action name="actionAddRule">
    <property name="icon">
-    <iconset resource="../main/app.qrc">
+    <iconset resource="app.qrc">
      <normaloff>:/resources/rules.png</normaloff>:/resources/rules.png</iconset>
    </property>
    <property name="text">
@@ -197,7 +197,7 @@
   </action>
   <action name="actionReloadEmail">
    <property name="icon">
-    <iconset resource="../main/app.qrc">
+    <iconset resource="app.qrc">
      <normaloff>:/resources/reload.png</normaloff>:/resources/reload.png</iconset>
    </property>
    <property name="text">
@@ -209,7 +209,7 @@
   </action>
   <action name="actionRunSelectedRule">
    <property name="icon">
-    <iconset resource="../main/app.qrc">
+    <iconset resource="app.qrc">
      <normaloff>:/resources/run.png</normaloff>:/resources/run.png</iconset>
    </property>
    <property name="text">
@@ -218,7 +218,7 @@
   </action>
   <action name="actionAddToSelectedRule">
    <property name="icon">
-    <iconset resource="../main/app.qrc">
+    <iconset resource="app.qrc">
      <normaloff>:/resources/add.png</normaloff>:/resources/add.png</iconset>
    </property>
    <property name="text">
@@ -227,7 +227,7 @@
   </action>
   <action name="actionReloadRules">
    <property name="icon">
-    <iconset resource="../main/app.qrc">
+    <iconset resource="app.qrc">
      <normaloff>:/resources/reload.png</normaloff>:/resources/reload.png</iconset>
    </property>
    <property name="text">
@@ -239,7 +239,7 @@
   </action>
   <action name="actionReloadFolders">
    <property name="icon">
-    <iconset resource="../main/app.qrc">
+    <iconset resource="app.qrc">
      <normaloff>:/resources/reload.png</normaloff>:/resources/reload.png</iconset>
    </property>
    <property name="text">
@@ -251,7 +251,7 @@
   </action>
   <action name="actionSortRules">
    <property name="icon">
-    <iconset resource="../main/app.qrc">
+    <iconset resource="app.qrc">
      <normaloff>:/resources/sort.png</normaloff>:/resources/sort.png</iconset>
    </property>
    <property name="text">
@@ -260,7 +260,7 @@
   </action>
   <action name="actionRenameRules">
    <property name="icon">
-    <iconset resource="../main/app.qrc">
+    <iconset resource="app.qrc">
      <normaloff>:/resources/rename.png</normaloff>:/resources/rename.png</iconset>
    </property>
    <property name="text">
@@ -269,7 +269,7 @@
   </action>
   <action name="actionMoveFromToAddress">
    <property name="icon">
-    <iconset resource="../main/app.qrc">
+    <iconset resource="app.qrc">
      <normaloff>:/resources/fixrules.png</normaloff>:/resources/fixrules.png</iconset>
    </property>
    <property name="text">
@@ -278,7 +278,7 @@
   </action>
   <action name="actionMergeRules">
    <property name="icon">
-    <iconset resource="../main/app.qrc">
+    <iconset resource="app.qrc">
      <normaloff>:/resources/merge.png</normaloff>:/resources/merge.png</iconset>
    </property>
    <property name="text">
@@ -298,7 +298,7 @@
   </action>
   <action name="actionRunAllRules">
    <property name="icon">
-    <iconset resource="../main/app.qrc">
+    <iconset resource="app.qrc">
      <normaloff>:/resources/run.png</normaloff>:/resources/run.png</iconset>
    </property>
    <property name="text">
@@ -307,7 +307,7 @@
   </action>
   <action name="actionAddFolderForSelectedEmail">
    <property name="icon">
-    <iconset resource="../main/app.qrc">
+    <iconset resource="app.qrc">
      <normaloff>:/resources/folder.png</normaloff>:/resources/folder.png</iconset>
    </property>
    <property name="text">
@@ -316,7 +316,7 @@
   </action>
   <action name="actionEnableAllRules">
    <property name="icon">
-    <iconset resource="../main/app.qrc">
+    <iconset resource="app.qrc">
      <normaloff>:/resources/enable.png</normaloff>:/resources/enable.png</iconset>
    </property>
    <property name="text">
@@ -325,7 +325,7 @@
   </action>
   <action name="actionRunAllRulesOnSelectedFolder">
    <property name="icon">
-    <iconset resource="../main/app.qrc">
+    <iconset resource="app.qrc">
      <normaloff>:/resources/run.png</normaloff>:/resources/run.png</iconset>
    </property>
    <property name="text">
@@ -334,7 +334,7 @@
   </action>
   <action name="actionRunSelectedRuleOnSelectedFolder">
    <property name="icon">
-    <iconset resource="../main/app.qrc">
+    <iconset resource="app.qrc">
      <normaloff>:/resources/run.png</normaloff>:/resources/run.png</iconset>
    </property>
    <property name="text">
@@ -343,7 +343,7 @@
   </action>
   <action name="actionRunAllRulesOnAllFolders">
    <property name="icon">
-    <iconset resource="../main/app.qrc">
+    <iconset resource="app.qrc">
      <normaloff>:/resources/run.png</normaloff>:/resources/run.png</iconset>
    </property>
    <property name="text">
@@ -377,7 +377,7 @@
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="../main/app.qrc"/>
+  <include location="app.qrc"/>
  </resources>
  <connections/>
 </ui>
