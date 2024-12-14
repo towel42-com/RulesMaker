@@ -12,7 +12,7 @@ add_executable( ${PROJECT_NAME}
                 ${_CMAKE_MODULE_FILES}
           )
 set ( DEBUG_PATH 
-        "%PATH%;C:/Qt/Qt5.12.12/5.12.12/msvc2017_64/bin"
+        "%PATH%;C:/Qt/Qt5.15.13/5.15.13/msvc2017_64/bin"
         )
 
 set_target_properties( ${PROJECT_NAME} PROPERTIES FOLDER ${FOLDER_NAME} 
@@ -21,8 +21,8 @@ set_target_properties( ${PROJECT_NAME} PROPERTIES FOLDER ${FOLDER_NAME}
                                     VS_DEBUGGER_ENVIRONMENT "PATH=${DEBUG_PATH}" 
                                     )
 
-target_include_directories( ${PROJECT_NAME} PUBLIC C:/Qt/Qt5.12.12/5.12.12/./msvc2017_64/include/QtCore/5.12.12/ )
-target_include_directories( ${PROJECT_NAME} PUBLIC C:/Qt/Qt5.12.12/5.12.12/./msvc2017_64/include/QtCore/5.12.12/QtCore/ )
+target_include_directories( ${PROJECT_NAME} PUBLIC C:/Qt/Qt5.15.13/5.15.13/./msvc2019_64/include/QtCore/5.15.13/ )
+target_include_directories( ${PROJECT_NAME} PUBLIC C:/Qt/Qt5.15.13/5.15.13/./msvc2019_64/include/QtCore/5.15.13/QtCore/ )
 
 target_link_directories( ${PROJECT_NAME}
     PUBLIC
