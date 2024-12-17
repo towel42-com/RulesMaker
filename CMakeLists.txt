@@ -21,7 +21,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED true)
 
 set_property( GLOBAL PROPERTY USE_FOLDERS ON )
 
-add_subdirectory( main )
+add_subdirectory( gui )
+add_subdirectory( cli )
 add_subdirectory( MainWindow )
 add_subdirectory( OutlookAPI )
 add_subdirectory( dumpcpp )

@@ -4,6 +4,13 @@
 #include <QSettings>
 #include "MSOUTL.h"
 
+QString COutlookAPI::defaultProfileName() const
+{
+    if ( fOutlookApp->isNull() )
+        return {};
+    return fOutlookApp->DefaultProfileName();
+}
+
 QString COutlookAPI::accountName() const
 {
     if ( !accountSelected() )
@@ -13,37 +20,46 @@ QString COutlookAPI::accountName() const
 
 bool COutlookAPI::accountSelected() const
 {
-    return fAccount.operator bool();
+    return fAccount.operator bool() && !fAccount->isNull();
 }
 
-std::shared_ptr< Outlook::Account > COutlookAPI::selectAccount( bool notifyOnChange )
+std::shared_ptr< Outlook::Account > COutlookAPI::closeAndSelectAccount( bool notifyOnChange )
 {
     logout( notifyOnChange );
-    if ( fOutlookApp->isNull() )
+    return selectAccount( notifyOnChange );
+}
+
+std::shared_ptr< Outlook::NameSpace > COutlookAPI::getNamespace( Outlook::_NameSpace *ns )
+{
+    if ( !ns )
         return {};
+    return connectToException( std::make_shared< Outlook::NameSpace >( ns ) );
+}
 
-    auto profileName = fOutlookApp->DefaultProfileName();
-    Outlook::NameSpace session( fOutlookApp->Session() );
-    session.Logon( profileName );
-    fLoggedIn = true;
+std::optional< std::map< QString, std::shared_ptr< Outlook::Account > > > COutlookAPI::getAllAccounts( const QString &profileName )
+{
+    if ( !connected() )
+    {
+        fSession = getNamespace( fOutlookApp->Session() );
+        if ( !fSession )
+            return {};
 
-    std::vector< std::shared_ptr< Outlook::Account > > allAccounts;
+        if ( !profileName.isEmpty() )
+            fSession->Logon( profileName );
+        else
+            fSession->Logon();
+        fLoggedIn = true;
+    }
 
-    auto accounts = session.Accounts();
+    auto accounts = fSession->Accounts();
     if ( !accounts )
     {
-        logout( notifyOnChange );
         return {};
     }
 
+    std::map< QString, std::shared_ptr< Outlook::Account > > retVal;
     auto numAccounts = accounts->Count();
-    allAccounts.reserve( numAccounts );
 
-    QSettings settings;
-    auto lastAccount = settings.value( "Account", QString() ).toString();
-    int accountPos = 0;
-    QStringList accountNames;
-    std::map< QString, std::shared_ptr< Outlook::Account > > accountMap;
     for ( auto ii = 1; ii <= numAccounts; ++ii )
     {
         auto item = accounts->Item( ii );
@@ -67,27 +83,105 @@ std::shared_ptr< Outlook::Account > COutlookAPI::selectAccount( bool notifyOnCha
                 break;
         }
 
-        allAccounts.push_back( account );
-        auto accountName = account->DisplayName();
-        accountNames << accountName;
-        accountMap[ accountName ] = account;
-        if ( accountName == lastAccount )
-        {
-            accountPos = ii - 1;
-        }
+        retVal[ account->DisplayName() ] = account;
+    }
+    return retVal;
+}
+
+QString COutlookAPI::defaultAccountName( const QString &profileName )
+{
+    auto allAccounts = getAllAccounts( profileName );
+    if ( !allAccounts.has_value() )
+        return {};
+
+    if ( allAccounts.value().size() == 1 )
+    {
+        return ( *allAccounts.value().begin() ).first;
+    }
+    QSettings settings;
+    auto lastAccount = settings.value( "Account", QString() ).toString();
+    if ( !lastAccount.isEmpty() )
+    {
+        if ( allAccounts.value().find( lastAccount ) != allAccounts.value().end() )
+            return lastAccount;
     }
 
-    if ( allAccounts.size() == 0 )
+    return {};
+}
+
+bool COutlookAPI::connected()
+{
+    if ( !fLoggedIn )
+        return false;
+    if ( !fSession || fSession->isNull() )
+        return false;
+    return ( fSession->ExchangeConnectionMode() != Outlook::OlExchangeConnectionMode::olOffline );
+}
+
+bool COutlookAPI::selectAccount( const QString &accountName, bool notifyOnChange )
+{
+    if ( !connected() )
+        return false;
+
+    auto accounts = getAllAccounts( {} );
+    auto pos = accounts.value().find( accountName );
+    if ( pos == accounts.value().end() )
+        return false;
+
+    QSettings settings;
+    settings.setValue( "Account", accountName );
+    fAccount = ( *pos ).second;
+
+    if ( notifyOnChange )
+        emit sigAccountChanged();
+
+    return accountSelected();
+}
+
+std::shared_ptr< Outlook::Account > COutlookAPI::selectAccount( bool notifyOnChange )
+{
+    if ( accountSelected() )
+        return fAccount;
+
+    if ( fOutlookApp->isNull() )
+        return {};
+
+    auto profileName = defaultProfileName();
+    auto allAccounts = getAllAccounts( profileName );
+    if ( !allAccounts.has_value() )
     {
         logout( notifyOnChange );
         return {};
     }
 
-    if ( allAccounts.size() == 1 )
+    if ( allAccounts.value().size() == 0 )
     {
-        fAccount = allAccounts.front();
-        settings.setValue( "Account", allAccounts.front()->DisplayName() );
+        logout( notifyOnChange );
+        return {};
+    }
+
+    QSettings settings;
+    if ( allAccounts.value().size() == 1 )
+    {
+        auto pos = allAccounts.value().begin();
+        fAccount = ( *pos ).second;
+        settings.setValue( "Account", fAccount->DisplayName() );
         return fAccount;
+    }
+
+    auto lastAccount = settings.value( "Account", QString() ).toString();
+    QStringList accountNames;
+
+    int accountPos = -1;
+    int currPos = 0;
+    for ( auto &&account : allAccounts.value() )
+    {
+        accountNames << account.first;
+        if ( account.first == lastAccount )
+        {
+            accountPos = static_cast< int >( currPos );
+        }
+        currPos++;
     }
 
     bool aOK{ false };
@@ -97,8 +191,8 @@ std::shared_ptr< Outlook::Account > COutlookAPI::selectAccount( bool notifyOnCha
         logout( notifyOnChange );
         return {};
     }
-    auto pos = accountMap.find( account );
-    if ( pos == accountMap.end() )
+    auto pos = allAccounts.value().find( account );
+    if ( pos == allAccounts.value().end() )
     {
         logout( notifyOnChange );
         return {};
@@ -108,9 +202,11 @@ std::shared_ptr< Outlook::Account > COutlookAPI::selectAccount( bool notifyOnCha
 
     if ( notifyOnChange )
         emit sigAccountChanged();
+
+    if ( !accountSelected() )
+        return {};
     return fAccount;
 }
-
 
 std::shared_ptr< Outlook::Account > COutlookAPI::getAccount( Outlook::_Account *item )
 {

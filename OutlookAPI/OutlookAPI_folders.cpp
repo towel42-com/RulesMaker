@@ -36,6 +36,34 @@ void COutlookAPI::setRootFolder( const std::shared_ptr< Outlook::Folder > &folde
         emit sigOptionChanged();
 }
 
+std::shared_ptr< Outlook::Folder > COutlookAPI::findFolder( const QString &folderName, std::shared_ptr< Outlook::Folder > parentFolder )
+{
+    if ( !accountSelected() )
+        return {};
+
+    if ( !parentFolder )
+        parentFolder = rootFolder();
+
+    if ( !parentFolder )
+        return {};
+
+    auto folders = parentFolder->Folders();
+    auto folderCount = folders->Count();
+
+    for ( int ii = 1; ii <= folderCount; ++ii )
+    {
+        if ( canceled() )
+            break;
+        auto subFolder = folders->Item( ii );
+        if ( !subFolder )
+            continue;
+        auto name = subFolder->FullFolderPath();
+        if ( folderName == name )
+            return getFolder( subFolder );
+    }
+    return {};
+}
+
 std::shared_ptr< Outlook::Folder > COutlookAPI::getFolder( const Outlook::Folder *item )
 {
     if ( !item )
@@ -176,6 +204,18 @@ QString COutlookAPI::folderDisplayName( const Outlook::Folder *folder )
     return retVal;
 }
 
+std::shared_ptr< Outlook::Folder > COutlookAPI::getDefaultFolder( Outlook::OlDefaultFolders folderType )
+{
+    if ( !accountSelected() )
+        return {};
+
+    auto store = fAccount->DeliveryStore();
+    if ( !store )
+        return {};
+
+    return getFolder( store->GetDefaultFolder( folderType ) );
+}
+
 std::pair< std::shared_ptr< Outlook::Folder >, bool > COutlookAPI::getMailFolder( const QString &folderLabel, const QString &path, bool singleOnly )
 {
     if ( !accountSelected() )
@@ -235,13 +275,7 @@ std::pair< std::shared_ptr< Outlook::Folder >, bool > COutlookAPI::selectFolder(
 
 std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( bool recursive, const TFolderFunc &acceptFolder, const TFolderFunc &checkChildFolders )
 {
-    if ( !fAccount )
-    {
-        if ( !selectAccount( true ) )
-            return {};
-    }
-
-    if ( !fAccount || fAccount->isNull() )
+    if ( !selectAccount( true ) )
         return {};
 
     auto store = fAccount->DeliveryStore();
@@ -287,7 +321,6 @@ QString COutlookAPI::ruleNameForFolder( Outlook::Folder *folder )
     return ruleName;
 }
 
-
 int COutlookAPI::recursiveSubFolderCount( const Outlook::Folder *parent )
 {
     if ( !parent )
@@ -322,4 +355,79 @@ int COutlookAPI::subFolderCount( const Outlook::Folder *parent, bool recursive )
         emit sigStatusFinished( "Counting Folders:" );
 
     return retVal;
+}
+
+bool COutlookAPI::emptyTrash()
+{
+    slotClearCanceled();
+    fIgnoreExceptions = true;
+    auto trash = getTrashFolder();
+    auto retVal = emptyFolder( trash );
+    fIgnoreExceptions = false;
+    return retVal;
+}
+
+bool COutlookAPI::emptyJunk()
+{
+    slotClearCanceled();
+    //fIgnoreExceptions = true;
+    auto junk = getJunkFolder();
+    auto retVal = emptyFolder( junk );
+    fIgnoreExceptions = false;
+    return retVal;
+}
+
+bool COutlookAPI::emptyFolder( std::shared_ptr< Outlook::Folder > &folder )
+{
+    if ( !folder )
+        return false;
+
+    auto subFolders = folder->Folders();
+    auto msg = tr( "Emptying Folder - %1:" ).arg( folder->Name() );
+    emit sigStatusMessage( msg );
+    int numFoldersDeleted = 0;
+    if ( subFolders && subFolders->Count() )
+    {
+        auto msg = tr( "Emptying Folder - %1 - Deleting Sub-Folders:" ).arg( folder->Name() );
+        auto count = subFolders->Count();
+        emit sigInitStatus( msg, count );
+        for ( int ii = count; ii > 0; --ii )
+        {
+            if ( canceled() )
+                break;
+            auto subFolder = subFolders->Item( ii );
+            if ( !subFolder )
+                continue;
+            auto subFolderName = subFolder->Name();
+            emit sigStatusMessage( tr( "Deleting Folder - %1" ).arg( subFolderName ) );
+            emit sigSetStatus( msg, count - ii, count );
+            subFolder->Delete();
+            numFoldersDeleted++;
+        }
+    }
+    emit sigStatusMessage( QString( "%1 folders deleted" ).arg( numFoldersDeleted ) );
+    auto items = getItems( folder->Items() );
+    int numEmailsDeleted = 0;
+    if ( items && items->Count() )
+    {
+        auto count = items->Count();
+        auto msg = tr( "Emptying Folder - %1 - Deleting emails:" ).arg( folder->Name() );
+        emit sigInitStatus( msg, count );
+        for ( int ii = count; ii > 0; --ii )
+        {
+            if ( canceled() )
+                break;
+            auto email = getEmailItem( items, ii );
+            if ( !email )
+                continue;
+            auto emailName = email->Subject();
+            emit sigStatusMessage( tr( "Deleting email - %1" ).arg( emailName ) );
+            emit sigSetStatus( msg, count - ii, count );
+            email->Delete();
+            numEmailsDeleted++;
+        }
+    }
+    emit sigStatusMessage( QString( "%1 emails deleted" ).arg( numEmailsDeleted ) );
+    emit sigStatusFinished( msg );
+    return !canceled();
 }

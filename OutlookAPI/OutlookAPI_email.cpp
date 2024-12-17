@@ -248,15 +248,21 @@ COutlookAPI::TStringListPair COutlookAPI::getEmailAddresses( Outlook::AddressEnt
 
     TStringListPair retVal;
 
-    if ( address->GetExchangeUser() && !smtpOnly )
+    if ( address->GetExchangeUser() )
     {
-        retVal.first << address->GetExchangeUser()->PrimarySmtpAddress();
-        retVal.second << address->GetExchangeUser()->Name();
+        if ( !smtpOnly )
+        {
+            retVal.first << address->GetExchangeUser()->PrimarySmtpAddress();
+            retVal.second << address->GetExchangeUser()->Name();
+        }
     }
-    else if ( !smtpOnly && address->GetExchangeDistributionList() )
+    else if ( address->GetExchangeDistributionList() )
     {
-        retVal.first << address->GetExchangeDistributionList()->PrimarySmtpAddress();
-        retVal.second << address->GetExchangeDistributionList()->Name();
+        if ( smtpOnly )
+        {
+            retVal.first << address->GetExchangeDistributionList()->PrimarySmtpAddress();
+            retVal.second << address->GetExchangeDistributionList()->Name();
+        }
     }
     else if ( address->GetContact() )
     {

@@ -9,6 +9,7 @@
 #include <optional>
 #include <unordered_set>
 #include <QString>
+#include <map>
 
 class QVariant;
 class QWidget;
@@ -20,6 +21,7 @@ namespace Outlook
     class Application;
     class _Application;
     class NameSpace;
+    class _NameSpace;
     class Account;
     class _Account;
     class Folder;
@@ -45,6 +47,7 @@ namespace Outlook
     enum class OlRuleConditionType;
     enum class OlSensitivity;
     enum class OlMarkInterval;
+    enum class OlDefaultFolders;
 
     class AccountRuleCondition;
     class AddressRuleCondition;
@@ -81,6 +84,7 @@ public:
     COutlookAPI( QWidget *parentWidget, SPrivate pri );
 
     static std::shared_ptr< COutlookAPI > instance( QWidget *parentWidget = nullptr );
+    static std::shared_ptr< COutlookAPI > cliInstance();
     virtual ~COutlookAPI();
 
     bool canceled() const { return fCanceled; }
@@ -90,12 +94,16 @@ public:
     std::shared_ptr< Outlook::Folder > getContacts();
     std::shared_ptr< Outlook::Folder > getInbox();
     std::shared_ptr< Outlook::Folder > getJunkFolder();
+    std::shared_ptr< Outlook::Folder > getTrashFolder();
 
     void setOnlyProcessUnread( bool value, bool update = true );
     bool onlyProcessUnread() const { return fOnlyProcessUnread; }
 
     void setProcessAllEmailWhenLessThan200Emails( bool value, bool update = true );
     bool processAllEmailWhenLessThan200Emails() const { return fProcessAllEmailWhenLessThan200Emails; }
+
+    void setIncludeJunkInRunAllFolders( bool value, bool update = true );
+    bool includeJunkInRunAllFolders() { return fIncludeJunkInRunAllFolders; }
 
 Q_SIGNALS:
     void sigAccountChanged();
@@ -116,13 +124,22 @@ public Q_SLOTS:
 
 public:
     // account API in OutlookAPI_account.cpp
+    QString defaultProfileName() const;
+
+    QString defaultAccountName( const QString &profileName );
     QString accountName() const;
     bool accountSelected() const;
+
+    std::shared_ptr< Outlook::Account > closeAndSelectAccount( bool notifyOnChange );
+    bool selectAccount( const QString &accountName, bool notifyOnChange );
     std::shared_ptr< Outlook::Account > selectAccount( bool notifyOnChange );
+
+    bool connected();
 
     // rules API in OutlookAPI_rules.cpp
     std::pair< std::shared_ptr< Outlook::Rules >, int > getRules();
     std::shared_ptr< Outlook::Rule > getRule( const std::shared_ptr< Outlook::Rules > &rules, int num );
+    std::shared_ptr< Outlook::Rule > findRule( const QString &ruleName );
 
     bool addRule( const std::shared_ptr< Outlook::Folder > &folder, const QStringList &rules, QStringList &msgs );
     bool addToRule( std::shared_ptr< Outlook::Rule > rule, const QStringList &rules, QStringList &msg );
@@ -141,12 +158,16 @@ public:
     bool runAllRulesOnAllFolders();
     bool runRule( std::shared_ptr< Outlook::Rule > rule, const std::shared_ptr< Outlook::Folder > &folder = {} );
 
+    // run from command line
+    bool runAllRules( std::shared_ptr< Outlook::Folder > folder, bool allFolders, bool junk );
+    bool runRule( const std::shared_ptr< Outlook::Rule > &rule, std::shared_ptr< Outlook::Folder > folder, bool allFolders, bool junk );
+
     // tools
-    bool enableAllRules();
-    bool mergeRules();
-    bool moveFromToAddress();
-    bool renameRules();
-    bool sortRules();
+    bool enableAllRules( bool andSave = true, bool *needsSaving = nullptr );
+    bool mergeRules( bool andSave = true, bool *needsSaving = nullptr );
+    bool moveFromToAddress( bool andSave = true, bool *needsSaving = nullptr );
+    bool renameRules( bool andSave = true, bool * needsSaving = nullptr );
+    bool sortRules( bool andSave = true, bool *needsSaving = nullptr );
     void saveRules();
 
     // folders API in OutlookAPI_folders.cpp
@@ -157,6 +178,7 @@ public:
 
     void setRootFolder( const std::shared_ptr< Outlook::Folder > &folder, bool update = true );
 
+    std::shared_ptr< Outlook::Folder > findFolder( const QString &folderName, std::shared_ptr< Outlook::Folder > parentFolder );
     std::shared_ptr< Outlook::Folder > getFolder( const Outlook::Folder *item );
 
     int recursiveSubFolderCount( const Outlook::Folder *parent );
@@ -169,6 +191,9 @@ public:
     QString rawPathForFolder( const std::shared_ptr< Outlook::Folder > &folder ) const;
 
     QString folderDisplayName( const std::shared_ptr< Outlook::Folder > &folder );
+
+    bool emptyJunk();
+    bool emptyTrash();
 
     // email API in OutlookAPI_email.cpp
     enum EAddressTypes
@@ -218,8 +243,8 @@ private:
     std::shared_ptr< Outlook::Application > outlookApp();
 
     std::shared_ptr< Outlook::Items > getItems( Outlook::_Items *item );
-    std::pair< std::shared_ptr< Outlook::Folder >, bool > selectContacts( bool singleOnly );
-    std::pair< std::shared_ptr< Outlook::Folder >, bool > selectInbox( bool singleOnly );
+    std::shared_ptr< Outlook::Folder > selectContacts();
+    std::shared_ptr< Outlook::Folder > selectInbox();
     template< typename T >
     static Outlook::OlObjectClass getObjectClass( T *item )
     {
@@ -245,10 +270,12 @@ private:
 
     QWidget *fParentWidget{ nullptr };
     std::shared_ptr< Outlook::Application > fOutlookApp{ nullptr };
+    std::shared_ptr< Outlook::NameSpace > fSession{ nullptr };
     std::shared_ptr< Outlook::Account > fAccount{ nullptr };
     std::shared_ptr< Outlook::Folder > fInbox{ nullptr };
     std::shared_ptr< Outlook::Folder > fRootFolder{ nullptr };   // used for loading emails
     std::shared_ptr< Outlook::Folder > fJunkFolder{ nullptr };
+    std::shared_ptr< Outlook::Folder > fTrashFolder{ nullptr };
     std::shared_ptr< Outlook::Folder > fContacts{ nullptr };
     std::shared_ptr< Outlook::Rules > fRules{ nullptr };
 
@@ -256,11 +283,16 @@ private:
 
     bool fLoggedIn{ false };
     bool fCanceled{ false };
+    bool fIgnoreExceptions{ false };
     bool fOnlyProcessUnread{ true };
+    bool fIncludeJunkInRunAllFolders{ false };
     bool fProcessAllEmailWhenLessThan200Emails{ true };
 
     // account API in OutlookAPI_account.cpp
+private:
     std::shared_ptr< Outlook::Account > getAccount( Outlook::_Account *item );
+    std::optional< std::map< QString, std::shared_ptr< Outlook::Account > > > getAllAccounts( const QString &profile );
+    std::shared_ptr< Outlook::NameSpace > getNamespace( Outlook::_NameSpace *ns );
 
     // rules api in Outlook_rules.cpp
 private:
@@ -286,6 +318,7 @@ private:
 private:
     // folders API in OutlookAPI_folders.cpp
     bool isFolder( const std::shared_ptr< Outlook::Folder > &folder, const QString &path ) const;
+    bool emptyFolder( std::shared_ptr< Outlook::Folder > &folder );
 
     std::shared_ptr< Outlook::Folder > getFolder( const Outlook::MAPIFolder *item );
 
@@ -294,6 +327,7 @@ private:
     QString folderDisplayPath( const std::shared_ptr< Outlook::Folder > &folder, bool removeLeadingSlashes = false ) const;
     QString folderDisplayName( const Outlook::Folder *folder );
 
+    std::shared_ptr< Outlook::Folder > getDefaultFolder( Outlook::OlDefaultFolders folderType );
     std::pair< std::shared_ptr< Outlook::Folder >, bool > getMailFolder( const QString &folderLabel, const QString &fullPath, bool singleOnly );   // full path after \\account
     std::pair< std::shared_ptr< Outlook::Folder >, bool > selectFolder( const QString &folderName, const TFolderFunc &acceptFolder, const TFolderFunc &checkChildFolders, bool singleOnly );
     std::pair< std::shared_ptr< Outlook::Folder >, bool > selectFolder( const QString &folderName, const std::list< std::shared_ptr< Outlook::Folder > > &folders, bool singleOnly );

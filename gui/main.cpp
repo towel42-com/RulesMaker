@@ -5,7 +5,7 @@
 
 int main( int argc, char *argv[] )
 {
-    Q_INIT_RESOURCE( app );
+    Q_INIT_RESOURCE( MainWindow );
     QApplication appl( argc, argv );
 
     NVersion::setupApplication( appl, true );

@@ -6,8 +6,11 @@
 #include <QMetaProperty>
 #include <QSettings>
 
+#include <cstdlib>
+#include <iostream>
 #include <oaidl.h>
 #include "MSOUTL.h"
+#include <objbase.h>
 
 std::shared_ptr< COutlookAPI > COutlookAPI::sInstance;
 Q_DECLARE_METATYPE( std::shared_ptr< Outlook::Rule > );
@@ -24,6 +27,15 @@ COutlookAPI::COutlookAPI( QWidget *parent, COutlookAPI::SPrivate )
 
     qRegisterMetaType< std::shared_ptr< Outlook::Rule > >();
     qRegisterMetaType< std::shared_ptr< Outlook::Rule > >( "std::shared_ptr<Outlook::Rule>const&" );
+}
+
+std::shared_ptr< COutlookAPI > COutlookAPI::cliInstance()
+{
+    if ( !sInstance )
+    {
+        sInstance = std::make_shared< COutlookAPI >( nullptr, SPrivate() );
+    }
+    return sInstance;
 }
 
 std::shared_ptr< COutlookAPI > COutlookAPI::instance( QWidget *parent )
@@ -47,10 +59,12 @@ COutlookAPI::~COutlookAPI()
 
 void COutlookAPI::logout( bool andNotify )
 {
+    fSession.reset();
     fAccount.reset();
     fInbox.reset();
     fRootFolder.reset();
     fJunkFolder.reset();
+    fTrashFolder.reset();
     fContacts.reset();
     fRules.reset();
 
@@ -65,6 +79,9 @@ void COutlookAPI::logout( bool andNotify )
 
 std::shared_ptr< Outlook::Application > COutlookAPI::getApplication()
 {
+    static HRESULT comInit = CoInitialize( nullptr );
+    Q_UNUSED( comInit );
+
     if ( !fOutlookApp )
         fOutlookApp = connectToException( std::make_shared< Outlook::Application >() );
     return fOutlookApp;
@@ -77,78 +94,83 @@ std::shared_ptr< Outlook::Application > COutlookAPI::outlookApp()
 
 std::shared_ptr< Outlook::Folder > COutlookAPI::getContacts()
 {
-    if ( !fContacts )
-        fContacts = selectContacts( false ).first;
-    return fContacts;
+    return selectContacts();
 }
 
-std::pair< std::shared_ptr< Outlook::Folder >, bool > COutlookAPI::selectContacts( bool singleOnly )
+std::shared_ptr< Outlook::Folder > COutlookAPI::selectContacts()
 {
-    if ( !fAccount )
-    {
-        if ( !selectAccount( true ) )
-            return {};
-    }
+    if ( !selectAccount( true ) )
+        return {};
 
-    return selectFolder(
-        "Contacts",
-        []( const std::shared_ptr< Outlook::Folder > &folder )
-        {
-            if ( !folder )
-                return false;
+    if ( fContacts )
+        return fContacts;
 
-            if ( folder->DefaultItemType() != Outlook::OlItemType::olContactItem )
-                return false;
-
-            auto items = folder->Items();
-            if ( items->Count() == 0 )
-                return false;
-
-            if ( folder->Name().contains( "meta", Qt::CaseSensitivity::CaseInsensitive ) )
-                return false;
-
-            return true;
-        },
-        {}, singleOnly );
+    return fContacts = getDefaultFolder( Outlook::OlDefaultFolders::olFolderContacts );
 }
 
 std::shared_ptr< Outlook::Folder > COutlookAPI::getInbox()
 {
-    if ( !fInbox )
-        fInbox = selectInbox( false ).first;
-    return fInbox;
+    return selectInbox();
 }
 
-std::pair< std::shared_ptr< Outlook::Folder >, bool > COutlookAPI::selectInbox( bool singleOnly )
+std::shared_ptr< Outlook::Folder > COutlookAPI::selectInbox()
 {
-    if ( !fAccount )
-    {
-        if ( !selectAccount( true ) )
-            return {};
-    }
+    if ( !selectAccount( true ) )
+        return {};
 
-    return getMailFolder( "Inbox", R"(Inbox)", singleOnly );
+    if ( fInbox )
+        return fInbox;
+
+    return fInbox = getDefaultFolder( Outlook::OlDefaultFolders::olFolderInbox );
 }
 
 std::shared_ptr< Outlook::Folder > COutlookAPI::getJunkFolder()
 {
-    if ( !fJunkFolder )
-    {
-        fJunkFolder = getMailFolder( "Junk Email", R"(Junk Email)", false ).first;
-    }
-    return fJunkFolder;
+    if ( !selectAccount( true ) )
+        return {};
+
+    if ( fJunkFolder )
+        return fJunkFolder;
+
+    return fJunkFolder = getDefaultFolder( Outlook::OlDefaultFolders::olFolderJunk );
 }
 
+std::shared_ptr< Outlook::Folder > COutlookAPI::getTrashFolder()
+{
+    if ( !selectAccount( true ) )
+        return {};
+
+    if ( fTrashFolder )
+        return fTrashFolder;
+
+    return fTrashFolder = getDefaultFolder( Outlook::OlDefaultFolders::olFolderDeletedItems );
+}
 
 void COutlookAPI::slotHandleException( int code, const QString &source, const QString &desc, const QString &help )
 {
-    auto msg = QString( "%1 - %2: %3" ).arg( source ).arg( code );
-    auto txt = "<br>" + desc + "</br>";
-    if ( !help.isEmpty() )
-        txt += "<br>" + help + "</br>";
-    msg = msg.arg( txt );
+    if ( fIgnoreExceptions )
+        return;
 
-    QMessageBox::critical( nullptr, "Exception Thrown", msg );
+    if ( fParentWidget )
+    {
+        auto msg = QString( "%1 - %2: %3" ).arg( source ).arg( code );
+        auto txt = "<br>" + desc + "</br>";
+        if ( !help.isEmpty() )
+            txt += "<br>" + help + "</br>";
+        msg = msg.arg( txt );
+
+        QMessageBox::critical( nullptr, "Exception Thrown", msg );
+    }
+    else
+    {
+        auto msg = QString( "%1 - %2:\n%3" ).arg( source ).arg( code );
+        auto txt = desc + "\n";
+        if ( !help.isEmpty() )
+            txt += help + "\n";
+        msg = msg.arg( txt );
+        emit sigStatusMessage( msg );
+        std::exit( 1 );
+    }
 }
 
 Outlook::OlObjectClass COutlookAPI::getObjectClass( IDispatch *item )
@@ -191,6 +213,15 @@ void COutlookAPI::setOnlyProcessUnread( bool value, bool update )
     fOnlyProcessUnread = value;
     QSettings settings;
     settings.setValue( "OnlyProcessUnread", value );
+    if ( update )
+        emit sigOptionChanged();
+}
+
+void COutlookAPI::setIncludeJunkInRunAllFolders( bool value, bool update )
+{
+    fIncludeJunkInRunAllFolders = value;
+    QSettings settings;
+    settings.setValue( "IncludeJunkInRunAllFolders ", value );
     if ( update )
         emit sigOptionChanged();
 }

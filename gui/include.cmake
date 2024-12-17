@@ -1,4 +1,4 @@
-set(_PROJECT_NAME RulesMaker)
+set(_PROJECT_NAME RulesMaker-gui)
 set(FOLDER_NAME Apps)
 
 set(qtproject_UIS

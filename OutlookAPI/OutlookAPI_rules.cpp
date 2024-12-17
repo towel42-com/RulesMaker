@@ -2,6 +2,7 @@
 
 #include <QMessageBox>
 #include <QStandardItem>
+#include <QDebug>
 #include "MSOUTL.h"
 
 static void addAttribute( QStandardItem *parent, const QString &label, const QString &value );
@@ -34,7 +35,6 @@ static bool addAction( QStandardItem *parent, Outlook::NewItemAlertRuleAction *a
 static bool addAction( QStandardItem *parent, Outlook::PlaySoundRuleAction *action );
 static bool addAction( QStandardItem *parent, Outlook::RuleAction *action, const QString &actionName );
 static bool addAction( QStandardItem *parent, Outlook::SendRuleAction *action, const QString &actionName );
-
 
 static QString conditionName( Outlook::AccountRuleCondition *condition, const QString &conditionStr, bool forDisplayOnly );
 static QString conditionName( Outlook::RuleCondition *condition, const QString &conditionStr, bool forDisplayOnly );
@@ -272,6 +272,37 @@ bool COutlookAPI::ruleLessThan( const std::shared_ptr< Outlook::Rule > &lhsRule,
     return lhsRule->ExecutionOrder() < rhsRule->ExecutionOrder();
 }
 
+bool COutlookAPI::runAllRules( std::shared_ptr< Outlook::Folder > folder, bool allFolders, bool junk )
+{
+    auto rules = getAllRules();
+    bool recursive = allFolders;
+    bool addJunk = false;
+    if ( !folder )
+    {
+        folder = getInbox();
+        addJunk = junk;
+    }
+    bool aOK = runRules( rules, folder, recursive );
+    if ( addJunk )
+        aOK = aOK && runRules( rules, getJunkFolder(), recursive );
+    return aOK;
+}
+
+bool COutlookAPI::runRule( const std::shared_ptr< Outlook::Rule > &rule, std::shared_ptr< Outlook::Folder > folder, bool allFolders, bool junk )
+{
+    if ( !rule )
+        return false;
+
+    fIncludeJunkInRunAllFolders = junk;
+
+    bool recursive = allFolders;
+    if ( !folder )
+    {
+        folder = getInbox();
+    }
+    return runRules( { rule }, folder, recursive );
+}
+
 bool COutlookAPI::runAllRules( const std::shared_ptr< Outlook::Folder > &folder )
 {
     return runRules( {}, folder );
@@ -294,7 +325,7 @@ bool COutlookAPI::runAllRulesOnAllFolders()
     if ( inbox )
         retVal = runRules( allRules, inbox, true, msg ) && retVal;
 
-    if ( junk )
+    if ( junk && fIncludeJunkInRunAllFolders )
         retVal = runRules( allRules, junk, false, msg ) && retVal;
     return retVal;
 }
@@ -304,10 +335,15 @@ bool COutlookAPI::runRule( std::shared_ptr< Outlook::Rule > rule, const std::sha
     return runRules( std::vector< std::shared_ptr< Outlook::Rule > >( { rule } ), folder );
 }
 
-bool COutlookAPI::enableAllRules()
+bool COutlookAPI::enableAllRules( bool andSave /*= true*/, bool *needsSaving /*= nullptr*/ )
 {
+    if ( needsSaving )
+        *needsSaving = false;
+
     if ( !fRules )
         return false;
+
+    slotClearCanceled();
 
     auto numRules = fRules->Count();
     emit sigInitStatus( "Enabling Rules:", numRules );
@@ -324,24 +360,35 @@ bool COutlookAPI::enableAllRules()
             continue;
         if ( rule->Enabled() )
             continue;
+        emit sigStatusMessage( QString( "Enabling rule '%1'" ).arg( rule->Name() ) );
         rule->SetEnabled( true );
         numChanged++;
     }
     if ( canceled() )
         return false;
 
-    if ( numChanged != 0 )
+    if ( fParentWidget )
+        QMessageBox::information( fParentWidget, R"(Enable All Rules)", QString( "%1 rules enabled" ).arg( numChanged ) );
+    else
+        emit sigStatusMessage( QString( "%1 rules enabled" ).arg( numChanged ) );
+
+    if ( needsSaving )
+        *needsSaving = numChanged != 0;
+
+    if ( andSave && ( numChanged != 0 ) )
         saveRules();
-
-    QMessageBox::information( fParentWidget, R"(Enable All Rules)", QString( "%1 rules enabled" ).arg( numChanged ) );
-
-    return numChanged != 0;
+    return true;
 }
 
-bool COutlookAPI::mergeRules()
+bool COutlookAPI::mergeRules( bool andSave /*= true*/, bool *needsSaving /*= nullptr*/ )
 {
+    if ( needsSaving )
+        *needsSaving = false;
+
     if ( !fRules )
         return false;
+
+    slotClearCanceled();
 
     auto numRules = fRules->Count();
     emit sigInitStatus( "Merging Rules:", numRules );
@@ -373,6 +420,7 @@ bool COutlookAPI::mergeRules()
         }
         else
         {
+            emit sigStatusMessage( QString( "Merging rule '%1' into '%2'" ).arg( ( *pos ).second->Name(), rule->Name() ) );
             auto mergedRecipients = mergeRecipients( ( *pos ).second.get(), rule.get(), nullptr );
             if ( !mergedRecipients.has_value() )
                 continue;
@@ -392,18 +440,29 @@ bool COutlookAPI::mergeRules()
         fRules->Remove( ii );
     }
 
-    if ( !toRemove.empty() )
+    if ( fParentWidget )
+        QMessageBox::information( fParentWidget, R"(Merge Rules by Target Folder)", QString( "%1 rules deleted" ).arg( numChanged ) );
+    else
+        emit sigStatusMessage( QString( "%1 rules deleted" ).arg( numChanged ) );
+
+    if ( needsSaving )
+        *needsSaving = !toRemove.empty();
+
+    if ( andSave && ( !toRemove.empty() ) )
         saveRules();
 
-    QMessageBox::information( fParentWidget, R"(Merge Rules by Target Folder)", QString( "%1 rules deleted" ).arg( numChanged ) );
-
-    return !toRemove.empty();
+    return true;
 }
 
-bool COutlookAPI::moveFromToAddress()
+bool COutlookAPI::moveFromToAddress( bool andSave /*= true*/, bool *needsSaving /*= nullptr*/ )
 {
+    if ( needsSaving )
+        *needsSaving = false;
+
     if ( !fRules )
         return false;
+
+    slotClearCanceled();
 
     auto numRules = fRules->Count();
     emit sigInitStatus( "Fixing Rules:", numRules );
@@ -427,6 +486,7 @@ bool COutlookAPI::moveFromToAddress()
         if ( !from->Enabled() )
             continue;
 
+        emit sigStatusMessage( QString( "Checking from email addresses on rule '%1'" ).arg( rule->Name() ) );
         auto fromEmails = getEmailAddresses( from->Recipients(), {}, true );
         if ( fromEmails.isEmpty() )
             continue;
@@ -440,15 +500,30 @@ bool COutlookAPI::moveFromToAddress()
     }
     if ( numChanged )
         saveRules();
-    QMessageBox::information( fParentWidget, R"(Move "From" to "Address")", QString( "%1 rules modified" ).arg( numChanged ) );
-    return numChanged;
+
+    if ( fParentWidget )
+        QMessageBox::information( fParentWidget, R"(Move "From" to "Address")", QString( "%1 rules modified" ).arg( numChanged ) );
+    else
+        emit sigStatusMessage( QString( "%1 rules modified" ).arg( numChanged ) );
+
+    if ( needsSaving )
+        *needsSaving = numChanged != 0;
+
+    if ( andSave && ( numChanged != 0 ) )
+        saveRules();
+
+    return true;
 }
 
-bool COutlookAPI::renameRules()
+bool COutlookAPI::renameRules( bool andSave /*= true*/, bool *needsSaving /*= nullptr*/ )
 {
+    if ( needsSaving )
+        *needsSaving = false;
+
     if ( !fRules )
         return false;
 
+    slotClearCanceled();
     auto numRules = fRules->Count();
 
     emit sigInitStatus( "Analyzing Rule Names:", numRules );
@@ -476,18 +551,31 @@ bool COutlookAPI::renameRules()
 
     if ( changes.empty() )
     {
-        QMessageBox::information( fParentWidget, "Renamed Rules", QString( "No rules needed renaming" ) );
-        return 0;
+        if ( fParentWidget )
+            QMessageBox::information( fParentWidget, "Renamed Rules", QString( "No rules needed renaming" ) );
+        else
+            emit sigStatusMessage( QString( "No rules needed renaming" ) );
+        return true;
     }
-    QStringList tmp;
-    for ( auto &&ii : changes )
+    if ( fParentWidget )
     {
-        tmp << "<li>" + ii.first->Name() + " => " + ii.second + "</li>";
+        QStringList tmp;
+        for ( auto &&ii : changes )
+        {
+            tmp << "<li>" + ii.first->Name() + " => " + ii.second + "</li>";
+        }
+        auto msg = QString( "Rules to be changed:<ul>%1</ul>Continue?" ).arg( tmp.join( "\n" ) );
+        auto process = QMessageBox::information( fParentWidget, "Renamed Rules", msg, QMessageBox::Yes | QMessageBox::No );
+        if ( process == QMessageBox::No )
+            return true;
     }
-    auto msg = QString( "Rules to be changed:<ul>%1</ul>Continue?" ).arg( tmp.join( "\n" ) );
-    auto process = QMessageBox::information( fParentWidget, "Renamed Rules", msg, QMessageBox::Yes | QMessageBox::No );
-    if ( process == QMessageBox::No )
-        return 0;
+    else
+    {
+        for ( auto &&ii : changes )
+        {
+            emit sigStatusMessage( QString( "Rule '%1' will be renamed to '%2'" ).arg( ii.first->Name(), ii.second ) );
+        }
+    }
 
     emit sigInitStatus( "Renaming Rules:", static_cast< int >( changes.size() ) );
     for ( auto &&ii : changes )
@@ -495,15 +583,26 @@ bool COutlookAPI::renameRules()
         ii.first->SetName( ii.second );
         emit sigIncStatusValue( "Renaming Rules:" );
     }
+
+    if ( needsSaving )
+        *needsSaving = !changes.empty();
+
+    if ( andSave && !changes.empty() )
+        saveRules();
     saveRules();
 
-    return changes.size();
+    return true;
 }
 
-bool COutlookAPI::sortRules()
+bool COutlookAPI::sortRules( bool andSave /*= true*/, bool *needsSaving /*= nullptr*/ )
 {
+    if ( needsSaving )
+        *needsSaving = false;
+
     if ( !fRules )
         return false;
+
+    slotClearCanceled();
 
     auto numRules = fRules->Count();
     emit sigInitStatus( "Sorting Rules:", numRules );
@@ -541,22 +640,36 @@ bool COutlookAPI::sortRules()
 
     if ( canceled() )
         return false;
-    bool changed = false;
     auto pos = 1;
     emit sigInitStatus( "Recomputing Execution Order:", numRules );
 
+    int numChanged = 0;
     for ( auto &&ii : rules )
     {
         if ( canceled() )
             return false;
 
-        changed = changed || ( ii->ExecutionOrder() != pos );
+        if ( ii->ExecutionOrder() != pos )
+            numChanged++;
         ii->SetExecutionOrder( pos++ );
         emit sigIncStatusValue( "Recomputing Execution Order:" );
     }
-    if ( changed )
+
+    if ( numChanged )
+    {
+        emit sigStatusMessage( QString( "%1 rules needed re-ordering" ).arg( numChanged ) );
+    }
+    else
+    {
+        emit sigStatusMessage( QString( "No rules needed re-ordering" ) );
+    }
+    if ( needsSaving )
+        *needsSaving = numChanged != 0;
+
+    if ( andSave && ( numChanged != 0 ) )
         saveRules();
-    return changed;
+
+    return true;
 }
 
 void COutlookAPI::saveRules()
@@ -567,13 +680,7 @@ void COutlookAPI::saveRules()
 
 std::shared_ptr< Outlook::Rules > COutlookAPI::selectRules()
 {
-    if ( !fAccount )
-    {
-        if ( !selectAccount( true ) )
-            return {};
-    }
-
-    if ( !fAccount || fAccount->isNull() )
+    if ( !selectAccount( true ) )
         return {};
 
     auto store = connectToException( fAccount->DeliveryStore() );
@@ -589,6 +696,28 @@ std::shared_ptr< Outlook::Rules > COutlookAPI::getRules( Outlook::Rules *item )
     if ( !item )
         return {};
     return connectToException( std::shared_ptr< Outlook::Rules >( item ) );
+}
+
+std::shared_ptr< Outlook::Rule > COutlookAPI::findRule( const QString &rule )
+{
+    getRules();
+
+    if ( !fRules )
+        return {};
+
+    for ( int ii = 1; ii <= fRules->Count(); ++ii )
+    {
+        auto currRule = getRule( fRules->Item( ii ) );
+        if ( !currRule )
+            continue;
+        if ( ruleNameForRule( currRule, true ) == rule )
+            return currRule;
+        if ( ruleNameForRule( currRule, false ) == rule )
+            return currRule;
+        if ( currRule->Name() == rule )
+            return currRule;
+    }
+    return {};
 }
 
 std::shared_ptr< Outlook::Rule > COutlookAPI::getRule( Outlook::_Rule *item )
@@ -625,6 +754,7 @@ std::optional< QStringList > COutlookAPI::getRecipients( Outlook::Rule *rule, QS
 
 std::vector< std::shared_ptr< Outlook::Rule > > COutlookAPI::getAllRules()
 {
+    getRules();
     if ( !fRules )
         return {};
 
@@ -646,6 +776,8 @@ bool COutlookAPI::runRules( std::vector< std::shared_ptr< Outlook::Rule > > rule
 
     if ( !folder )
         return false;
+
+    slotClearCanceled();
 
     auto folderPtr = reinterpret_cast< Outlook::MAPIFolder * >( folder.get() );
     auto folderTypeID = qRegisterMetaType< Outlook::MAPIFolder * >( "MAPIFolder*", &folderPtr );
@@ -740,7 +872,6 @@ std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::Rule *lhs, O
     lhsRecipients.value().removeDuplicates();
     return lhsRecipients;
 }
-
 
 template< typename T >
 static QString conditionRuleNameBase( T *condition, const QString &conditionStr, bool forDisplayOnly )
