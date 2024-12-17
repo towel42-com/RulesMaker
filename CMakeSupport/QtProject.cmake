@@ -16,7 +16,6 @@ include( ${CMAKE_CURRENT_LIST_DIR}/Project.cmake )
 find_package(Qt5 COMPONENTS Core Widgets AxContainer REQUIRED)
 if ( NOT QTDIR )
     set(QTDIR ${_qt5Core_install_prefix} CACHE BOOL "Has QTDIR been reported" )
-#    MESSAGE( STATUS QTDIR=${QTDIR} )
 endif()
 
 SET(CMAKE_AUTOMOC OFF)

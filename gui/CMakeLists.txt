@@ -14,7 +14,7 @@ add_executable( ${PROJECT_NAME} WIN32
           )
 
 set ( DEBUG_PATH 
-        "%PATH%;C:/Qt/Qt5.12.12/5.12.12/msvc2017_64/bin"
+        "%PATH%;${QT_MSVCDIR}/bin"
         )
 
 set_target_properties( ${PROJECT_NAME} PROPERTIES FOLDER ${FOLDER_NAME} 

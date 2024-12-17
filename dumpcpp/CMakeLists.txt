@@ -12,7 +12,7 @@ add_executable( ${PROJECT_NAME}
                 ${_CMAKE_MODULE_FILES}
           )
 set ( DEBUG_PATH 
-        "%PATH%;C:/Qt/Qt5.15.13/5.15.13/msvc2017_64/bin"
+        "%PATH%;${QT_MSVCDIR}/bin"
         )
 
 set_target_properties( ${PROJECT_NAME} PROPERTIES FOLDER ${FOLDER_NAME} 
@@ -21,8 +21,13 @@ set_target_properties( ${PROJECT_NAME} PROPERTIES FOLDER ${FOLDER_NAME}
                                     VS_DEBUGGER_ENVIRONMENT "PATH=${DEBUG_PATH}" 
                                     )
 
-target_include_directories( ${PROJECT_NAME} PUBLIC C:/Qt/Qt5.15.13/5.15.13/./msvc2019_64/include/QtCore/5.15.13/ )
-target_include_directories( ${PROJECT_NAME} PUBLIC C:/Qt/Qt5.15.13/5.15.13/./msvc2019_64/include/QtCore/5.15.13/QtCore/ )
+if ( ( NOT EXISTS ${QT_MSVCDIR}/include/QtCore/${QT_VERSION}/private/qmetaobject_p.h ) AND 
+     ( NOT EXISTS ${QT_MSVCDIR}/include/QtCore/${QT_VERSION}/QtCore/private/qmetaobject_p.h ) )
+     Message( fatal "Could not find qmetaobject_p.h" )
+endif()
+
+target_include_directories( ${PROJECT_NAME} PUBLIC ${QT_MSVCDIR}/include/QtCore/${QT_VERSION}/ )
+target_include_directories( ${PROJECT_NAME} PUBLIC ${QT_MSVCDIR}/include/QtCore/${QT_VERSION}/QtCore/ )
 
 target_link_directories( ${PROJECT_NAME}
     PUBLIC

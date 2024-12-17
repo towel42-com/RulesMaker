@@ -6,6 +6,11 @@ project(root-RulesMaker
     HOMEPAGE_URL http://towel42.com
     ) 
 
+find_package(Qt5 COMPONENTS Core Widgets AxContainer REQUIRED)
+
+set( QT_VERSION ${Qt5Core_VERSION_STRING})
+set( QT_MSVCDIR ${_qt5Core_install_prefix} )
+
 SET(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMakeSupport ${CMAKE_MODULE_PATH})
 
 include( ${CMAKE_SOURCE_DIR}/VersionInfo.cmake )
