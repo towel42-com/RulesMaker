@@ -44,9 +44,13 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     connect( fImpl->actionRunSelectedRule, &QAction::triggered, this, &CMainWindow::slotRunSelectedRule );
     connect( fImpl->actionRunAllRulesOnSelectedFolder, &QAction::triggered, this, &CMainWindow::slotRunAllRulesOnSelectedFolder );
     connect( fImpl->actionRunSelectedRuleOnSelectedFolder, &QAction::triggered, this, &CMainWindow::slotRunSelectedRuleOnSelectedFolder );
+    connect( fImpl->actionEmptyTrash, &QAction::triggered, this, &CMainWindow::slotEmptyTrash );
+    connect( fImpl->actionEmptyJunkFolder, &QAction::triggered, this, &CMainWindow::slotEmptyJunkFolder );
 
     connect( fImpl->actionProcessAllEmailWhenLessThan200Emails, &QAction::triggered, [ = ]() { api->setProcessAllEmailWhenLessThan200Emails( fImpl->actionProcessAllEmailWhenLessThan200Emails->isChecked() ); } );
     connect( fImpl->actionOnlyProcessUnread, &QAction::triggered, [ = ]() { api->setOnlyProcessUnread( fImpl->actionOnlyProcessUnread->isChecked() ); } );
+    connect( fImpl->actionIncludeJunkFolderWhenRunningOnAllFolders, &QAction::triggered, [ = ]() { api->setIncludeJunkInRunAllFolders( fImpl->actionIncludeJunkFolderWhenRunningOnAllFolders->isChecked() ); } );
+    
 
     connect( COutlookAPI::instance().get(), &COutlookAPI::sigOptionChanged, this, &CMainWindow::updateWindowTitle );
 
@@ -98,6 +102,7 @@ CMainWindow::CMainWindow( QWidget *parent ) :
 
     fImpl->actionProcessAllEmailWhenLessThan200Emails->setChecked( api->processAllEmailWhenLessThan200Emails() );
     fImpl->actionOnlyProcessUnread->setChecked( api->onlyProcessUnread() );
+    fImpl->actionIncludeJunkFolderWhenRunningOnAllFolders->setChecked( api->includeJunkInRunAllFolders() );
 
     updateWindowTitle();
 
@@ -146,6 +151,8 @@ void CMainWindow::updateActions()
     setEnabled( fImpl->actionReloadAllData, accountSelected );
     setEnabled( fImpl->actionRunAllRules, accountSelected );
     setEnabled( fImpl->actionRunAllRulesOnAllFolders, accountSelected );
+    setEnabled( fImpl->actionEmptyTrash, accountSelected );
+    setEnabled( fImpl->actionEmptyJunkFolder, accountSelected );
 
     if ( emailSelected.first && ruleSelected.first )
     {
@@ -323,6 +330,22 @@ void CMainWindow::slotRunSelectedRuleOnSelectedFolder()
     qApp->restoreOverrideCursor();
 }
 
+void CMainWindow::slotEmptyTrash()
+{
+    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    COutlookAPI::instance()->emptyTrash();
+    fImpl->folders->reloadTrash();
+    qApp->restoreOverrideCursor();
+}
+
+void CMainWindow::slotEmptyJunkFolder()
+{
+    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    COutlookAPI::instance()->emptyJunk();
+    fImpl->folders->reloadJunk();
+    qApp->restoreOverrideCursor();
+}
+
 void CMainWindow::slotReloadAll()
 {
     clearViews();
@@ -381,8 +404,7 @@ void CMainWindow::clearViews()
 
 void CMainWindow::slotSelectServer()
 {
-    auto account = COutlookAPI::instance()->selectAccount( false );
-    if ( !account )
+    if ( !COutlookAPI::instance()->closeAndSelectAccount( false ) )
         return;
 
     updateWindowTitle();

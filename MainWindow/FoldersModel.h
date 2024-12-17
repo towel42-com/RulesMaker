@@ -25,6 +25,8 @@ public:
     virtual ~CFoldersModel();
 
     void reload();
+    void reloadJunk();
+    void reloadTrash();
 
     QString fullPathForItem( const QModelIndex &index ) const;
     QString fullPathForItem( QStandardItem *item ) const;
@@ -47,13 +49,13 @@ Q_SIGNALS:
 
 private Q_SLOTS:
     void slotReload();
-    void slotAddNextFolder( QStandardItem *parent );
+    void slotLoadNextFolder( QStandardItem *parent );
 
 private:
     void loadRootFolders( const std::list< std::shared_ptr< Outlook::Folder > > &rootFolder );
-    void addSubFolders( QStandardItem *item, const std::shared_ptr< Outlook::Folder > &parentFolder );
+    void loadSubFolders( QStandardItem *item, const std::shared_ptr< Outlook::Folder > &parentFolder );
 
-    [[nodiscard]] QStandardItem *addFolder( const std::shared_ptr< Outlook::Folder > &rootFolder, QStandardItem *parentItem );
+    [[nodiscard]] QStandardItem *loadFolder( const std::shared_ptr< Outlook::Folder > &folder, QStandardItem *parentItem );
 
     std::unordered_map< QStandardItem *, std::unique_ptr< SCurrFolderInfo > > fFolders;
     std::unordered_map< QStandardItem *, std::shared_ptr< Outlook::Folder > > fFolderMap;

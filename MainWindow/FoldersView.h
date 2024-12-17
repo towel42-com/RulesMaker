@@ -29,6 +29,8 @@ public:
     ~CFoldersView();
 
     void reload( bool notifyOnFinished );
+    void reloadJunk();
+    void reloadTrash();
     void clear();
     void clearSelection();
     void addFolder( const QString &fileName );

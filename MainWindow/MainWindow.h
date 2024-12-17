@@ -54,6 +54,9 @@ protected Q_SLOTS:
     void slotRunAllRulesOnSelectedFolder();
     void slotRunSelectedRuleOnSelectedFolder();
 
+    void slotEmptyTrash();
+    void slotEmptyJunkFolder();
+
     void slotHandleProgressToggle();
     void slotUpdateActions();
 

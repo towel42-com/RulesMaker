@@ -52,6 +52,18 @@ void CFoldersModel::reload()
     QTimer::singleShot( 0, [ = ]() { slotReload(); } );
 }
 
+void CFoldersModel::reloadJunk()
+{
+    auto junk = COutlookAPI::instance()->getJunkFolder();
+    QTimer::singleShot( 0, [ = ]() { loadRootFolders( { junk } ); } );
+}
+
+void CFoldersModel::reloadTrash()
+{
+    auto trash = COutlookAPI::instance()->getTrashFolder();
+    QTimer::singleShot( 0, [ = ]() { loadRootFolders( { trash } ); } );
+}
+
 CFoldersModel::~CFoldersModel()
 {
 }
@@ -61,7 +73,8 @@ void CFoldersModel::slotReload()
     clear();
     auto inbox = COutlookAPI::instance()->getInbox();
     auto junk = COutlookAPI::instance()->getJunkFolder();
-    QTimer::singleShot( 0, [ = ]() { loadRootFolders( { inbox, junk } ); } );
+    auto trash = COutlookAPI::instance()->getTrashFolder();
+    QTimer::singleShot( 0, [ = ]() { loadRootFolders( { inbox, junk, trash } ); } );
 }
 
 void CFoldersModel::loadRootFolders( const std::list< std::shared_ptr< Outlook::Folder > > &rootFolders )
@@ -70,14 +83,29 @@ void CFoldersModel::loadRootFolders( const std::list< std::shared_ptr< Outlook::
     fNumFolders = 0;
     for ( auto &&ii : rootFolders )
     {
+        for ( auto &&jj = fFolderMap.begin(); jj != fFolderMap.end(); )
+        {
+            if ( ( *jj ).second == ii )
+            {
+                delete ( *jj ).first;
+                jj = fFolderMap.erase( jj );
+                break;
+            }
+            else
+                ++jj;
+        }
+    }
+
+    for ( auto &&ii : rootFolders )
+    {
         fNumFolders += COutlookAPI::instance()->recursiveSubFolderCount( ii.get() );
 
-        auto rootItem = addFolder( ii, nullptr );
-        addSubFolders( rootItem, ii );
+        auto rootItem = loadFolder( ii, nullptr );
+        loadSubFolders( rootItem, ii );
     }
 }
 
-void CFoldersModel::addSubFolders( QStandardItem *parent, const std::shared_ptr< Outlook::Folder > &parentFolder )
+void CFoldersModel::loadSubFolders( QStandardItem *parent, const std::shared_ptr< Outlook::Folder > &parentFolder )
 {
     auto folders = COutlookAPI::instance()->getFolders( parentFolder, false );
     auto curr = std::make_unique< SCurrFolderInfo >( TFolderVector( { folders.begin(), folders.end() } ) );
@@ -86,10 +114,10 @@ void CFoldersModel::addSubFolders( QStandardItem *parent, const std::shared_ptr<
 
     fFolders[ parent ] = std::move( curr );
 
-    QTimer::singleShot( 0, [ = ]() { slotAddNextFolder( parent ); } );
+    QTimer::singleShot( 0, [ = ]() { slotLoadNextFolder( parent ); } );
 }
 
-void CFoldersModel::slotAddNextFolder( QStandardItem *parent )
+void CFoldersModel::slotLoadNextFolder( QStandardItem *parent )
 {
     if ( COutlookAPI::instance()->canceled() )
     {
@@ -112,7 +140,7 @@ void CFoldersModel::slotAddNextFolder( QStandardItem *parent )
     parent->insertRow( curr->pos(), child );
     emit sigSetStatus( ++fCurrFolderNum, fNumFolders );
 
-    addSubFolders( child, curr->folder() );
+    loadSubFolders( child, curr->folder() );
     curr->incPos();
     if ( curr->atEnd() )
     {
@@ -123,7 +151,7 @@ void CFoldersModel::slotAddNextFolder( QStandardItem *parent )
             emit sigFinishedLoadingChildren( parent );
     }
     else
-        QTimer::singleShot( 0, [ = ]() { slotAddNextFolder( parent ); } );
+        QTimer::singleShot( 0, [ = ]() { slotLoadNextFolder( parent ); } );
 }
 
 std::shared_ptr< Outlook::Folder > CFoldersModel::folderForItem( const QModelIndex &index ) const
@@ -181,8 +209,8 @@ QString CFoldersModel::fullPathForItem( QStandardItem *item ) const
 void CFoldersModel::clear()
 {
     QStandardItemModel::clear();
-    fFolders.clear();
     setHorizontalHeaderLabels( QStringList() << "Folder Name" );
+    fFolders.clear();
     fFolderMap.clear();
 }
 
@@ -212,13 +240,13 @@ QModelIndex CFoldersModel::addFolder( const QModelIndex &parentIndex, const QStr
 
     auto newFolder = COutlookAPI::instance()->addFolder( parentFolder, folderName );
 
-    auto retVal = addFolder( newFolder, parentItem );
+    auto retVal = loadFolder( newFolder, parentItem );
     if ( !retVal )
         return {};
     return indexFromItem( retVal );
 }
 
-QStandardItem *CFoldersModel::addFolder( const std::shared_ptr< Outlook::Folder > &folder, QStandardItem *parentItem )
+QStandardItem *CFoldersModel::loadFolder( const std::shared_ptr< Outlook::Folder > &folder, QStandardItem *parentItem )
 {
     if ( !folder )
         return nullptr;
@@ -245,7 +273,7 @@ QStandardItem *CFoldersModel::addFolder( const std::shared_ptr< Outlook::Folder 
             }
         }
     }
-    
+
     if ( !parentItem )
     {
         appendRow( child );

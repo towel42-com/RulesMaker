@@ -54,5 +54,5 @@ set( project_pri_DEPS
 )
 
 set(qtproject_QRC
-    app.qrc
+    MainWindow.qrc
 )

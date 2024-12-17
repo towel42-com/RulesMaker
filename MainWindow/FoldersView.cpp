@@ -46,9 +46,11 @@ void CFoldersView::init()
     connect( fModel, &CFoldersModel::sigFinishedLoadingChildren, [ = ]( QStandardItem * /*parent*/ ) { fFilterModel->sort( 0, Qt::SortOrder::AscendingOrder ); } );
 
     connect( fImpl->addFolder, &QPushButton::clicked, this, &CFoldersView::slotAddFolder );
-    connect( fModel, &CFoldersModel::sigSetStatus, [ = ]( int curr, int max ) 
-        { 
-            emit sigSetStatus( statusLabel(), curr, max ); 
+    connect(
+        fModel, &CFoldersModel::sigSetStatus,
+        [ = ]( int curr, int max )
+        {
+            emit sigSetStatus( statusLabel(), curr, max );
             if ( ( max > 10 ) && ( curr == 1 ) || ( ( curr % 10 ) == 0 ) )
             {
                 fImpl->folders->expand( fImpl->folders->model()->index( 0, 0 ) );
@@ -67,6 +69,16 @@ void CFoldersView::reload( bool notifyOnFinish )
 {
     fNotifyOnFinish = notifyOnFinish;
     fModel->reload();
+}
+
+void CFoldersView::reloadJunk()
+{
+    fModel->reloadJunk();
+}
+
+void CFoldersView::reloadTrash()
+{
+    fModel->reloadTrash();
 }
 
 void CFoldersView::clear()
