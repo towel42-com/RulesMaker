@@ -122,10 +122,20 @@ bool COutlookAPI::addToRule( std::shared_ptr< Outlook::Rule > rule, const QStrin
     return retVal;
 }
 
+bool COutlookAPI::ruleEnabled( const std::shared_ptr< Outlook::Rule > &rule )
+{
+    if ( !rule )
+        return false;
+    return rule->Enabled();
+}
+
 bool COutlookAPI::deleteRule( std::shared_ptr< Outlook::Rule > rule )
 {
     if ( !rule || !fRules )
         return false;
+    if ( disableRatherThanDeleteRules() )
+        return disableRule( rule );
+
     auto name = rule->Name();
     auto idx = rule->ExecutionOrder();
     auto ruleName = QString( "%1 (%2)" ).arg( name ).arg( idx );
@@ -146,10 +156,47 @@ bool COutlookAPI::deleteRule( std::shared_ptr< Outlook::Rule > rule )
     return true;
 }
 
-void COutlookAPI::loadRuleData( QStandardItem *ruleItem, std::shared_ptr< Outlook::Rule > rule )
+bool COutlookAPI::disableRule( const std::shared_ptr< Outlook::Rule > &rule )
+{
+    auto name = rule->Name();
+    auto idx = rule->ExecutionOrder();
+    auto ruleName = QString( "%1 (%2)" ).arg( name ).arg( idx );
+
+    emit sigStatusMessage( QString( "Disabling Rule: %1" ).arg( ruleName ) );
+    rule->SetEnabled( false );
+
+    saveRules();
+    QMessageBox::information( fParentWidget, "Disabled Rule", QString( "Disabled Rule: %1" ).arg( ruleName ) );
+
+    emit sigRuleChanged( rule );
+    return true;
+}
+
+bool COutlookAPI::enableRule( const std::shared_ptr< Outlook::Rule > &rule )
+{
+    auto name = rule->Name();
+    auto idx = rule->ExecutionOrder();
+    auto ruleName = QString( "%1 (%2)" ).arg( name ).arg( idx );
+
+    emit sigStatusMessage( QString( "Disabling Rule: %1" ).arg( ruleName ) );
+    rule->SetEnabled( true );
+
+    saveRules();
+    QMessageBox::information( fParentWidget, "Enabled Rule", QString( "Enabled Rule: %1" ).arg( ruleName ) );
+
+    emit sigRuleChanged( rule );
+    return true;
+}
+
+void COutlookAPI::loadRuleData( QStandardItem *ruleItem, std::shared_ptr< Outlook::Rule > rule, bool force )
 {
     if ( ruleBeenLoaded( rule ) )
-        return;
+    {
+        if ( !force )
+            return;
+        else
+            ruleItem->removeRows( 0, ruleItem->rowCount() );
+    }
 
     addAttribute( ruleItem, "Name", rule->Name() );
     addAttribute( ruleItem, "Enabled", rule->Enabled() );
@@ -175,11 +222,17 @@ QString COutlookAPI::moveTargetFolderForRule( const std::shared_ptr< Outlook::Ru
     return folderName;
 }
 
-QString COutlookAPI::ruleNameForRule( std::shared_ptr< Outlook::Rule > rule, bool forDisplay )
+QString COutlookAPI::ruleNameForRule( std::shared_ptr< Outlook::Rule > rule, bool forDisplay, bool rawName )
 {
     QStringList addOns;
     if ( !rule )
+    {
+        if ( rawName )
+            return {};
         addOns << "INV-NULLPTR";
+    }
+    if ( rawName )
+        return rule->Name();
 
     bool isEnabled = rule ? rule->Enabled() : false;
     auto actions = rule ? rule->Actions() : nullptr;
@@ -205,36 +258,39 @@ QString COutlookAPI::ruleNameForRule( std::shared_ptr< Outlook::Rule > rule, boo
     QStringList conditions;
     if ( !forDisplay && rule && rule->Conditions() )
     {
-        conditions << conditionName( rule->Conditions()->Account(), "Account", forDisplay );
-        conditions << conditionName( rule->Conditions()->AnyCategory(), "AnyCategory", forDisplay );
-        conditions << conditionName( rule->Conditions()->Body(), "Body", forDisplay );
-        conditions << conditionName( rule->Conditions()->BodyOrSubject(), "BodyOrSubject", forDisplay );
-        conditions << conditionName( rule->Conditions()->CC(), "CC", forDisplay );
-        conditions << conditionName( rule->Conditions()->Category(), "Category", forDisplay );
-        conditions << conditionName( rule->Conditions()->FormName(), "FormName", forDisplay );
-        conditions << conditionName( rule->Conditions()->From(), "From", forDisplay );
-        conditions << conditionName( rule->Conditions()->FromAnyRSSFeed(), "FromAnyRSSFeed", forDisplay );
-        conditions << conditionName( rule->Conditions()->FromRssFeed(), "FromRssFeed", forDisplay );
-        conditions << conditionName( rule->Conditions()->HasAttachment(), "HasAttachment", forDisplay );
-        conditions << conditionName( rule->Conditions()->Importance(), "Importance", forDisplay );
-        conditions << conditionName( rule->Conditions()->MeetingInviteOrUpdate(), "MeetingInviteOrUpdate", forDisplay );
-        conditions << conditionName( rule->Conditions()->MessageHeader(), "MessageHeader", forDisplay );
-        conditions << conditionName( rule->Conditions()->NotTo(), "NotTo", forDisplay );
-        conditions << conditionName( rule->Conditions()->OnLocalMachine(), "OnLocalMachine", forDisplay );
-        conditions << conditionName( rule->Conditions()->OnOtherMachine(), "OnOtherMachine", forDisplay );
-        conditions << conditionName( rule->Conditions()->OnlyToMe(), "OnlyToMe", forDisplay );
-        conditions << conditionName( rule->Conditions()->RecipientAddress(), "RecipientAddress", forDisplay );
-        //conditions << conditionRuleName( rule->Conditions()->SenderAddress(), "SenderAddress", forDisplay );
-        conditions << conditionName( rule->Conditions()->SenderInAddressList(), "SenderInAddressList", forDisplay );
-        conditions << conditionName( rule->Conditions()->Sensitivity(), "Sensitivity", forDisplay );
-        conditions << conditionName( rule->Conditions()->SentTo(), "SentTo", forDisplay );
-        conditions << conditionName( rule->Conditions()->Subject(), "Subject", forDisplay );
-        conditions << conditionName( rule->Conditions()->ToMe(), "ToMe", forDisplay );
-        conditions << conditionName( rule->Conditions()->ToOrCc(), "ToOrCc", forDisplay );
+        conditions << conditionName( rule->Conditions()->Account(), "Account", false );
+        conditions << conditionName( rule->Conditions()->AnyCategory(), "AnyCategory", false );
+        conditions << conditionName( rule->Conditions()->Body(), "Body", false );
+        conditions << conditionName( rule->Conditions()->BodyOrSubject(), "BodyOrSubject", false );
+        conditions << conditionName( rule->Conditions()->CC(), "CC", false );
+        conditions << conditionName( rule->Conditions()->Category(), "Category", false );
+        conditions << conditionName( rule->Conditions()->FormName(), "FormName", false );
+        conditions << conditionName( rule->Conditions()->From(), "From", false );
+        conditions << conditionName( rule->Conditions()->FromAnyRSSFeed(), "FromAnyRSSFeed", false );
+        conditions << conditionName( rule->Conditions()->FromRssFeed(), "FromRssFeed", false );
+        conditions << conditionName( rule->Conditions()->HasAttachment(), "HasAttachment", false );
+        conditions << conditionName( rule->Conditions()->Importance(), "Importance", false );
+        conditions << conditionName( rule->Conditions()->MeetingInviteOrUpdate(), "MeetingInviteOrUpdate", false );
+        conditions << conditionName( rule->Conditions()->MessageHeader(), "MessageHeader", false );
+        conditions << conditionName( rule->Conditions()->NotTo(), "NotTo", false );
+        conditions << conditionName( rule->Conditions()->OnLocalMachine(), "OnLocalMachine", false );
+        conditions << conditionName( rule->Conditions()->OnOtherMachine(), "OnOtherMachine", false );
+        conditions << conditionName( rule->Conditions()->OnlyToMe(), "OnlyToMe", false );
+        conditions << conditionName( rule->Conditions()->RecipientAddress(), "RecipientAddress", false );
+        //conditions << conditionRuleName( rule->Conditions()->SenderAddress(), "SenderAddress", false );
+        conditions << conditionName( rule->Conditions()->SenderInAddressList(), "SenderInAddressList", false );
+        conditions << conditionName( rule->Conditions()->Sensitivity(), "Sensitivity", false );
+        conditions << conditionName( rule->Conditions()->SentTo(), "SentTo", false );
+        conditions << conditionName( rule->Conditions()->Subject(), "Subject", false );
+        conditions << conditionName( rule->Conditions()->ToMe(), "ToMe", false );
+        conditions << conditionName( rule->Conditions()->ToOrCc(), "ToOrCc", false );
     }
 
     if ( !isEnabled )
-        conditions << ( forDisplay ? "(Disabled)" : "<Disabled>" );
+    {
+        if ( !forDisplay )
+            conditions << "<Disabled>";
+    }
 
     QString ruleName;
     if ( forDisplay && rule )
@@ -255,6 +311,13 @@ QString COutlookAPI::ruleNameForRule( std::shared_ptr< Outlook::Rule > rule, boo
     suffixes.removeAll( QString() );
 
     return suffixes.join( " " ).trimmed();
+}
+
+bool COutlookAPI::isEnabled( const std::shared_ptr< Outlook::Rule > &rule )
+{
+    if ( !rule )
+        return false;
+    return rule->Enabled();
 }
 
 bool COutlookAPI::ruleBeenLoaded( std::shared_ptr< Outlook::Rule > &rule ) const
@@ -333,349 +396,6 @@ bool COutlookAPI::runAllRulesOnAllFolders()
 bool COutlookAPI::runRule( std::shared_ptr< Outlook::Rule > rule, const std::shared_ptr< Outlook::Folder > &folder )
 {
     return runRules( std::vector< std::shared_ptr< Outlook::Rule > >( { rule } ), folder );
-}
-
-bool COutlookAPI::enableAllRules( bool andSave /*= true*/, bool *needsSaving /*= nullptr*/ )
-{
-    if ( needsSaving )
-        *needsSaving = false;
-
-    if ( !fRules )
-        return false;
-
-    slotClearCanceled();
-
-    auto numRules = fRules->Count();
-    emit sigInitStatus( "Enabling Rules:", numRules );
-
-    std::list< Outlook::_Rule * > rules;
-    int numChanged = 0;
-    for ( int ii = 1; ii <= numRules; ++ii )
-    {
-        if ( canceled() )
-            return false;
-        auto rule = fRules->Item( ii );
-        emit sigIncStatusValue( "Enabling Rules:" );
-        if ( !rule )
-            continue;
-        if ( rule->Enabled() )
-            continue;
-        emit sigStatusMessage( QString( "Enabling rule '%1'" ).arg( rule->Name() ) );
-        rule->SetEnabled( true );
-        numChanged++;
-    }
-    if ( canceled() )
-        return false;
-
-    if ( fParentWidget )
-        QMessageBox::information( fParentWidget, R"(Enable All Rules)", QString( "%1 rules enabled" ).arg( numChanged ) );
-    else
-        emit sigStatusMessage( QString( "%1 rules enabled" ).arg( numChanged ) );
-
-    if ( needsSaving )
-        *needsSaving = numChanged != 0;
-
-    if ( andSave && ( numChanged != 0 ) )
-        saveRules();
-    return true;
-}
-
-bool COutlookAPI::mergeRules( bool andSave /*= true*/, bool *needsSaving /*= nullptr*/ )
-{
-    if ( needsSaving )
-        *needsSaving = false;
-
-    if ( !fRules )
-        return false;
-
-    slotClearCanceled();
-
-    auto numRules = fRules->Count();
-    emit sigInitStatus( "Merging Rules:", numRules );
-    std::map< QString, std::shared_ptr< Outlook::Rule > > rules;
-    std::list< int > toRemove;
-    for ( int ii = 1; ii <= numRules; ++ii )
-    {
-        emit sigIncStatusValue( "Merging Rules:" );
-        if ( canceled() )
-            return false;
-
-        auto rule = getRule( fRules->Item( ii ) );
-        if ( !rule || !rule->Enabled() )
-            continue;
-
-        auto from = rule->Conditions()->SenderAddress();
-        if ( !from || !from->Enabled() )
-            continue;
-
-        auto moveAction = rule->Actions()->MoveToFolder();
-        if ( !moveAction || !moveAction->Enabled() )
-            continue;
-
-        auto key = moveAction->Folder()->FullFolderPath();
-        auto pos = rules.find( key );
-        if ( pos == rules.end() )
-        {
-            rules[ key ] = rule;
-        }
-        else
-        {
-            emit sigStatusMessage( QString( "Merging rule '%1' into '%2'" ).arg( ( *pos ).second->Name(), rule->Name() ) );
-            auto mergedRecipients = mergeRecipients( ( *pos ).second.get(), rule.get(), nullptr );
-            if ( !mergedRecipients.has_value() )
-                continue;
-
-            rule->SetEnabled( false );
-            ( *pos ).second->Conditions()->SenderAddress()->SetAddress( mergedRecipients.value() );
-            toRemove.push_front( ii );
-        }
-    }
-    if ( canceled() )
-        return false;
-    auto numChanged = toRemove.size();
-    for ( auto &&ii : toRemove )
-    {
-        if ( canceled() )
-            return false;
-        fRules->Remove( ii );
-    }
-
-    if ( fParentWidget )
-        QMessageBox::information( fParentWidget, R"(Merge Rules by Target Folder)", QString( "%1 rules deleted" ).arg( numChanged ) );
-    else
-        emit sigStatusMessage( QString( "%1 rules deleted" ).arg( numChanged ) );
-
-    if ( needsSaving )
-        *needsSaving = !toRemove.empty();
-
-    if ( andSave && ( !toRemove.empty() ) )
-        saveRules();
-
-    return true;
-}
-
-bool COutlookAPI::moveFromToAddress( bool andSave /*= true*/, bool *needsSaving /*= nullptr*/ )
-{
-    if ( needsSaving )
-        *needsSaving = false;
-
-    if ( !fRules )
-        return false;
-
-    slotClearCanceled();
-
-    auto numRules = fRules->Count();
-    emit sigInitStatus( "Fixing Rules:", numRules );
-    int numChanged = 0;
-    for ( int ii = 1; ii <= numRules; ++ii )
-    {
-        if ( canceled() )
-            return false;
-
-        auto rule = getRule( fRules->Item( ii ) );
-        if ( !rule )
-            continue;
-
-        emit sigIncStatusValue( "Fixing Rules:" );
-
-        auto conditions = rule->Conditions();
-        if ( !conditions )
-            continue;
-
-        auto from = conditions->From();
-        if ( !from->Enabled() )
-            continue;
-
-        emit sigStatusMessage( QString( "Checking from email addresses on rule '%1'" ).arg( rule->Name() ) );
-        auto fromEmails = getEmailAddresses( from->Recipients(), {}, true );
-        if ( fromEmails.isEmpty() )
-            continue;
-
-        QStringList msgs;
-        if ( !addRecipientsToRule( rule.get(), fromEmails, msgs ) )
-            return false;
-
-        from->SetEnabled( false );
-        numChanged++;
-    }
-    if ( numChanged )
-        saveRules();
-
-    if ( fParentWidget )
-        QMessageBox::information( fParentWidget, R"(Move "From" to "Address")", QString( "%1 rules modified" ).arg( numChanged ) );
-    else
-        emit sigStatusMessage( QString( "%1 rules modified" ).arg( numChanged ) );
-
-    if ( needsSaving )
-        *needsSaving = numChanged != 0;
-
-    if ( andSave && ( numChanged != 0 ) )
-        saveRules();
-
-    return true;
-}
-
-bool COutlookAPI::renameRules( bool andSave /*= true*/, bool *needsSaving /*= nullptr*/ )
-{
-    if ( needsSaving )
-        *needsSaving = false;
-
-    if ( !fRules )
-        return false;
-
-    slotClearCanceled();
-    auto numRules = fRules->Count();
-
-    emit sigInitStatus( "Analyzing Rule Names:", numRules );
-
-    std::list< std::pair< std::shared_ptr< Outlook::Rule >, QString > > changes;
-    for ( int ii = 1; ii <= numRules; ++ii )
-    {
-        if ( canceled() )
-            return false;
-
-        emit sigIncStatusValue( "Analyzing Rule Names:" );
-        auto rule = getRule( fRules->Item( ii ) );
-        if ( !rule )
-            continue;
-
-        auto ruleName = ruleNameForRule( rule );
-        auto currName = rule->Name();
-        if ( ruleName != currName )
-        {
-            changes.emplace_back( rule, ruleName );
-        }
-    }
-    if ( canceled() )
-        return false;
-
-    if ( changes.empty() )
-    {
-        if ( fParentWidget )
-            QMessageBox::information( fParentWidget, "Renamed Rules", QString( "No rules needed renaming" ) );
-        else
-            emit sigStatusMessage( QString( "No rules needed renaming" ) );
-        return true;
-    }
-    if ( fParentWidget )
-    {
-        QStringList tmp;
-        for ( auto &&ii : changes )
-        {
-            tmp << "<li>" + ii.first->Name() + " => " + ii.second + "</li>";
-        }
-        auto msg = QString( "Rules to be changed:<ul>%1</ul>Continue?" ).arg( tmp.join( "\n" ) );
-        auto process = QMessageBox::information( fParentWidget, "Renamed Rules", msg, QMessageBox::Yes | QMessageBox::No );
-        if ( process == QMessageBox::No )
-            return true;
-    }
-    else
-    {
-        for ( auto &&ii : changes )
-        {
-            emit sigStatusMessage( QString( "Rule '%1' will be renamed to '%2'" ).arg( ii.first->Name(), ii.second ) );
-        }
-    }
-
-    emit sigInitStatus( "Renaming Rules:", static_cast< int >( changes.size() ) );
-    for ( auto &&ii : changes )
-    {
-        ii.first->SetName( ii.second );
-        emit sigIncStatusValue( "Renaming Rules:" );
-    }
-
-    if ( needsSaving )
-        *needsSaving = !changes.empty();
-
-    if ( andSave && !changes.empty() )
-        saveRules();
-    saveRules();
-
-    return true;
-}
-
-bool COutlookAPI::sortRules( bool andSave /*= true*/, bool *needsSaving /*= nullptr*/ )
-{
-    if ( needsSaving )
-        *needsSaving = false;
-
-    if ( !fRules )
-        return false;
-
-    slotClearCanceled();
-
-    auto numRules = fRules->Count();
-    emit sigInitStatus( "Sorting Rules:", numRules );
-
-    std::list< Outlook::_Rule * > rules;
-    for ( int ii = 1; ii <= numRules; ++ii )
-    {
-        if ( canceled() )
-            return false;
-        auto rule = fRules->Item( ii );
-        emit sigIncStatusValue( "Sorting Rules:" );
-        if ( !rule )
-            continue;
-        rules.push_back( rule );
-    }
-    if ( canceled() )
-        return false;
-
-    rules.sort(
-        []( Outlook::_Rule *lhs, Outlook::_Rule *rhs )
-        {
-            if ( !lhs )
-                return false;
-            if ( !rhs )
-                return true;
-            auto lhsName = lhs->Name();
-            auto rhsName = rhs->Name();
-            if ( lhsName.startsWith( rhsName ) && ( lhsName != rhsName ) )
-                return true;
-            else if ( rhsName.startsWith( lhsName ) && ( lhsName != rhsName ) )
-                return false;
-            else
-                return lhsName < rhsName;
-        } );
-
-    if ( canceled() )
-        return false;
-    auto pos = 1;
-    emit sigInitStatus( "Recomputing Execution Order:", numRules );
-
-    int numChanged = 0;
-    for ( auto &&ii : rules )
-    {
-        if ( canceled() )
-            return false;
-
-        if ( ii->ExecutionOrder() != pos )
-            numChanged++;
-        ii->SetExecutionOrder( pos++ );
-        emit sigIncStatusValue( "Recomputing Execution Order:" );
-    }
-
-    if ( numChanged )
-    {
-        emit sigStatusMessage( QString( "%1 rules needed re-ordering" ).arg( numChanged ) );
-    }
-    else
-    {
-        emit sigStatusMessage( QString( "No rules needed re-ordering" ) );
-    }
-    if ( needsSaving )
-        *needsSaving = numChanged != 0;
-
-    if ( andSave && ( numChanged != 0 ) )
-        saveRules();
-
-    return true;
-}
-
-void COutlookAPI::saveRules()
-{
-    emit sigStatusMessage( QString( "Saving Rules" ) );
-    fRules->Save( true );
 }
 
 std::shared_ptr< Outlook::Rules > COutlookAPI::selectRules()
@@ -844,33 +564,6 @@ bool COutlookAPI::addRecipientsToRule( Outlook::Rule *rule, const QStringList &r
     cond->SetEnabled( true );
 
     return true;
-}
-
-std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::Rule *lhs, const QStringList &rhs, QStringList *msgs )
-{
-    auto lhsRecipients = getRecipients( lhs, msgs );
-    if ( !lhsRecipients.has_value() )
-        return {};
-    if ( !lhsRecipients )
-        return rhs;
-    lhsRecipients.value() << rhs;
-    lhsRecipients.value().removeDuplicates();
-    return lhsRecipients;
-}
-
-std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::Rule *lhs, Outlook::Rule *rhs, QStringList *msgs )
-{
-    auto lhsRecipients = getRecipients( lhs, msgs );
-    auto rhsRecipients = getRecipients( rhs, msgs );
-    if ( !lhsRecipients.has_value() && !rhsRecipients.has_value() )
-        return {};
-    if ( lhsRecipients && !rhsRecipients )
-        return lhsRecipients;
-    if ( !lhsRecipients && rhsRecipients )
-        return rhsRecipients;
-    lhsRecipients.value() << rhsRecipients.value();
-    lhsRecipients.value().removeDuplicates();
-    return lhsRecipients;
 }
 
 template< typename T >

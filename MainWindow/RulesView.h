@@ -43,8 +43,11 @@ Q_SIGNALS:
 protected Q_SLOTS:
     void slotItemSelected( const QModelIndex &index );
     void slotDeleteCurrent();
+    void slotEnableCurrent();
+    void slotDisableCurrent();
 
 protected:
+    void updateButtons( const std::shared_ptr< Outlook::Rule > &rule );
     QModelIndex currentIndex() const;
     QModelIndex sourceIndex( const QModelIndex &idx ) const;
 

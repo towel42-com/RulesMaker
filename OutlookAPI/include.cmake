@@ -44,6 +44,7 @@ set(project_SRCS
     OutlookAPI_email.cpp
     OutlookAPI_folders.cpp
     OutlookAPI_rules.cpp
+    OutlookAPI_tools.cpp
     OutlookAPI_toString.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/MSOUTL.cpp
     ${MSOUTL_OLB}

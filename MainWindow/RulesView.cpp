@@ -38,8 +38,12 @@ void CRulesView::init()
     fFilterModel->setSourceModel( fModel );
     fImpl->rules->setModel( fFilterModel );
     fImpl->deleteRule->setEnabled( false );
+    fImpl->enableRule->setEnabled( false );
+    fImpl->disableRule->setEnabled( false );
 
     connect( fImpl->deleteRule, &QToolButton::clicked, this, &CRulesView::slotDeleteCurrent );
+    connect( fImpl->enableRule, &QToolButton::clicked, this, &CRulesView::slotEnableCurrent );
+    connect( fImpl->disableRule, &QToolButton::clicked, this, &CRulesView::slotDisableCurrent );
     connect( fImpl->rules->selectionModel(), &QItemSelectionModel::currentChanged, this, &CRulesView::slotItemSelected );
     connect(
         fModel, &CRulesModel::sigFinishedLoading,
@@ -128,11 +132,18 @@ std::shared_ptr< Outlook::Rule > CRulesView::selectedRule() const
     return fModel->getRule( currentIndex() );
 }
 
-void CRulesView::slotItemSelected( const QModelIndex & index )
+void CRulesView::slotItemSelected( const QModelIndex &index )
 {
     emit sigRuleSelected();
-    fImpl->deleteRule->setEnabled( index.isValid() && fModel->getRule( sourceIndex( index ) ) );
-    //qDebug() << index << sourceIndex( index );
+    auto rule = fModel->getRule( sourceIndex( index ) );
+    updateButtons( rule );
+}
+
+void CRulesView::updateButtons( const std::shared_ptr< Outlook::Rule > &rule )
+{
+    fImpl->deleteRule->setEnabled( rule && !COutlookAPI::instance()->disableRatherThanDeleteRules() );
+    fImpl->enableRule->setEnabled( rule && !COutlookAPI::instance()->ruleEnabled( rule ) );
+    fImpl->disableRule->setEnabled( rule && COutlookAPI::instance()->ruleEnabled( rule ) );
 }
 
 void CRulesView::slotDeleteCurrent()
@@ -144,5 +155,32 @@ void CRulesView::slotDeleteCurrent()
         return;
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
     COutlookAPI::instance()->deleteRule( rule );
+    updateButtons( rule );
+    qApp->restoreOverrideCursor();
+}
+
+void CRulesView::slotDisableCurrent()
+{
+    if ( !currentIndex().isValid() )
+        return;
+    auto rule = fModel->getRule( currentIndex() );
+    if ( !rule )
+        return;
+    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    COutlookAPI::instance()->disableRule( rule );
+    updateButtons( rule );
+    qApp->restoreOverrideCursor();
+}
+
+void CRulesView::slotEnableCurrent()
+{
+    if ( !currentIndex().isValid() )
+        return;
+    auto rule = fModel->getRule( currentIndex() );
+    if ( !rule )
+        return;
+    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    COutlookAPI::instance()->enableRule( rule );
+    updateButtons( rule );
     qApp->restoreOverrideCursor();
 }
