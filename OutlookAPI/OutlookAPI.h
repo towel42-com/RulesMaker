@@ -105,6 +105,9 @@ public:
     void setIncludeJunkInRunAllFolders( bool value, bool update = true );
     bool includeJunkInRunAllFolders() { return fIncludeJunkInRunAllFolders; }
 
+    void setDisableRatherThanDeleteRules( bool value, bool update = true );
+    bool disableRatherThanDeleteRules() { return fDisableRatherThanDeleteRules; }
+
 Q_SIGNALS:
     void sigAccountChanged();
     void sigStatusMessage( const QString &msg );
@@ -121,6 +124,7 @@ public Q_SLOTS:
     void slotCanceled() { fCanceled = true; }
     void slotClearCanceled() { fCanceled = false; }
     void slotHandleException( int code, const QString &source, const QString &desc, const QString &help );
+    void slotHandleRulesSaveException( int, const QString &, const QString &, const QString & );
 
 public:
     // account API in OutlookAPI_account.cpp
@@ -144,12 +148,16 @@ public:
     bool addRule( const std::shared_ptr< Outlook::Folder > &folder, const QStringList &rules, QStringList &msgs );
     bool addToRule( std::shared_ptr< Outlook::Rule > rule, const QStringList &rules, QStringList &msg );
 
+    bool ruleEnabled( const std::shared_ptr< Outlook::Rule > &rule );
+    bool disableRule( const std::shared_ptr< Outlook::Rule > &rule );
+    bool enableRule( const std::shared_ptr< Outlook::Rule > &rule );
     bool deleteRule( std::shared_ptr< Outlook::Rule > rule );
 
-    void loadRuleData( QStandardItem *ruleItem, std::shared_ptr< Outlook::Rule > rule );
+    void loadRuleData( QStandardItem *ruleItem, std::shared_ptr< Outlook::Rule > rule, bool force = false );
 
     QString moveTargetFolderForRule( const std::shared_ptr< Outlook::Rule > &rule ) const;
-    static QString ruleNameForRule( std::shared_ptr< Outlook::Rule > rule, bool = false );
+    static QString ruleNameForRule( std::shared_ptr< Outlook::Rule > rule, bool forDisplay = false, bool rawName = false );
+    static bool isEnabled( const std::shared_ptr< Outlook::Rule > &rule );
 
     bool ruleBeenLoaded( std::shared_ptr< Outlook::Rule > &rule ) const;
     bool ruleLessThan( const std::shared_ptr< Outlook::Rule > &lhsRule, const std::shared_ptr< Outlook::Rule > &rhsRule ) const;
@@ -162,13 +170,13 @@ public:
     bool runAllRules( std::shared_ptr< Outlook::Folder > folder, bool allFolders, bool junk );
     bool runRule( const std::shared_ptr< Outlook::Rule > &rule, std::shared_ptr< Outlook::Folder > folder, bool allFolders, bool junk );
 
-    // tools
+    // tools API in OutlookAPI_tools.cpp
     bool enableAllRules( bool andSave = true, bool *needsSaving = nullptr );
     bool mergeRules( bool andSave = true, bool *needsSaving = nullptr );
     bool moveFromToAddress( bool andSave = true, bool *needsSaving = nullptr );
-    bool renameRules( bool andSave = true, bool * needsSaving = nullptr );
+    bool renameRules( bool andSave = true, bool *needsSaving = nullptr );
     bool sortRules( bool andSave = true, bool *needsSaving = nullptr );
-    void saveRules();
+    bool saveRules();
 
     // folders API in OutlookAPI_folders.cpp
     using TFolderFunc = std::function< bool( const std::shared_ptr< Outlook::Folder > &folder ) >;
@@ -285,8 +293,10 @@ private:
     bool fCanceled{ false };
     bool fIgnoreExceptions{ false };
     bool fOnlyProcessUnread{ true };
-    bool fIncludeJunkInRunAllFolders{ false };
     bool fProcessAllEmailWhenLessThan200Emails{ true };
+    bool fIncludeJunkInRunAllFolders{ false };
+    bool fDisableRatherThanDeleteRules{ false };
+    bool fSaveRulesSuccess{ true };
 
     // account API in OutlookAPI_account.cpp
 private:
@@ -310,10 +320,14 @@ private:
 
     bool addRecipientsToRule( Outlook::Rule *rule, const QStringList &recipients, QStringList &msgs );
 
+    std::unordered_set< std::shared_ptr< Outlook::Rule > > fRuleBeenLoaded;
+
+    // tools API in OutlookAPI_tools.cpp
+private:
+    std::optional< QString > mergeKey( const std::shared_ptr< Outlook::Rule > &rule ) const;
     std::optional< QStringList > mergeRecipients( Outlook::Rule *lhs, Outlook::Rule *rhs, QStringList *msgs );
     std::optional< QStringList > mergeRecipients( Outlook::Rule *lhs, const QStringList &rhs, QStringList *msgs );
-
-    std::unordered_set< std::shared_ptr< Outlook::Rule > > fRuleBeenLoaded;
+    std::optional< QStringList > mergeRecipients( const std::list < Outlook::Rule * > & rules, QStringList *msgs );
 
 private:
     // folders API in OutlookAPI_folders.cpp

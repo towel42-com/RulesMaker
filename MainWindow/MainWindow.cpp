@@ -50,6 +50,8 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     connect( fImpl->actionProcessAllEmailWhenLessThan200Emails, &QAction::triggered, [ = ]() { api->setProcessAllEmailWhenLessThan200Emails( fImpl->actionProcessAllEmailWhenLessThan200Emails->isChecked() ); } );
     connect( fImpl->actionOnlyProcessUnread, &QAction::triggered, [ = ]() { api->setOnlyProcessUnread( fImpl->actionOnlyProcessUnread->isChecked() ); } );
     connect( fImpl->actionIncludeJunkFolderWhenRunningOnAllFolders, &QAction::triggered, [ = ]() { api->setIncludeJunkInRunAllFolders( fImpl->actionIncludeJunkFolderWhenRunningOnAllFolders->isChecked() ); } );
+    connect( fImpl->actionDisableRatherThanDeleteRules, &QAction::triggered, [ = ]() { api->setDisableRatherThanDeleteRules( fImpl->actionDisableRatherThanDeleteRules->isChecked() ); } );
+
     
 
     connect( COutlookAPI::instance().get(), &COutlookAPI::sigOptionChanged, this, &CMainWindow::updateWindowTitle );
@@ -74,7 +76,7 @@ CMainWindow::CMainWindow( QWidget *parent ) :
         [ = ]()
         {
             auto rule = fImpl->rules->selectedRule();
-            auto path = COutlookAPI::instance()->ruleNameForRule( rule );
+            auto path = COutlookAPI::instance()->ruleNameForRule( rule, false, true );
             slotStatusMessage( QString( "Rule Selected: %1" ).arg( path ) );
             slotUpdateActions();
         } );
@@ -103,6 +105,7 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     fImpl->actionProcessAllEmailWhenLessThan200Emails->setChecked( api->processAllEmailWhenLessThan200Emails() );
     fImpl->actionOnlyProcessUnread->setChecked( api->onlyProcessUnread() );
     fImpl->actionIncludeJunkFolderWhenRunningOnAllFolders->setChecked( api->includeJunkInRunAllFolders() );
+    fImpl->actionDisableRatherThanDeleteRules->setChecked( api->disableRatherThanDeleteRules() );
 
     updateWindowTitle();
 
@@ -212,6 +215,7 @@ void CMainWindow::slotAddRule()
     }
     clearSelection();
     slotReloadEmail();
+    slotReloadRules();
     qApp->restoreOverrideCursor();
 }
 

@@ -21,8 +21,12 @@ COutlookAPI::COutlookAPI( QWidget *parent, COutlookAPI::SPrivate )
     fParentWidget = parent;
 
     QSettings settings;
+    
     setOnlyProcessUnread( settings.value( "OnlyProcessUnread", true ).toBool(), false );
     setProcessAllEmailWhenLessThan200Emails( settings.value( "ProcessAllEmailWhenLessThan200Emails", true ).toBool(), false );
+    setIncludeJunkInRunAllFolders( settings.value( "IncludeJunkInRunAllFolders", false ).toBool(), false );
+    setDisableRatherThanDeleteRules( settings.value( "DisableRatherThanDeleteRules", true ).toBool(), false );
+
     setRootFolder( settings.value( "RootFolder", R"(\Inbox)" ).toString(), false );
 
     qRegisterMetaType< std::shared_ptr< Outlook::Rule > >();
@@ -231,6 +235,15 @@ void COutlookAPI::setProcessAllEmailWhenLessThan200Emails( bool value, bool upda
     fProcessAllEmailWhenLessThan200Emails = value;
     QSettings settings;
     settings.setValue( "ProcessAllEmailWhenLessThan200Emails", value );
+    if ( update )
+        emit sigOptionChanged();
+}
+
+void COutlookAPI::setDisableRatherThanDeleteRules( bool value, bool update )
+{
+    fDisableRatherThanDeleteRules = value;
+    QSettings settings;
+    settings.setValue( "DisableRatherThanDeleteRules", value );
     if ( update )
         emit sigOptionChanged();
 }
