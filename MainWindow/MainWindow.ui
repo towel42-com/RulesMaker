@@ -53,16 +53,6 @@
     <property name="title">
      <string>&amp;Rules</string>
     </property>
-    <widget class="QMenu" name="menuTools">
-     <property name="title">
-      <string>Tools</string>
-     </property>
-     <addaction name="actionRenameRules"/>
-     <addaction name="actionSortRules"/>
-     <addaction name="actionMoveFromToAddress"/>
-     <addaction name="actionMergeRules"/>
-     <addaction name="actionEnableAllRules"/>
-    </widget>
     <widget class="QMenu" name="menuRun">
      <property name="title">
       <string>Run</string>
@@ -79,7 +69,6 @@
     <addaction name="actionAddToSelectedRule"/>
     <addaction name="separator"/>
     <addaction name="menuRun"/>
-    <addaction name="menuTools"/>
    </widget>
    <widget class="QMenu" name="menuSettings">
     <property name="title">
@@ -88,20 +77,13 @@
     <addaction name="actionOnlyProcessUnread"/>
     <addaction name="actionProcessAllEmailWhenLessThan200Emails"/>
     <addaction name="actionIncludeJunkFolderWhenRunningOnAllFolders"/>
+    <addaction name="actionDisableRatherThanDeleteRules"/>
    </widget>
    <widget class="QMenu" name="menuFolders">
     <property name="title">
      <string>F&amp;olders</string>
     </property>
-    <widget class="QMenu" name="menuFolderTools">
-     <property name="title">
-      <string>Tools</string>
-     </property>
-     <addaction name="actionEmptyJunkFolder"/>
-     <addaction name="actionEmptyTrash"/>
-    </widget>
     <addaction name="actionAddFolderForSelectedEmail"/>
-    <addaction name="menuFolderTools"/>
    </widget>
    <widget class="QMenu" name="menuReload">
     <property name="title">
@@ -119,10 +101,24 @@
     </property>
     <addaction name="actionAbout"/>
    </widget>
+   <widget class="QMenu" name="menuTools_2">
+    <property name="title">
+     <string>Tools</string>
+    </property>
+    <addaction name="actionRenameRules"/>
+    <addaction name="actionSortRules"/>
+    <addaction name="actionMoveFromToAddress"/>
+    <addaction name="actionMergeRules"/>
+    <addaction name="actionEnableAllRules"/>
+    <addaction name="separator"/>
+    <addaction name="actionEmptyJunkFolder"/>
+    <addaction name="actionEmptyTrash"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuReload"/>
    <addaction name="menuFolders"/>
    <addaction name="menuRules"/>
+   <addaction name="menuTools_2"/>
    <addaction name="menuSettings"/>
    <addaction name="menuHelp"/>
   </widget>
@@ -380,6 +376,14 @@
    </property>
    <property name="text">
     <string>Include Junk Folder when Running on All Folders?</string>
+   </property>
+  </action>
+  <action name="actionDisableRatherThanDeleteRules">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Disable rather than Delete Rules?</string>
    </property>
   </action>
  </widget>
