@@ -2,6 +2,7 @@
 #include "OutlookAPI/OutlookAPI.h"
 
 #include <QTimer>
+#include <QFont>
 
 Q_DECLARE_METATYPE( std::shared_ptr< Outlook::Rule > );
 
@@ -73,16 +74,20 @@ void CRulesModel::slotLoadNextRule()
         emit sigFinishedLoading();
 }
 
-bool CRulesModel::loadRule( std::shared_ptr< Outlook::Rule > rule )
+bool CRulesModel::loadRule( std::shared_ptr< Outlook::Rule > rule, QStandardItem *ruleItem )
 {
     if ( !rule )
         return false;
 
-    auto ruleItem = new QStandardItem( COutlookAPI::ruleNameForRule( rule, true ) );
+    if ( !ruleItem )
+    {
+        ruleItem = new QStandardItem( COutlookAPI::ruleNameForRule( rule, true ) );
+        this->appendRow( ruleItem );
+    }
+    ruleItem->setForeground( COutlookAPI::isEnabled( rule ) ? Qt::black : Qt::lightGray );
+
     fRuleMap[ ruleItem ] = rule;
     fReverseRuleMap[ rule ] = ruleItem;
-
-    this->appendRow( ruleItem );
 
     return true;
 }
@@ -241,9 +246,11 @@ bool CRulesModel::updateRule( std::shared_ptr< Outlook::Rule > rule )
         }
     }
 
-    if ( !ruleItem )
-        loadRule( rule );
-    else
-        COutlookAPI::instance()->loadRuleData( ruleItem, rule );
+    loadRule( rule, ruleItem );
+    if ( COutlookAPI::instance()->ruleBeenLoaded( rule ) )
+    {
+        COutlookAPI::instance()->loadRuleData( ruleItem, rule, true );
+    }
+
     return true;
 }

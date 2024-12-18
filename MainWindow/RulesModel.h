@@ -58,7 +58,7 @@ private:
 
     void loadRules();
 
-    bool loadRule( std::shared_ptr< Outlook::Rule > rule );
+    bool loadRule( std::shared_ptr< Outlook::Rule > rule, QStandardItem * ruleItem = nullptr );
     bool updateRule( std::shared_ptr< Outlook::Rule > rule );
 
     std::pair< std::shared_ptr< Outlook::Rules >, int > fRules{ nullptr, 0 };
