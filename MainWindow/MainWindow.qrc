@@ -1,6 +1,8 @@
 <RCC>
     <qresource prefix="/">
         <file>resources/add.png</file>
+        <file>resources/disable.png</file>
+        <file>resources/enable.png</file>
         <file>resources/fixrules.png</file>
         <file>resources/merge.png</file>
         <file>resources/reload.png</file>
