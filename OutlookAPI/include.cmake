@@ -1,7 +1,6 @@
 set(_PROJECT_NAME OutlookAPI)
 set(FOLDER_NAME libs)
 
-
 if( NOT DUMPCPP_EXECUTABLE )
     find_program(DUMPCPP_EXECUTABLE NAMES sab_dumpcpp
       PATHS ${CMAKE_INSTALL_PREFIX} ${CMAKE_BINARY_DIR}/dumpcpp/RelWithDebInfo ${CMAKE_BINARY_DIR}/dumpcpp/Release ${CMAKE_BINARY_DIR}/dumpcpp/Debug
@@ -18,17 +17,23 @@ if( NOT DUMPCPP_EXECUTABLE )
     endif()
 endif()
 
+
 if( DUMPCPP_EXECUTABLE )
     MESSAGE( STATUS "Using dumpcpp: '${DUMPCPP_EXECUTABLE}'" )
 endif()
 
-set( MSOUTL_OLB "C:/Program Files (x86)/Microsoft Office/Root/Office16/MSOUTL.OLB" )
+find_package( FileForTypeID  )
+FileForTypeID( "{00062FFF-0000-0000-C000-000000000046}" MSOUTL_OLB )
+#message( STATUS "MSOUTL_OLB_PATH=${MSOUTL_OLB_PATH}" )
+if ( NOT EXISTS ${MSOUTL_OLB_PATH} )
+    message( FATAL_ERROR "Could not find OLB file for MS Outlook" )
+endif()
 
 ADD_CUSTOM_COMMAND( 
     OUTPUT 
         ${CMAKE_CURRENT_BINARY_DIR}/MSOUTL.cpp ${CMAKE_CURRENT_BINARY_DIR}/MSOUTL.h
-    COMMAND ${CMAKE_COMMAND} -E env "PATH=${QT_MSVCDIR}/bin;$ENV{PATH}" "${DUMPCPP_EXECUTABLE}" "${MSOUTL_OLB}" -o MSOUTL
-    COMMENT "[DUMPCPP] Generating MSOUTL.cpp and MSOUT.h from '${MSOUTL_OLB}' using '${DUMPCPP_EXECUTABLE}'"
+    COMMAND ${CMAKE_COMMAND} -E env "PATH=${QT_MSVCDIR}/bin;$ENV{PATH}" "${DUMPCPP_EXECUTABLE}" "${MSOUTL_OLB_PATH}" -o MSOUTL
+    COMMENT "[DUMPCPP] Generating MSOUTL.cpp and MSOUT.h from '${MSOUTL_OLB_PATH}' using '${DUMPCPP_EXECUTABLE}'"
     VERBATIM
     DEPENDS
        ${MSOUTL_OLB}
