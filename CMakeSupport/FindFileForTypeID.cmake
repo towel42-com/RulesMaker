@@ -18,29 +18,21 @@ MACRO(FileForTypeID typeID prefix )
 
     #MESSAGE( STATUS "codes=${codes}" )
     foreach( code ${codes} )
-        string(CONCAT regPath ${regPathBase} "\\" ${code} "\\0\\win32" )
-        #MESSAGE( STATUS "regPath=${regPath}" )
-        cmake_host_system_information(RESULT path QUERY WINDOWS_REGISTRY ${regPath} VALUE "" )
-        #MESSAGE( STATUS "path=${path}" )
-        if ( EXISTS ${path} )
-            #MESSAGE( STATUS "prefix=${prefix}" )
-            set( ${prefix}_PATH ${path} )
-            #message( STATUS "${prefix}_PATH = ${${prefix}_PATH}" )
-            break()
-        endif()
+        string(CONCAT regPathZero ${regPathBase} "\\" ${code} "\\0" )
+        #MESSAGE( STATUS "regPathZero=${regPathZero}" )
+        cmake_host_system_information(RESULT oses QUERY WINDOWS_REGISTRY ${regPathZero} SUBKEYS SEPARATOR ";")
+        foreach( os ${oses} )
+            string(CONCAT regPath ${regPathZero} "\\" ${os} )
+            #MESSAGE( STATUS "regPath=${regPath}" )
+            cmake_host_system_information(RESULT path QUERY WINDOWS_REGISTRY ${regPath} VALUE "" )
+            #MESSAGE( STATUS "path=${path}" )
+            if ( EXISTS ${path} )
+                #MESSAGE( STATUS "prefix=${prefix}" )
+                set( ${prefix}_PATH ${path} )
+                #message( STATUS "${prefix}_PATH = ${${prefix}_PATH}" )
+                break()
+            endif()
+        endforeach()
     endforeach()
 ENDMACRO()
 
-    #    QSettings settings( QLatin1String( "HKEY_LOCAL_MACHINE\\Software\\Classes\\TypeLib\\" ) + typeLib, QSettings::NativeFormat );
-   #     typeLib.clear();
-  #      QStringList codes = settings.childGroups();
- #       for ( int c = 0; c < codes.count(); ++c )
- #       {
- #           typeLib = settings.value( QLatin1Char( '/' ) + codes.at( c ) + QLatin1String( "/0/win32/." ) ).toString();
- #           if ( QFile::exists( typeLib ) )
- #               break;
-#        }
-#
-#        if ( !typeLib.isEmpty() )
-#            fprintf( stdout, "\"%s\"\n", qPrintable( typeLib ) );
-#        return 0;
