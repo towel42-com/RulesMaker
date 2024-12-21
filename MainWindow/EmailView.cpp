@@ -148,3 +148,7 @@ void CEmailView::reload( bool notifyOnFinish )
     fNotifyOnFinish = notifyOnFinish;
     fGroupedModel->reload();
 }
+
+void CEmailView::slotRunningStateChanged( bool /*running*/ )
+{
+}

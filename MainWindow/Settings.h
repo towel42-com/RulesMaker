@@ -20,9 +20,13 @@ public:
 
     virtual void accept() override;
 
+    bool changed() const;
 Q_SIGNALS:
 
 protected Q_SLOTS:
+    void slotRegexSelectionChanged();
+    void slotAddRegex();
+    void slotDelRegex();
 
 protected:
     void init();

@@ -6,7 +6,6 @@
 
 #include <QStringView>
 #include <QMetaProperty>
-#include <QSettings>
 
 #include <QVariant>
 #include <iostream>

@@ -7,58 +7,95 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>300</height>
+    <height>274</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Settings</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout_2">
-   <item>
-    <layout class="QFormLayout" name="formLayout">
-     <item row="0" column="0" colspan="2">
-      <widget class="QCheckBox" name="onlyProcessUnread">
-       <property name="text">
-        <string>Include Junk Folder when Running on All Folders?</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0" colspan="2">
-      <widget class="QCheckBox" name="processAllEmailWhenLessThan200Emails">
-       <property name="text">
-        <string>Process all Email when less than 200 Emails?</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="0" colspan="2">
-      <widget class="QCheckBox" name="includeJunkFolderWhenRunningOnAllFolders">
-       <property name="text">
-        <string>Only Process Unread?</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="0" colspan="2">
-      <widget class="QCheckBox" name="disableRatherThanDeleteRules">
-       <property name="text">
-        <string>Disable rather than Delete Rules?</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="groupBox">
-     <property name="title">
-      <string>Skip these rules during run all rules</string>
+  <layout class="QGridLayout" name="gridLayout_2">
+   <item row="1" column="0">
+    <widget class="QCheckBox" name="processAllEmailWhenLessThan200Emails">
+     <property name="text">
+      <string>Process all Email when less than 200 Emails?</string>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout">
-      <item>
-       <widget class="QListWidget" name="skipRules"/>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="QCheckBox" name="onlyProcessTheFirst500Emails">
+     <property name="text">
+      <string>Only Process the first 500 Emails?</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="0">
+    <widget class="QGroupBox" name="groupBox">
+     <property name="toolTip">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Each regular expression will be compared against the rule name. &lt;br/&gt;If you explicitly use ^ or $, then the regular expression must match the complete name.&lt;br/&gt;Otherwise, the regular expression will be treated as .*&amp;lt;regex&amp;gt;.* and match anywhere in the regular expression&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="title">
+      <string>Skip these rules during run all rules (matched by regex)</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="0" column="1">
+       <widget class="QToolButton" name="addRegex">
+        <property name="text">
+         <string>Add Regex</string>
+        </property>
+        <property name="icon">
+         <iconset resource="MainWindow.qrc">
+          <normaloff>:/resources/add.png</normaloff>:/resources/add.png</iconset>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QToolButton" name="delRegex">
+        <property name="text">
+         <string>Delete Regex</string>
+        </property>
+        <property name="icon">
+         <iconset resource="MainWindow.qrc">
+          <normaloff>:/resources/trash.png</normaloff>:/resources/trash.png</iconset>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <spacer name="verticalSpacer_2">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>40</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item row="0" column="0" rowspan="3">
+       <widget class="QListWidget" name="rulesToSkip"/>
       </item>
      </layout>
     </widget>
    </item>
-   <item>
+   <item row="8" column="0">
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="0">
+    <widget class="QCheckBox" name="includeJunkFolderWhenRunningOnAllFolders">
+     <property name="text">
+      <string>Only Process Unread?</string>
+     </property>
+    </widget>
+   </item>
+   <item row="7" column="0">
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -71,25 +108,43 @@
      </property>
     </spacer>
    </item>
-   <item>
-    <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
+   <item row="3" column="0">
+    <widget class="QCheckBox" name="onlyProcessUnread">
+     <property name="text">
+      <string>Include Junk Folder when Running on All Folders?</string>
      </property>
-     <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+    </widget>
+   </item>
+   <item row="5" column="0">
+    <widget class="QCheckBox" name="disableRatherThanDeleteRules">
+     <property name="text">
+      <string>Disable rather than Delete Rules?</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="0">
+    <widget class="QCheckBox" name="includeDeletedFolderWhenRunningOnAllFolders">
+     <property name="text">
+      <string>Include Deleted Folder when Running on All Folders?</string>
      </property>
     </widget>
    </item>
   </layout>
  </widget>
  <tabstops>
-  <tabstop>onlyProcessUnread</tabstop>
-  <tabstop>processAllEmailWhenLessThan200Emails</tabstop>
   <tabstop>includeJunkFolderWhenRunningOnAllFolders</tabstop>
+  <tabstop>processAllEmailWhenLessThan200Emails</tabstop>
+  <tabstop>onlyProcessTheFirst500Emails</tabstop>
+  <tabstop>onlyProcessUnread</tabstop>
+  <tabstop>includeDeletedFolderWhenRunningOnAllFolders</tabstop>
   <tabstop>disableRatherThanDeleteRules</tabstop>
+  <tabstop>rulesToSkip</tabstop>
+  <tabstop>delRegex</tabstop>
+  <tabstop>addRegex</tabstop>
  </tabstops>
- <resources/>
+ <resources>
+  <include location="MainWindow.qrc"/>
+ </resources>
  <connections>
   <connection>
    <sender>buttonBox</sender>

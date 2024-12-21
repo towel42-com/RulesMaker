@@ -8,6 +8,7 @@
 #include <optional>
 #include <memory>
 #include <list>
+#include <unordered_map>
 #include <map>
 
 namespace Outlook
@@ -26,7 +27,20 @@ public:
     {
     }
 
+    void processChildDisplayName();
+    void dumpNodes( int depth = 0 ) const;
+
+    bool needsDisplayName( bool includeAllChildren=false ) const;
+    QString matchTextForItem( bool forceNoDisplayName = false ) const;
+
     std::map< QString, CEmailAddressSection * > fChildItems;
+
+    CEmailAddressSection *child( int row, int column = 0 ) const;
+    CEmailAddressSection *parent() const;
+
+private:
+    bool fAllChildrenNeedDisplayName{ false };
+    mutable std::optional< bool > fItemNeedsDisplayName;
 };
 
 class CEmailModel : public QStandardItemModel
@@ -40,8 +54,8 @@ public:
     void reload();
     void clear();
 
-    std::shared_ptr< Outlook::MailItem > emailItemFromIndex( const QModelIndex &idx ) const;
-    std::shared_ptr< Outlook::MailItem > emailItemFromItem( QStandardItem * item ) const;
+    std::shared_ptr< Outlook::MailItem > mailItemFromIndex( const QModelIndex &idx ) const;
+    std::shared_ptr< Outlook::MailItem > mailItemFromItem( const QStandardItem *item ) const;
 
     QStringList matchTextForIndex( const QModelIndex &idx ) const;
     QStringList matchTextListForItem( QStandardItem *item ) const;
@@ -52,6 +66,7 @@ public:
     void displayEmail( const QModelIndex &idx ) const;
     void displayEmail( QStandardItem *item ) const;
 
+    CEmailAddressSection *item( int row, int column = 0 ) const;
 Q_SIGNALS:
     void sigFinishedGrouping();
     void sigSetStatus( int curr, int max );
@@ -60,8 +75,13 @@ private Q_SLOTS:
     void slotGroupNextMailItemBySender();
 
 private:
+    void processChildDisplayName();
+    void dumpNodes() const;
+
+    QStringList matchTextListForItem( CEmailAddressSection *item ) const;
+
+
     void sortAll( QStandardItem *root );
-    QString matchTextForItem( QStandardItem *item ) const;
     void addEmailAddress( std::shared_ptr< Outlook::MailItem > mailItem );
     CEmailAddressSection *findOrAddEmailAddressSection( const QStringRef &curr, const QVector< QStringRef > &remaining, CEmailAddressSection *parent, const QString &displayName );
 
@@ -73,7 +93,7 @@ private:
     std::map< QString, CEmailAddressSection * > fRootItems;
     std::map< QString, CEmailAddressSection * > fCache;
     std::map< QString, CEmailAddressSection * > fDomainCache;
-    std::map< QStandardItem *, std::shared_ptr< Outlook::MailItem > > fEmailCache;
+    std::map< const QStandardItem *, std::shared_ptr< Outlook::MailItem > > fEmailCache;
     int fCurrPos{ 1 };
 };
 

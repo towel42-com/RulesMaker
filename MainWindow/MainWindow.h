@@ -25,6 +25,9 @@ public:
     ~CMainWindow();
     bool running() const;
 
+Q_SIGNALS:
+    void sigRunningStateChanged( bool running );
+
 protected Q_SLOTS:
     void slotSelectServer();
     void slotReloadAll();
@@ -68,6 +71,9 @@ protected Q_SLOTS:
     void slotFinishedStatus( const QString &label );
     void slotAbout();
 
+    void slotOptionsChanged();
+    void slotSettings();
+
 protected:
     void updateActions();
 
@@ -95,7 +101,7 @@ protected:
         if ( running() )
         {
             reasons.clear();
-            reasons.emplace_back( false, "Cannot execute while currently running" );
+            reasons.emplace_back( false, "Cannot execute while processing" );
         }
         bool enabled = true;
         for ( auto &&ii : reasons )
