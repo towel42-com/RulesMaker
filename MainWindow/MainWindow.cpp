@@ -2,6 +2,7 @@
 #include "OutlookAPI/OutlookAPI.h"
 #include "StatusProgress.h"
 #include "Version.h"
+#include "Settings.h"
 
 #include "ui_MainWindow.h"
 
@@ -47,14 +48,16 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     connect( fImpl->actionEmptyTrash, &QAction::triggered, this, &CMainWindow::slotEmptyTrash );
     connect( fImpl->actionEmptyJunkFolder, &QAction::triggered, this, &CMainWindow::slotEmptyJunkFolder );
 
+    connect( fImpl->actionSettings, &QAction::triggered, this, &CMainWindow::slotSettings );
     connect( fImpl->actionProcessAllEmailWhenLessThan200Emails, &QAction::triggered, [ = ]() { api->setProcessAllEmailWhenLessThan200Emails( fImpl->actionProcessAllEmailWhenLessThan200Emails->isChecked() ); } );
+    connect( fImpl->actionOnlyProcessTheFirst500Emails, &QAction::triggered, [ = ]() { api->setOnlyProcessTheFirst500Emails( fImpl->actionOnlyProcessTheFirst500Emails->isChecked() ); } );
+
     connect( fImpl->actionOnlyProcessUnread, &QAction::triggered, [ = ]() { api->setOnlyProcessUnread( fImpl->actionOnlyProcessUnread->isChecked() ); } );
-    connect( fImpl->actionIncludeJunkFolderWhenRunningOnAllFolders, &QAction::triggered, [ = ]() { api->setIncludeJunkInRunAllFolders( fImpl->actionIncludeJunkFolderWhenRunningOnAllFolders->isChecked() ); } );
+    connect( fImpl->actionIncludeJunkFolderWhenRunningOnAllFolders, &QAction::triggered, [ = ]() { api->setIncludeJunkFolderWhenRunningOnAllFolders( fImpl->actionIncludeJunkFolderWhenRunningOnAllFolders->isChecked() ); } );
+    connect( fImpl->actionIncludeDeletedFolderWhenRunningOnAllFolders, &QAction::triggered, [ = ]() { api->setIncludeDeletedFolderWhenRunningOnAllFolders( fImpl->actionIncludeDeletedFolderWhenRunningOnAllFolders->isChecked() ); } );
     connect( fImpl->actionDisableRatherThanDeleteRules, &QAction::triggered, [ = ]() { api->setDisableRatherThanDeleteRules( fImpl->actionDisableRatherThanDeleteRules->isChecked() ); } );
 
-    
-
-    connect( COutlookAPI::instance().get(), &COutlookAPI::sigOptionChanged, this, &CMainWindow::updateWindowTitle );
+    connect( COutlookAPI::instance().get(), &COutlookAPI::sigOptionChanged, this, &CMainWindow::slotOptionsChanged );
 
     connect(
         fImpl->folders, &CFoldersView::sigFolderSelected,
@@ -81,6 +84,10 @@ CMainWindow::CMainWindow( QWidget *parent ) :
             slotUpdateActions();
         } );
 
+    connect( this, &CMainWindow::sigRunningStateChanged, fImpl->rules, &CRulesView::slotRunningStateChanged );
+    connect( this, &CMainWindow::sigRunningStateChanged, fImpl->email, &CEmailView::slotRunningStateChanged );
+    connect( this, &CMainWindow::sigRunningStateChanged, fImpl->folders, &CFoldersView::slotRunningStateChanged );
+
     connect( fImpl->actionAbout, &QAction::triggered, this, &CMainWindow::slotAbout );
     setupStatusBar();
 
@@ -102,12 +109,7 @@ CMainWindow::CMainWindow( QWidget *parent ) :
 
     updateActions();
 
-    fImpl->actionProcessAllEmailWhenLessThan200Emails->setChecked( api->processAllEmailWhenLessThan200Emails() );
-    fImpl->actionOnlyProcessUnread->setChecked( api->onlyProcessUnread() );
-    fImpl->actionIncludeJunkFolderWhenRunningOnAllFolders->setChecked( api->includeJunkInRunAllFolders() );
-    fImpl->actionDisableRatherThanDeleteRules->setChecked( api->disableRatherThanDeleteRules() );
-
-    updateWindowTitle();
+    slotOptionsChanged();
 
     auto updateIcon = [ = ]( QAction *action )
     {
@@ -275,22 +277,6 @@ void CMainWindow::slotEnableAllRules()
     qApp->restoreOverrideCursor();
 }
 
-void CMainWindow::slotRunAllRules()
-{
-    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
-    COutlookAPI::instance()->runAllRules();
-    slotReloadEmail();
-    qApp->restoreOverrideCursor();
-}
-
-void CMainWindow::slotRunAllRulesOnAllFolders()
-{
-    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
-    COutlookAPI::instance()->runAllRulesOnAllFolders();
-    slotReloadEmail();
-    qApp->restoreOverrideCursor();
-}
-
 void CMainWindow::slotRunSelectedRule()
 {
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
@@ -299,19 +285,6 @@ void CMainWindow::slotRunSelectedRule()
         return;
 
     COutlookAPI::instance()->runRule( selectedRule );
-
-    slotReloadEmail();
-    qApp->restoreOverrideCursor();
-}
-
-void CMainWindow::slotRunAllRulesOnSelectedFolder()
-{
-    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
-    auto destFolder = fImpl->folders->selectedFolder();
-    if ( !destFolder )
-        return;
-
-    COutlookAPI::instance()->runAllRules( destFolder );
 
     slotReloadEmail();
     qApp->restoreOverrideCursor();
@@ -329,6 +302,35 @@ void CMainWindow::slotRunSelectedRuleOnSelectedFolder()
         return;
 
     COutlookAPI::instance()->runRule( selectedRule, destFolder );
+
+    slotReloadEmail();
+    qApp->restoreOverrideCursor();
+}
+
+void CMainWindow::slotRunAllRules()
+{
+    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    COutlookAPI::instance()->runAllRules();
+    slotReloadEmail();
+    qApp->restoreOverrideCursor();
+}
+
+void CMainWindow::slotRunAllRulesOnAllFolders()
+{
+    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    COutlookAPI::instance()->runAllRulesOnAllFolders();
+    slotReloadEmail();
+    qApp->restoreOverrideCursor();
+}
+
+void CMainWindow::slotRunAllRulesOnSelectedFolder()
+{
+    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    auto destFolder = fImpl->folders->selectedFolder();
+    if ( !destFolder )
+        return;
+
+    COutlookAPI::instance()->runAllRules( destFolder );
 
     slotReloadEmail();
     qApp->restoreOverrideCursor();
@@ -432,13 +434,11 @@ bool CMainWindow::running() const
 
 void CMainWindow::slotHandleProgressToggle()
 {
+    static std::optional< bool > sPrevRunning;
+
     bool running = this->running();
 
     fCancelButton->setVisible( running );
-    if ( !running )
-    {
-        statusBar()->showMessage( QString() );
-    }
 
     auto actions = this->findChildren< QAction * >();
     for ( auto &&action : actions )
@@ -461,6 +461,11 @@ void CMainWindow::slotHandleProgressToggle()
     }
 
     updateActions();
+    if ( !sPrevRunning.has_value() || sPrevRunning.value() != running )
+    {
+        emit sigRunningStateChanged( running );
+    }
+    sPrevRunning = running;
 }
 
 CStatusProgress *CMainWindow::addStatusBar( QString label, CWidgetWithStatus *object )
@@ -476,6 +481,7 @@ CStatusProgress *CMainWindow::addStatusBar( QString label, CWidgetWithStatus *ob
     }
 
     auto progress = new CStatusProgress( label );
+    progress->setVisible( false );
     connect( progress, &CStatusProgress::sigShow, this, &CMainWindow::slotHandleProgressToggle );
     connect( progress, &CStatusProgress::sigFinished, this, &CMainWindow::slotHandleProgressToggle );
     auto num = statusBar()->insertPermanentWidget( static_cast< int >( fProgressBars.size() ), progress );
@@ -588,4 +594,27 @@ void CMainWindow::slotAbout()
     if ( !pm.isNull() )
         msgBox->setIconPixmap( pm );
     msgBox->exec();
+}
+
+void CMainWindow::slotSettings()
+{
+    CSettings settings( this );
+    if ( ( settings.exec() == QDialog::Accepted ) && settings.changed() )
+    {
+        slotOptionsChanged();
+    }
+}
+
+void CMainWindow::slotOptionsChanged()
+{
+    auto api = COutlookAPI::instance();
+
+    fImpl->actionProcessAllEmailWhenLessThan200Emails->setChecked( api->processAllEmailWhenLessThan200Emails() );
+    fImpl->actionOnlyProcessTheFirst500Emails->setChecked( api->onlyProcessTheFirst500Emails() );
+    fImpl->actionOnlyProcessUnread->setChecked( api->onlyProcessUnread() );
+    fImpl->actionIncludeJunkFolderWhenRunningOnAllFolders->setChecked( api->includeJunkFolderWhenRunningOnAllFolders() );
+    fImpl->actionIncludeDeletedFolderWhenRunningOnAllFolders->setChecked( api->includeDeletedFolderWhenRunningOnAllFolders() );
+    fImpl->actionDisableRatherThanDeleteRules->setChecked( api->disableRatherThanDeleteRules() );
+
+    updateWindowTitle();
 }

@@ -83,6 +83,8 @@ public:
     friend class COutlookSetup;
     COutlookAPI( QWidget *parentWidget, SPrivate pri );
 
+    void initSettings();
+
     static std::shared_ptr< COutlookAPI > instance( QWidget *parentWidget = nullptr );
     static std::shared_ptr< COutlookAPI > cliInstance();
     virtual ~COutlookAPI();
@@ -102,11 +104,20 @@ public:
     void setProcessAllEmailWhenLessThan200Emails( bool value, bool update = true );
     bool processAllEmailWhenLessThan200Emails() const { return fProcessAllEmailWhenLessThan200Emails; }
 
-    void setIncludeJunkInRunAllFolders( bool value, bool update = true );
-    bool includeJunkInRunAllFolders() { return fIncludeJunkInRunAllFolders; }
+    void setOnlyProcessTheFirst500Emails( bool value, bool update = true );
+    bool onlyProcessTheFirst500Emails() const { return fOnlyProcessTheFirst500Emails; }
+
+    void setIncludeJunkFolderWhenRunningOnAllFolders( bool value, bool update = true );
+    bool includeJunkFolderWhenRunningOnAllFolders() { return fIncludeJunkFolderWhenRunningOnAllFolders; }
+
+    void setIncludeDeletedFolderWhenRunningOnAllFolders( bool value, bool update = true );
+    bool includeDeletedFolderWhenRunningOnAllFolders() { return fIncludeDeletedFolderWhenRunningOnAllFolders; }
 
     void setDisableRatherThanDeleteRules( bool value, bool update = true );
     bool disableRatherThanDeleteRules() { return fDisableRatherThanDeleteRules; }
+
+    QStringList rulesToSkip() const { return fRulesToSkip; }
+    void setRulesToSkip( const QStringList &rulesToSkip, bool update = true );
 
 Q_SIGNALS:
     void sigAccountChanged();
@@ -185,6 +196,9 @@ public:
     QString rootFolderName();
 
     void setRootFolder( const std::shared_ptr< Outlook::Folder > &folder, bool update = true );
+
+    QString folderDisplayPath( const std::shared_ptr< Outlook::Folder > &folder, bool removeLeadingSlashes = false ) const;
+    QString folderDisplayName( const Outlook::Folder *folder );
 
     std::shared_ptr< Outlook::Folder > findFolder( const QString &folderName, std::shared_ptr< Outlook::Folder > parentFolder );
     std::shared_ptr< Outlook::Folder > getFolder( const Outlook::Folder *item );
@@ -294,8 +308,11 @@ private:
     bool fIgnoreExceptions{ false };
     bool fOnlyProcessUnread{ true };
     bool fProcessAllEmailWhenLessThan200Emails{ true };
-    bool fIncludeJunkInRunAllFolders{ false };
+    bool fOnlyProcessTheFirst500Emails{ true };
+    bool fIncludeJunkFolderWhenRunningOnAllFolders{ false };
+    bool fIncludeDeletedFolderWhenRunningOnAllFolders{ false };
     bool fDisableRatherThanDeleteRules{ false };
+    QStringList fRulesToSkip;
     bool fSaveRulesSuccess{ true };
 
     // account API in OutlookAPI_account.cpp
@@ -308,6 +325,7 @@ private:
 private:
     // rules API in OutlookAPI_rules.cpp
     std::shared_ptr< Outlook::Rules > selectRules();
+    bool skipRule( const std::shared_ptr< Outlook::Rule > &rule ) const;
 
     std::shared_ptr< Outlook::Rules > getRules( Outlook::Rules *item );
     std::shared_ptr< Outlook::Rule > getRule( Outlook::_Rule *item );
@@ -337,9 +355,6 @@ private:
     std::shared_ptr< Outlook::Folder > getFolder( const Outlook::MAPIFolder *item );
 
     void setRootFolder( const QString &folderName, bool update = true );
-
-    QString folderDisplayPath( const std::shared_ptr< Outlook::Folder > &folder, bool removeLeadingSlashes = false ) const;
-    QString folderDisplayName( const Outlook::Folder *folder );
 
     std::shared_ptr< Outlook::Folder > getDefaultFolder( Outlook::OlDefaultFolders folderType );
     std::pair< std::shared_ptr< Outlook::Folder >, bool > getMailFolder( const QString &folderLabel, const QString &fullPath, bool singleOnly );   // full path after \\account

@@ -83,17 +83,7 @@ void CFoldersModel::loadRootFolders( const std::list< std::shared_ptr< Outlook::
     fNumFolders = 0;
     for ( auto &&ii : rootFolders )
     {
-        for ( auto &&jj = fFolderMap.begin(); jj != fFolderMap.end(); )
-        {
-            if ( ( *jj ).second == ii )
-            {
-                delete ( *jj ).first;
-                jj = fFolderMap.erase( jj );
-                break;
-            }
-            else
-                ++jj;
-        }
+        removeFolder( ii );
     }
 
     for ( auto &&ii : rootFolders )
@@ -103,6 +93,25 @@ void CFoldersModel::loadRootFolders( const std::list< std::shared_ptr< Outlook::
         auto rootItem = loadFolder( ii, nullptr );
         loadSubFolders( rootItem, ii );
     }
+}
+
+void CFoldersModel::removeFolder( const std::shared_ptr< Outlook::Folder > &folder )
+{
+    if ( !folder )
+        return;
+
+    auto pos = fFolderToItemMap.find( COutlookAPI::instance()->folderDisplayPath( folder ) );
+    if ( pos == fFolderToItemMap.end() )
+        return;
+
+    auto item = ( *pos ).second;
+    fFolderToItemMap.erase( pos );
+
+    auto pos2 = fItemToFolderMap.find( item );
+    if ( pos2 != fItemToFolderMap.end() )
+        fItemToFolderMap.erase( pos2 );
+
+    delete item;
 }
 
 void CFoldersModel::loadSubFolders( QStandardItem *parent, const std::shared_ptr< Outlook::Folder > &parentFolder )
@@ -136,7 +145,7 @@ void CFoldersModel::slotLoadNextFolder( QStandardItem *parent )
 
     auto folderName = COutlookAPI::instance()->nameForFolder( curr->folder() );
     auto child = new QStandardItem( folderName );
-    fFolderMap[ child ] = curr->folder();
+    updateMaps( child, curr->folder() );
     parent->insertRow( curr->pos(), child );
     emit sigSetStatus( ++fCurrFolderNum, fNumFolders );
 
@@ -154,7 +163,7 @@ void CFoldersModel::slotLoadNextFolder( QStandardItem *parent )
         QTimer::singleShot( 0, [ = ]() { slotLoadNextFolder( parent ); } );
 }
 
-std::shared_ptr< Outlook::Folder > CFoldersModel::folderForItem( const QModelIndex &index ) const
+std::shared_ptr< Outlook::Folder > CFoldersModel::folderForIndex( const QModelIndex &index ) const
 {
     auto item = this->itemFromIndex( index );
     return folderForItem( item );
@@ -162,13 +171,32 @@ std::shared_ptr< Outlook::Folder > CFoldersModel::folderForItem( const QModelInd
 
 std::shared_ptr< Outlook::Folder > CFoldersModel::folderForItem( QStandardItem *item ) const
 {
-    auto pos = fFolderMap.find( item );
-    if ( pos == fFolderMap.end() )
+    auto pos = fItemToFolderMap.find( item );
+    if ( pos == fItemToFolderMap.end() )
         return {};
     return ( *pos ).second;
 }
 
-QString CFoldersModel::pathForItem( const QModelIndex &index ) const
+QStandardItem *CFoldersModel::itemForFolder( const std::shared_ptr< Outlook::Folder > &folder ) const
+{
+    if ( !folder )
+        return {};
+    auto pos = fFolderToItemMap.find( COutlookAPI::instance()->folderDisplayPath( folder ) );
+    if ( pos == fFolderToItemMap.end() )
+        return nullptr;
+
+    return ( *pos ).second;
+}
+
+QModelIndex CFoldersModel::indexForFolder( const std::shared_ptr< Outlook::Folder > &folder ) const
+{
+    auto item = itemForFolder( folder );
+    if ( !item )
+        return {};
+    return item->index();
+}
+
+QString CFoldersModel::pathForIndex( const QModelIndex &index ) const
 {
     auto item = this->itemFromIndex( index );
     return pathForItem( item );
@@ -192,7 +220,7 @@ QString CFoldersModel::pathForItem( QStandardItem *item ) const
     return retVal;
 }
 
-QString CFoldersModel::fullPathForItem( const QModelIndex &index ) const
+QString CFoldersModel::fullPathForIndex( const QModelIndex &index ) const
 {
     auto item = this->itemFromIndex( index );
     return fullPathForItem( item );
@@ -211,7 +239,7 @@ void CFoldersModel::clear()
     QStandardItemModel::clear();
     setHorizontalHeaderLabels( QStringList() << "Folder Name" );
     fFolders.clear();
-    fFolderMap.clear();
+    fItemToFolderMap.clear();
 }
 
 QModelIndex CFoldersModel::addFolder( const QModelIndex &parentIndex, QWidget *parent )
@@ -230,8 +258,8 @@ QModelIndex CFoldersModel::addFolder( const QModelIndex &parentIndex, const QStr
     auto parentItem = itemFromIndex( parentIndex );
     if ( parentItem )
     {
-        auto pos = fFolderMap.find( parentItem );
-        if ( pos != fFolderMap.end() )
+        auto pos = fItemToFolderMap.find( parentItem );
+        if ( pos != fItemToFolderMap.end() )
             parentFolder = ( *pos ).second;
     }
 
@@ -246,6 +274,21 @@ QModelIndex CFoldersModel::addFolder( const QModelIndex &parentIndex, const QStr
     return indexFromItem( retVal );
 }
 
+void CFoldersModel::updateMaps( QStandardItem *child, const std::shared_ptr< Outlook::Folder > &folder )
+{
+    fItemToFolderMap[ child ] = folder;
+    fFolderToItemMap[ COutlookAPI::instance()->folderDisplayPath( folder ) ] = child;
+}
+
+QModelIndex CFoldersModel::inboxIndex() const
+{
+    auto inbox = COutlookAPI::instance()->getInbox();
+    auto item = itemForFolder( inbox );
+    if ( !item )
+        return {};
+    return item->index();
+}
+
 QStandardItem *CFoldersModel::loadFolder( const std::shared_ptr< Outlook::Folder > &folder, QStandardItem *parentItem )
 {
     if ( !folder )
@@ -255,7 +298,8 @@ QStandardItem *CFoldersModel::loadFolder( const std::shared_ptr< Outlook::Folder
 
     auto folderName = api->folderDisplayName( folder );
     auto child = new QStandardItem( folderName );
-    fFolderMap[ child ] = folder;
+
+    updateMaps( child, folder );
 
     if ( !parentItem )
     {
@@ -263,7 +307,7 @@ QStandardItem *CFoldersModel::loadFolder( const std::shared_ptr< Outlook::Folder
         if ( !parentFolder )
         {
             auto parentPath = api->rawPathForFolder( parentFolder );
-            for ( auto &&ii : fFolderMap )
+            for ( auto &&ii : fItemToFolderMap )
             {
                 if ( api->rawPathForFolder( ii.second ) == parentPath )
                 {

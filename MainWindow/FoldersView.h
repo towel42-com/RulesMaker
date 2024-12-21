@@ -43,14 +43,19 @@ Q_SIGNALS:
     void sigFinishedLoading();
     void sigFolderSelected( const QString &folderPath );
 
+public Q_SLOTS:
+    void slotRunningStateChanged( bool running );
+
 protected Q_SLOTS:
-    void slotItemSelected( const QModelIndex &index );
+    void slotItemSelected();
+
     void slotAddFolder();
     void slotSetRootFolder();
 
 protected:
+    void updateButtons( const QModelIndex &index );
     void selectAndScroll( const QModelIndex &newIndex );
-    QModelIndex currentIndex() const;
+    QModelIndex selectedIndex() const;
     QModelIndex sourceIndex( const QModelIndex &idx ) const;
 
     CFoldersModel *fModel{ nullptr };

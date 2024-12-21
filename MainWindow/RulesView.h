@@ -40,15 +40,21 @@ Q_SIGNALS:
     void sigFinishedLoading();
     void sigRuleSelected();
 
+public Q_SLOTS:
+    void slotRunningStateChanged( bool running );
+
 protected Q_SLOTS:
-    void slotItemSelected( const QModelIndex &index );
+    void slotItemSelected();
+
     void slotDeleteCurrent();
     void slotEnableCurrent();
     void slotDisableCurrent();
+    void slotOptionsChanged();
 
 protected:
+    void updateButtons( const QModelIndex &index );
     void updateButtons( const std::shared_ptr< Outlook::Rule > &rule );
-    QModelIndex currentIndex() const;
+    QModelIndex selectedIndex() const;
     QModelIndex sourceIndex( const QModelIndex &idx ) const;
 
     CRulesModel *fModel{ nullptr };

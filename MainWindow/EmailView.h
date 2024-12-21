@@ -30,11 +30,13 @@ public:
 
     QString getEmailDisplayNameForSelection() const;
 
-    
 Q_SIGNALS:
     void sigFinishedLoading();
     void sigFinishedGrouping();
     void sigEmailSelected();
+
+public Q_SLOTS:
+    void slotRunningStateChanged( bool running );
 
 protected Q_SLOTS:
     void slotSelectionChanged();

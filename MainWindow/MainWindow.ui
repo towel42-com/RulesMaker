@@ -74,9 +74,14 @@
     <property name="title">
      <string>&amp;Settings</string>
     </property>
+    <addaction name="actionSettings"/>
+    <addaction name="separator"/>
     <addaction name="actionOnlyProcessUnread"/>
     <addaction name="actionProcessAllEmailWhenLessThan200Emails"/>
+    <addaction name="actionOnlyProcessTheFirst500Emails"/>
     <addaction name="actionIncludeJunkFolderWhenRunningOnAllFolders"/>
+    <addaction name="actionIncludeDeletedFolderWhenRunningOnAllFolders"/>
+    <addaction name="separator"/>
     <addaction name="actionDisableRatherThanDeleteRules"/>
    </widget>
    <widget class="QMenu" name="menuFolders">
@@ -146,7 +151,7 @@
    <addaction name="actionAddRule"/>
    <addaction name="actionAddToSelectedRule"/>
    <addaction name="separator"/>
-   <addaction name="actionRunSelectedRule"/>
+   <addaction name="actionRunAllRulesOnSelectedFolder"/>
   </widget>
   <action name="actionSelectServer">
    <property name="icon">
@@ -384,6 +389,21 @@
    </property>
    <property name="text">
     <string>Disable rather than Delete Rules?</string>
+   </property>
+  </action>
+  <action name="actionSettings">
+   <property name="text">
+    <string>Settings...</string>
+   </property>
+  </action>
+  <action name="actionOnlyProcessTheFirst500Emails">
+   <property name="text">
+    <string>Only Process the first 500 Emails?</string>
+   </property>
+  </action>
+  <action name="actionIncludeDeletedFolderWhenRunningOnAllFolders">
+   <property name="text">
+    <string>Include Deleted Folder when Running on All Folders?</string>
    </property>
   </action>
  </widget>

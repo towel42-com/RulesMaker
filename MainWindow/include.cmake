@@ -6,6 +6,7 @@ set(qtproject_UIS
     FoldersView.ui
     MainWindow.ui
     RulesView.ui
+    Settings.ui
     StatusProgress.ui
 )
 
@@ -18,6 +19,7 @@ set(project_SRCS
     MainWindow.cpp
     RulesModel.cpp
     RulesView.cpp
+    Settings.cpp
     StatusProgress.cpp
 )
  
@@ -30,6 +32,7 @@ set(qtproject_H
     MainWindow.h
     RulesModel.h
     RulesView.h
+    Settings.h
     StatusProgress.h
     WidgetWithStatus.h
 )

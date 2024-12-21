@@ -4,7 +4,6 @@
 #include <QMessageBox>
 #include <QDebug>
 #include <QMetaProperty>
-#include <QSettings>
 
 #include <cstdlib>
 #include <iostream>
@@ -13,6 +12,7 @@
 #include <objbase.h>
 
 std::shared_ptr< COutlookAPI > COutlookAPI::sInstance;
+
 Q_DECLARE_METATYPE( std::shared_ptr< Outlook::Rule > );
 
 COutlookAPI::COutlookAPI( QWidget *parent, COutlookAPI::SPrivate )
@@ -20,14 +20,7 @@ COutlookAPI::COutlookAPI( QWidget *parent, COutlookAPI::SPrivate )
     getApplication();
     fParentWidget = parent;
 
-    QSettings settings;
-    
-    setOnlyProcessUnread( settings.value( "OnlyProcessUnread", true ).toBool(), false );
-    setProcessAllEmailWhenLessThan200Emails( settings.value( "ProcessAllEmailWhenLessThan200Emails", true ).toBool(), false );
-    setIncludeJunkInRunAllFolders( settings.value( "IncludeJunkInRunAllFolders", false ).toBool(), false );
-    setDisableRatherThanDeleteRules( settings.value( "DisableRatherThanDeleteRules", true ).toBool(), false );
-
-    setRootFolder( settings.value( "RootFolder", R"(\Inbox)" ).toString(), false );
+    initSettings();
 
     qRegisterMetaType< std::shared_ptr< Outlook::Rule > >();
     qRegisterMetaType< std::shared_ptr< Outlook::Rule > >( "std::shared_ptr<Outlook::Rule>const&" );
@@ -210,42 +203,6 @@ std::shared_ptr< Outlook::Items > COutlookAPI::getItems( Outlook::_Items *item )
     if ( !item )
         return {};
     return connectToException( std::make_shared< Outlook::Items >( item ) );
-}
-
-void COutlookAPI::setOnlyProcessUnread( bool value, bool update )
-{
-    fOnlyProcessUnread = value;
-    QSettings settings;
-    settings.setValue( "OnlyProcessUnread", value );
-    if ( update )
-        emit sigOptionChanged();
-}
-
-void COutlookAPI::setIncludeJunkInRunAllFolders( bool value, bool update )
-{
-    fIncludeJunkInRunAllFolders = value;
-    QSettings settings;
-    settings.setValue( "IncludeJunkInRunAllFolders ", value );
-    if ( update )
-        emit sigOptionChanged();
-}
-
-void COutlookAPI::setProcessAllEmailWhenLessThan200Emails( bool value, bool update )
-{
-    fProcessAllEmailWhenLessThan200Emails = value;
-    QSettings settings;
-    settings.setValue( "ProcessAllEmailWhenLessThan200Emails", value );
-    if ( update )
-        emit sigOptionChanged();
-}
-
-void COutlookAPI::setDisableRatherThanDeleteRules( bool value, bool update )
-{
-    fDisableRatherThanDeleteRules = value;
-    QSettings settings;
-    settings.setValue( "DisableRatherThanDeleteRules", value );
-    if ( update )
-        emit sigOptionChanged();
 }
 
 COutlookAPI::EAddressTypes operator|( const COutlookAPI::EAddressTypes &lhs, const COutlookAPI::EAddressTypes &rhs )

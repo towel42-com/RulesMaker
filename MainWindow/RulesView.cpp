@@ -37,14 +37,14 @@ void CRulesView::init()
         } );
     fFilterModel->setSourceModel( fModel );
     fImpl->rules->setModel( fFilterModel );
-    fImpl->deleteRule->setEnabled( false );
-    fImpl->enableRule->setEnabled( false );
-    fImpl->disableRule->setEnabled( false );
 
     connect( fImpl->deleteRule, &QToolButton::clicked, this, &CRulesView::slotDeleteCurrent );
     connect( fImpl->enableRule, &QToolButton::clicked, this, &CRulesView::slotEnableCurrent );
     connect( fImpl->disableRule, &QToolButton::clicked, this, &CRulesView::slotDisableCurrent );
-    connect( fImpl->rules->selectionModel(), &QItemSelectionModel::currentChanged, this, &CRulesView::slotItemSelected );
+    connect( fImpl->rules->selectionModel(), &QItemSelectionModel::selectionChanged, this, &CRulesView::slotItemSelected );
+
+    connect( COutlookAPI::instance().get(), &COutlookAPI::sigOptionChanged, this, &CRulesView::slotOptionsChanged );
+
     connect(
         fModel, &CRulesModel::sigFinishedLoading,
         [ = ]()
@@ -98,7 +98,7 @@ void CRulesView::clearSelection()
 {
     fImpl->rules->clearSelection();
     fImpl->rules->setCurrentIndex( {} );
-    slotItemSelected( {} );
+    slotItemSelected();
 }
 
 QModelIndex CRulesView::sourceIndex( const QModelIndex &idx ) const
@@ -108,17 +108,23 @@ QModelIndex CRulesView::sourceIndex( const QModelIndex &idx ) const
     return fFilterModel->mapToSource( idx );
 }
 
-QModelIndex CRulesView::currentIndex() const
+QModelIndex CRulesView::selectedIndex() const
 {
-    auto filterIdx = fImpl->rules->currentIndex();
-    if ( !filterIdx.isValid() )
-        return filterIdx;
-    return sourceIndex( filterIdx );
+    if ( !fImpl->rules->selectionModel() )
+        return {};
+
+    auto selectedIndexes = fImpl->rules->selectionModel()->selectedIndexes();
+    if ( selectedIndexes.isEmpty() )
+        return {};
+    auto selectedIndex = selectedIndexes.first();
+    if ( !selectedIndex.isValid() )
+        return selectedIndex;
+    return sourceIndex( selectedIndex );
 }
 
 bool CRulesView::ruleSelected() const
 {
-    return fModel->getRuleItem( currentIndex() ) != nullptr;
+    return fModel->getRuleItem( selectedIndex() ) != nullptr;
 }
 
 QString CRulesView::folderForSelectedRule() const
@@ -129,28 +135,29 @@ QString CRulesView::folderForSelectedRule() const
 
 std::shared_ptr< Outlook::Rule > CRulesView::selectedRule() const
 {
-    return fModel->getRule( currentIndex() );
+    return fModel->getRule( selectedIndex() );
 }
 
-void CRulesView::slotItemSelected( const QModelIndex &index )
+void CRulesView::slotRunningStateChanged( bool running )
+{
+    fImpl->enableRule->setEnabled( !running );
+    fImpl->disableRule->setEnabled( !running );
+    fImpl->deleteRule->setEnabled( !running );
+    if ( !running )
+        updateButtons( selectedIndex() );
+}
+
+void CRulesView::slotItemSelected()
 {
     emit sigRuleSelected();
-    auto rule = fModel->getRule( sourceIndex( index ) );
-    updateButtons( rule );
-}
-
-void CRulesView::updateButtons( const std::shared_ptr< Outlook::Rule > &rule )
-{
-    fImpl->deleteRule->setEnabled( rule && !COutlookAPI::instance()->disableRatherThanDeleteRules() );
-    fImpl->enableRule->setEnabled( rule && !COutlookAPI::instance()->ruleEnabled( rule ) );
-    fImpl->disableRule->setEnabled( rule && COutlookAPI::instance()->ruleEnabled( rule ) );
+    updateButtons( selectedIndex() );
 }
 
 void CRulesView::slotDeleteCurrent()
 {
-    if ( !currentIndex().isValid() )
+    if ( !selectedIndex().isValid() )
         return;
-    auto rule = fModel->getRule( currentIndex() );
+    auto rule = fModel->getRule( selectedIndex() );
     if ( !rule )
         return;
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
@@ -161,9 +168,9 @@ void CRulesView::slotDeleteCurrent()
 
 void CRulesView::slotDisableCurrent()
 {
-    if ( !currentIndex().isValid() )
+    if ( !selectedIndex().isValid() )
         return;
-    auto rule = fModel->getRule( currentIndex() );
+    auto rule = fModel->getRule( selectedIndex() );
     if ( !rule )
         return;
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
@@ -174,13 +181,31 @@ void CRulesView::slotDisableCurrent()
 
 void CRulesView::slotEnableCurrent()
 {
-    if ( !currentIndex().isValid() )
+    if ( !selectedIndex().isValid() )
         return;
-    auto rule = fModel->getRule( currentIndex() );
+    auto rule = fModel->getRule( selectedIndex() );
     if ( !rule )
         return;
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
     COutlookAPI::instance()->enableRule( rule );
     updateButtons( rule );
     qApp->restoreOverrideCursor();
+}
+
+void CRulesView::slotOptionsChanged()
+{
+    updateButtons( selectedIndex() );
+}
+
+void CRulesView::updateButtons( const QModelIndex &index )
+{
+    auto rule = fModel->getRule( sourceIndex( index ) );
+    updateButtons( rule );
+}
+
+void CRulesView::updateButtons( const std::shared_ptr< Outlook::Rule > &rule )
+{
+    fImpl->deleteRule->setEnabled( rule && !COutlookAPI::instance()->disableRatherThanDeleteRules() );
+    fImpl->enableRule->setEnabled( rule && !COutlookAPI::instance()->ruleEnabled( rule ) );
+    fImpl->disableRule->setEnabled( rule && COutlookAPI::instance()->ruleEnabled( rule ) );
 }

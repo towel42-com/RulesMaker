@@ -3,6 +3,9 @@
 #include <QMessageBox>
 #include <QStandardItem>
 #include <QDebug>
+#include <QRegularExpression>
+
+
 #include "MSOUTL.h"
 
 static void addAttribute( QStandardItem *parent, const QString &label, const QString &value );
@@ -356,7 +359,7 @@ bool COutlookAPI::runRule( const std::shared_ptr< Outlook::Rule > &rule, std::sh
     if ( !rule )
         return false;
 
-    fIncludeJunkInRunAllFolders = junk;
+    fIncludeJunkFolderWhenRunningOnAllFolders = junk;
 
     bool recursive = allFolders;
     if ( !folder )
@@ -388,7 +391,7 @@ bool COutlookAPI::runAllRulesOnAllFolders()
     if ( inbox )
         retVal = runRules( allRules, inbox, true, msg ) && retVal;
 
-    if ( junk && fIncludeJunkInRunAllFolders )
+    if ( junk && fIncludeJunkFolderWhenRunningOnAllFolders )
         retVal = runRules( allRules, junk, false, msg ) && retVal;
     return retVal;
 }
@@ -472,6 +475,23 @@ std::optional< QStringList > COutlookAPI::getRecipients( Outlook::Rule *rule, QS
     return addresses;
 }
 
+bool COutlookAPI::skipRule( const std::shared_ptr< Outlook::Rule > &rule ) const
+{
+    for ( auto &&ii : fRulesToSkip )
+    {
+        QRegularExpression regex( ii );
+        auto ruleName = rule->Name();
+        auto match = regex.match( ruleName, QRegularExpression::MatchType::PartialPreferCompleteMatch );
+        bool partialMatchAllowed = ( ii.indexOf( "^" ) == -1 || ii.indexOf( "$" ) == -1 );
+        if ( match.hasPartialMatch() || match.hasMatch() )
+        {
+            if ( ( partialMatchAllowed && match.hasPartialMatch() ) || match.hasMatch() )
+                return true;
+        }
+    }
+    return false;
+}
+
 std::vector< std::shared_ptr< Outlook::Rule > > COutlookAPI::getAllRules()
 {
     getRules();
@@ -484,6 +504,9 @@ std::vector< std::shared_ptr< Outlook::Rule > > COutlookAPI::getAllRules()
     for ( int ii = 1; ii <= numRules; ++ii )
     {
         auto rule = getRule( fRules->Item( ii ) );
+        if ( skipRule( rule ) )
+            continue;
+
         rules.push_back( rule );
     }
     return rules;

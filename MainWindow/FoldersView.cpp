@@ -29,7 +29,7 @@ void CFoldersView::init()
     fImpl->setRootFolderBtn->setEnabled( false );
     fImpl->addFolder->setEnabled( false );
     connect( fImpl->setRootFolderBtn, &QPushButton::clicked, this, &CFoldersView::slotSetRootFolder );
-    connect( fImpl->folders->selectionModel(), &QItemSelectionModel::currentChanged, this, &CFoldersView::slotItemSelected );
+    connect( fImpl->folders->selectionModel(), &QItemSelectionModel::selectionChanged, this, &CFoldersView::slotItemSelected );
     connect(
         fModel, &CFoldersModel::sigFinishedLoading,
         [ = ]()
@@ -37,7 +37,10 @@ void CFoldersView::init()
             fImpl->folders->expandAll();
             fImpl->folders->resizeColumnToContents( 0 );
             fImpl->folders->collapseAll();
-            fImpl->folders->expand( fImpl->folders->model()->index( 0, 0 ) );
+            fImpl->folders->expand( fFilterModel->index( 0, 0 ) );
+            auto inboxIndex = fFilterModel->mapFromSource( fModel->inboxIndex() );
+            if ( inboxIndex.isValid() )
+                fImpl->folders->expand( inboxIndex );
             if ( fNotifyOnFinish )
                 emit sigFinishedLoading();
             fNotifyOnFinish = true;
@@ -53,7 +56,10 @@ void CFoldersView::init()
             emit sigSetStatus( statusLabel(), curr, max );
             if ( ( max > 10 ) && ( curr == 1 ) || ( ( curr % 10 ) == 0 ) )
             {
-                fImpl->folders->expand( fImpl->folders->model()->index( 0, 0 ) );
+                fImpl->folders->expand( fFilterModel->index( 0, 0 ) );
+                auto inboxIndex = fFilterModel->mapFromSource( fModel->inboxIndex() );
+                if ( inboxIndex.isValid() )
+                    fImpl->folders->expand( inboxIndex );
                 fImpl->folders->resizeColumnToContents( 0 );
             }
         } );
@@ -91,7 +97,7 @@ void CFoldersView::clearSelection()
 {
     fImpl->folders->clearSelection();
     fImpl->folders->setCurrentIndex( {} );
-    slotItemSelected( {} );
+    slotItemSelected();
 }
 
 QModelIndex CFoldersView::sourceIndex( const QModelIndex &idx ) const
@@ -101,44 +107,65 @@ QModelIndex CFoldersView::sourceIndex( const QModelIndex &idx ) const
     return fFilterModel->mapToSource( idx );
 }
 
-QModelIndex CFoldersView::currentIndex() const
+QModelIndex CFoldersView::selectedIndex() const
 {
-    auto filterIdx = fImpl->folders->currentIndex();
-    if ( !filterIdx.isValid() )
-        return filterIdx;
-    return sourceIndex( filterIdx );
+    if ( !fImpl->folders->selectionModel() )
+        return {};
+
+    auto selectedIndexes = fImpl->folders->selectionModel()->selectedIndexes();
+    if ( selectedIndexes.isEmpty() )
+        return {};
+    auto selectedIndex = selectedIndexes.first();
+    if ( !selectedIndex.isValid() )
+        return selectedIndex;
+    return sourceIndex( selectedIndex );
 }
 
 void CFoldersView::slotSetRootFolder()
 {
-    auto idx = currentIndex();
+    auto idx = selectedIndex();
     if ( !idx.isValid() )
         return;
-    auto folder = fModel->folderForItem( idx );
+    auto folder = fModel->folderForIndex( idx );
     if ( !folder )
         return;
     COutlookAPI::instance()->setRootFolder( folder );
 }
 
-void CFoldersView::slotItemSelected( const QModelIndex &index )
+void CFoldersView::slotRunningStateChanged( bool running )
 {
-    auto path = index.isValid() ? fModel->pathForItem( index ) : QString();
+    fImpl->setRootFolderBtn->setEnabled( !running );
+    fImpl->addFolder->setEnabled( !running );
+    if ( !running )
+        updateButtons( selectedIndex() );
+}
+
+void CFoldersView::slotItemSelected()
+{
+    auto index = selectedIndex();
+    updateButtons( index );
+
+    auto path = index.isValid() ? fModel->pathForIndex( index ) : QString();
+    emit sigFolderSelected( path );
+}
+
+void CFoldersView::updateButtons( const QModelIndex &index )
+{
+    auto path = index.isValid() ? fModel->pathForIndex( index ) : QString();
 
     fImpl->setRootFolderBtn->setEnabled( index.isValid() );
     fImpl->addFolder->setEnabled( index.isValid() );
-
-    emit sigFolderSelected( path );
 }
 
 void CFoldersView::addFolder( const QString &folderName )
 {
-    auto newIndex = fFilterModel->mapFromSource( fModel->addFolder( currentIndex(), folderName ) );
+    auto newIndex = fFilterModel->mapFromSource( fModel->addFolder( selectedIndex(), folderName ) );
     selectAndScroll( newIndex );
 }
 
 void CFoldersView::slotAddFolder()
 {
-    auto newIndex = fFilterModel->mapFromSource( fModel->addFolder( currentIndex(), this ) );
+    auto newIndex = fFilterModel->mapFromSource( fModel->addFolder( selectedIndex(), this ) );
     selectAndScroll( newIndex );
 }
 
@@ -153,24 +180,24 @@ void CFoldersView::selectAndScroll( const QModelIndex &newIndex )
 
 QString CFoldersView::selectedPath() const
 {
-    auto idx = currentIndex();
+    auto idx = selectedIndex();
     if ( !idx.isValid() )
         return {};
-    return fModel->pathForItem( idx );
+    return fModel->pathForIndex( idx );
 }
 
 QString CFoldersView::selectedFullPath() const
 {
-    auto idx = currentIndex();
+    auto idx = selectedIndex();
     if ( !idx.isValid() )
         return {};
-    return fModel->fullPathForItem( idx );
+    return fModel->fullPathForIndex( idx );
 }
 
 std::shared_ptr< Outlook::Folder > CFoldersView::selectedFolder() const
 {
-    auto idx = currentIndex();
+    auto idx = selectedIndex();
     if ( !idx.isValid() )
         return {};
-    return fModel->folderForItem( idx );
+    return fModel->folderForIndex( idx );
 }
