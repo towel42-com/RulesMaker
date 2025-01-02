@@ -28,7 +28,7 @@ public:
     }
 
     void dumpNodes( int depth = 0 ) const;
-    
+
     std::map< QString, CEmailAddressSection * > fChildItems;
 
     CEmailAddressSection *child( int row, int column = 0 ) const;
@@ -71,6 +71,11 @@ private Q_SLOTS:
 
 private:
     void dumpNodes() const;
+
+    QString matchTextForItem( QStandardItem *item ) const;
+    QString matchTextForItem( CEmailAddressSection *item ) const;
+    QStringList matchTextListForItem( CEmailAddressSection *item ) const;
+
     void sortAll( QStandardItem *root );
     void addEmailAddress( std::shared_ptr< Outlook::MailItem > mailItem );
     CEmailAddressSection *findOrAddEmailAddressSection( const QStringRef &curr, const QVector< QStringRef > &remaining, CEmailAddressSection *parent, const QString &displayName );

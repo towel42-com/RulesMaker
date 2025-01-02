@@ -82,7 +82,6 @@ void CEmailModel::slotGroupNextMailItemBySender()
     if ( fCurrPos == limit )
     {
         sortAll( nullptr );
-        processChildDisplayName();
         dumpNodes();
         emit sigFinishedGrouping();
     }
@@ -239,45 +238,45 @@ QStringList CEmailModel::matchTextForIndex( const QModelIndex &idx ) const
     return matchTextListForItem( item );
 }
 
-std::unordered_set< QStandardItem * > getLeafChildren( QStandardItem *item )
-{
-    if ( !item )
-        return {};
-
-    if ( item->column() != 0 )
-    {
-        auto parent = item->parent();
-        if ( !parent )
-        {
-            parent = item->model()->invisibleRootItem();
-        }
-        if ( !parent )
-            return {};
-
-        auto sibling = parent->child( item->row(), 0 );
-        if ( !sibling )
-            return {};
-        item = sibling;
-    }
-
-    if ( !item )
-        return {};
-
-    if ( item->rowCount() == 0 )
-        return { item };
-
-    std::unordered_set< QStandardItem * > retVal;
-    for ( auto ii = 0; ii < item->rowCount(); ++ii )
-    {
-        auto child = item->child( ii );
-        auto children = getLeafChildren( child );
-        for ( auto &&ii : children )
-        {
-            retVal.insert( ii );
-        }
-    }
-    return retVal;
-}
+//std::unordered_set< QStandardItem * > getLeafChildren( QStandardItem *item )
+//{
+//    if ( !item )
+//        return {};
+//
+//    if ( item->column() != 0 )
+//    {
+//        auto parent = item->parent();
+//        if ( !parent )
+//        {
+//            parent = item->model()->invisibleRootItem();
+//        }
+//        if ( !parent )
+//            return {};
+//
+//        auto sibling = parent->child( item->row(), 0 );
+//        if ( !sibling )
+//            return {};
+//        item = sibling;
+//    }
+//
+//    if ( !item )
+//        return {};
+//
+//    if ( item->rowCount() == 0 )
+//        return { item };
+//
+//    std::unordered_set< QStandardItem * > retVal;
+//    for ( auto ii = 0; ii < item->rowCount(); ++ii )
+//    {
+//        auto child = item->child( ii );
+//        auto children = getLeafChildren( child );
+//        for ( auto &&ii : children )
+//        {
+//            retVal.insert( ii );
+//        }
+//    }
+//    return retVal;
+//}
 
 QStringList CEmailModel::matchTextListForItem( QStandardItem *item ) const
 {
@@ -290,48 +289,37 @@ QStringList CEmailModel::matchTextListForItem( CEmailAddressSection *item ) cons
         return {};
 
     QStringList retVal;
-    if ( item->needsDisplayName() )
-        return { item->matchTextForItem() };
+
 
     if ( item->parent() )
     {
-        auto matchText = item->matchTextForItem();
+        auto matchText = matchTextForItem( item );
         if ( ( item->column() == 0 ) && ( matchText.indexOf( '@' ) == -1 ) )
             matchText = "@" + matchText;
         retVal.push_back( matchText );
     }
 
-    QStringList childNames;
     for ( auto &&ii = 0; ii < item->rowCount(); ++ii )
     {
         auto child = item->child( ii, 0 );
+        if ( !child || child->text().isEmpty() )
+            continue;
 
-        if ( child->needsDisplayName() )
-            childNames << child->matchTextForItem();
-        else
-        {
-            if ( !child || child->text().isEmpty() )
-                continue;
-
-            auto curr = matchTextListForItem( child );
-            if ( !curr.isEmpty() )
-            {
-                childNames << curr;
-            }
-        }
+        auto curr = matchTextListForItem( child );
+        if ( !curr.isEmpty() )
+            retVal << curr;
     }
-
-    if ( item->needsDisplayName( true ) )
-        retVal = childNames;
-    else
-        retVal << childNames;
 
     retVal.removeDuplicates();
     retVal.removeAll( QString() );
     return retVal;
 }
-
 QString CEmailModel::matchTextForItem( QStandardItem *item ) const
+{
+    return matchTextForItem( dynamic_cast< CEmailAddressSection * >( item ) );
+}
+
+QString CEmailModel::matchTextForItem( CEmailAddressSection *item ) const
 {
     if ( !item )
         return {};
