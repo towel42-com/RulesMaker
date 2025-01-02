@@ -2,6 +2,8 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QLabel>
+
 #include <memory>
 #include <list>
 #include <utility>
@@ -98,39 +100,60 @@ protected:
     template< typename T >
     void setEnabled( T *item, TReasons reasons )
     {
-        if ( running() )
+        bool enabled = !running();
+        if ( !enabled )
         {
             reasons.clear();
             reasons.emplace_back( false, "Cannot execute while processing" );
         }
-        bool enabled = true;
         for ( auto &&ii : reasons )
         {
             enabled = enabled && ii.first;
         }
 
         item->setEnabled( enabled );
+        auto itemText = item->property( "text" );
+        QString toolTip;
+        QString separator;
+
         if ( enabled )
-            item->setToolTip( item->text() );
+            toolTip = itemText.toString();
         else
         {
-            QString msg;
             if ( reasons.size() == 1 )
             {
-                msg = item->text() + " - " + reasons.front().second;
+                toolTip = reasons.front().second;
+                separator = " - ";
             }
             else
             {
                 for ( auto &&ii : reasons )
                 {
                     if ( !ii.first )
-                        msg += "<li>" + ii.second + "<li>\n";
+                        toolTip += "<li>" + ii.second + "<li>\n";
                 }
-                msg = item->text() + ":<ul>\n" + msg + "</ul>";
+                toolTip = "<ul>\n" + toolTip + "</ul>";
+                separator = ":";
             }
-            item->setToolTip( msg );
+        }
+        if ( itemText.isValid() )
+            toolTip = itemText.toString() + separator + toolTip;
+        item->setToolTip( toolTip );
+    }
+    template< typename T >
+    void setEnabled()
+    {
+        auto children = this->findChildren< T >();
+        for ( auto &&child : children )
+        {
+            if ( dynamic_cast< QAction * >( child ) && dynamic_cast< QAction * >( child )->menu() )
+                continue;
+            if ( dynamic_cast< QAbstractButton * >( child ) && ( dynamic_cast< QAbstractButton * >( child ) == fCancelButton ) )
+                continue;
+            setEnabled( child );
         }
     }
+
     CStatusProgress *getProgressBar( const QString &label );
     void setupStatusBar();
 

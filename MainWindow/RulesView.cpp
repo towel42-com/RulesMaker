@@ -1,9 +1,10 @@
 #include "RulesView.h"
-#include "RulesModel.h"
-#include "ListFilterModel.h"
+#include "Models/RulesModel.h"
+#include "Models/ListFilterModel.h"
 #include "OutlookAPI/OutlookAPI.h"
 
 #include "ui_RulesView.h"
+
 #include <QLineEdit>
 #include <QTimer>
 #include <QDebug>

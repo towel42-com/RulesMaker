@@ -13,6 +13,7 @@
 #include <QApplication>
 #include <QLineEdit>
 #include <QToolButton>
+#include <QAbstractItemView>
 
 CMainWindow::CMainWindow( QWidget *parent ) :
     QMainWindow( parent ),
@@ -440,25 +441,11 @@ void CMainWindow::slotHandleProgressToggle()
 
     fCancelButton->setVisible( running );
 
-    auto actions = this->findChildren< QAction * >();
-    for ( auto &&action : actions )
-    {
-        if ( !action->menu() )
-            setEnabled( action );
-    }
-    auto filters = this->findChildren< QLineEdit * >();
-    for ( auto &&filter : filters )
-    {
-        setEnabled( filter );
-    }
-
-    auto buttons = this->findChildren< QAbstractButton * >();
-    for ( auto &&button : buttons )
-    {
-        if ( button == fCancelButton )
-            continue;
-        setEnabled( button );
-    }
+    setEnabled< QAction * >();
+    setEnabled< QLineEdit * >();
+    setEnabled< QAbstractButton * >();
+    setEnabled< QAbstractItemView * >();
+    setEnabled< QLabel * >();
 
     updateActions();
     if ( !sPrevRunning.has_value() || sPrevRunning.value() != running )

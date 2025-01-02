@@ -1,9 +1,10 @@
 #include "FoldersView.h"
-#include "FoldersModel.h"
-#include "ui_FoldersView.h"
-#include "OutlookAPI/OutlookAPI.h"
-#include "ListFilterModel.h"
+#include "Models/FoldersModel.h"
+#include "Models/ListFilterModel.h"
 
+#include "OutlookAPI/OutlookAPI.h"
+
+#include "ui_FoldersView.h"
 #include <QTimer>
 
 CFoldersView::CFoldersView( QWidget *parent ) :

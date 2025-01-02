@@ -476,7 +476,8 @@ void CEmailModel::dumpNodes() const
 
 void CEmailAddressSection::dumpNodes( int depth ) const
 {
-    qDebug() << QString( "%1%2 - %3 - %4" ).arg( QString( depth, ' ' ), text() );
+    qDebug() << QString( "%1%2" ).arg( QString( depth, ' ' ), text() );
+    //qDebug() << QString( "%1%2 - %3 - %4" ).arg( QString( depth, ' ' ), text() );
 
     for ( int ii = 0; ii < rowCount(); ++ii )
     {

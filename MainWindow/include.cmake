@@ -11,26 +11,18 @@ set(qtproject_UIS
 )
 
 set(project_SRCS
-    EmailModel.cpp
     EmailView.cpp
     FoldersView.cpp
-    FoldersModel.cpp
-    ListFilterModel.cpp
     MainWindow.cpp
-    RulesModel.cpp
     RulesView.cpp
     Settings.cpp
     StatusProgress.cpp
 )
  
 set(qtproject_H
-    EmailModel.h
     EmailView.h
-    FoldersModel.h
-    ListFilterModel.h
     FoldersView.h
     MainWindow.h
-    RulesModel.h
     RulesView.h
     Settings.h
     StatusProgress.h

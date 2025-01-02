@@ -1,5 +1,6 @@
 #include "EmailView.h"
-#include "EmailModel.h"
+#include "Models/EmailModel.h"
+#include "OutlookAPI/OutlookAPI.h"
 
 #include "ui_EmailView.h"
 
@@ -58,6 +59,27 @@ void CEmailView::init()
             }
         } );
 
+    auto updateByFilter = [ = ]( bool byEmail )
+    {
+        fImpl->fromNames->setEnabled( !byEmail );
+        fImpl->emailAddresses->setEnabled( byEmail );
+        COutlookAPI::instance()->setEmailFilterByEmail( byEmail );
+    };
+    connect(
+        fImpl->byEmailAddress, &QRadioButton::toggled,
+        [ = ]( bool checked )
+        {
+            updateByFilter( checked );
+        } );
+    connect(
+        fImpl->byFromNames, &QRadioButton::toggled,
+        [ = ]( bool checked )
+        {
+            updateByFilter( !checked );
+        } );
+
+    slotRunningStateChanged( false );
+
     setWindowTitle( QObject::tr( "Inbox Emails" ) );
 }
 
@@ -80,8 +102,14 @@ void CEmailView::clearSelection()
 
 void CEmailView::slotSelectionChanged()
 {
-    fImpl->matchText->setText( getDisplayTextForSelection() );
+    fImpl->emailAddresses->setText( getDisplayTextForSelection() );
+    fImpl->fromNames->setText( getFromTextForSelection() );
     emit sigEmailSelected();
+}
+
+QString CEmailView::getFromTextForSelection() const
+{
+    return {};
 }
 
 QString CEmailView::getDisplayTextForSelection() const
@@ -149,6 +177,13 @@ void CEmailView::reload( bool notifyOnFinish )
     fGroupedModel->reload();
 }
 
-void CEmailView::slotRunningStateChanged( bool /*running*/ )
+void CEmailView::slotRunningStateChanged( bool running )
 {
+    if ( running )
+        return;
+
+    if ( COutlookAPI::instance()->emailFilterByEmail() )
+        fImpl->byEmailAddress->animateClick();
+    else
+        fImpl->byFromNames->animateClick();
 }

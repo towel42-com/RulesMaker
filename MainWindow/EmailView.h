@@ -25,10 +25,11 @@ public:
     void clearSelection();
     void reload( bool notifyOnFinished );
 
+    QString getEmailDisplayNameForSelection() const;
+    QString getFromTextForSelection() const;
+
     QStringList getMatchTextForSelection() const;
     QString getDisplayTextForSelection() const;
-
-    QString getEmailDisplayNameForSelection() const;
 
 Q_SIGNALS:
     void sigFinishedLoading();

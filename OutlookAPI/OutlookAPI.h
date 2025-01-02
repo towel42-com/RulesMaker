@@ -116,8 +116,11 @@ public:
     void setDisableRatherThanDeleteRules( bool value, bool update = true );
     bool disableRatherThanDeleteRules() { return fDisableRatherThanDeleteRules; }
 
-    QStringList rulesToSkip() const { return fRulesToSkip; }
     void setRulesToSkip( const QStringList &rulesToSkip, bool update = true );
+    QStringList rulesToSkip() const { return fRulesToSkip; }
+
+    void setEmailFilterByEmail( bool value  );
+    bool emailFilterByEmail() { return fEmailFilterByEmail; }
 
 Q_SIGNALS:
     void sigAccountChanged();
@@ -312,6 +315,7 @@ private:
     bool fIncludeJunkFolderWhenRunningOnAllFolders{ false };
     bool fIncludeDeletedFolderWhenRunningOnAllFolders{ false };
     bool fDisableRatherThanDeleteRules{ false };
+    bool fEmailFilterByEmail{ true };
     QStringList fRulesToSkip;
     bool fSaveRulesSuccess{ true };
 
