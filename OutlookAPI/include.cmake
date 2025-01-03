@@ -1,15 +1,6 @@
 set(_PROJECT_NAME OutlookAPI)
 set(FOLDER_NAME libs)
 
-find_package( FileForTypeID  )
-
-GenerateCPPFromFileID( "{00062FFF-0000-0000-C000-000000000046}" MSOUTL )
-
-#message( "DUMPCPP=${DUMPCPP_EXECUTABLE}" )
-#message( "MSOUTL_OLBPATH=${MSOUTL_OLBPATH}" )
-#message( "MSOUTL_CPP=${MSOUTL_CPP}" )
-#message( "MSOUTL_H=${MSOUTL_H}" )
-
 set(qtproject_UIS
 )
 
@@ -22,9 +13,7 @@ set(project_SRCS
     OutlookAPI_rules.cpp
     OutlookAPI_settings.cpp
     OutlookAPI_tools.cpp
-    OutlookAPI_toString.cpp
-    ${CMAKE_CURRENT_BINARY_DIR}/MSOUTL.cpp
-    ${MSOUTL_OLB}
+    OutlookAPI_utils.cpp
 )
  
 set(qtproject_H
@@ -32,14 +21,13 @@ set(qtproject_H
 )
 
 set(project_H
-    ${CMAKE_CURRENT_BINARY_DIR}/MSOUTL.h
 )
 
 set( project_pub_LIB_DIRS 
 )
 
 set( project_pub_DEPS    
-    Qt5::Widgets Qt5::AxContainer 
+    Qt5::Widgets Qt5::AxContainer OutlookLib
 )
 
 set( EXTRA_CMAKE_FILES

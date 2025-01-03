@@ -407,14 +407,14 @@ private:
 // toString API in OutlookAPI_toString.cpp
 QString toString( const QVariant &variant, const QString &joinSeparator );
 QStringList toStringList( const QVariant &variant );
-QString toString( Outlook::OlItemType olItemType );
-QString toString( Outlook::OlRuleConditionType olItemType );
-QString toString( Outlook::OlImportance importance );
-QString toString( Outlook::OlSensitivity sensitivity );
-QString toString( Outlook::OlMarkInterval markInterval );
-QString toString( Outlook::OlAddressEntryUserType entryUserType );
-QString toString( Outlook::OlObjectClass objectClass );
-QString toString( Outlook::OlDisplayType objectClass );
+//QString toString( Outlook::OlItemType olItemType );
+//QString toString( Outlook::OlRuleConditionType olItemType );
+//QString toString( Outlook::OlImportance importance );
+//QString toString( Outlook::OlSensitivity sensitivity );
+//QString toString( Outlook::OlMarkInterval markInterval );
+//QString toString( Outlook::OlAddressEntryUserType entryUserType );
+//QString toString( Outlook::OlObjectClass objectClass );
+//QString toString( Outlook::OlDisplayType objectClass );
 
 [[nodiscard]] QStringList mergeStringLists( const QStringList &lhs, const QStringList &rhs, bool andSort = false );
 

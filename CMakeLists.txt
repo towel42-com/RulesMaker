@@ -31,6 +31,7 @@ add_subdirectory( cli )
 add_subdirectory( MainWindow )
 add_subdirectory( Models )
 add_subdirectory( OutlookAPI )
+add_subdirectory( OutlookLib )
 add_subdirectory( dumpcpp )
 add_subdirectory( CMakeSupport )
 

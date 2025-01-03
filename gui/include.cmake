@@ -28,7 +28,7 @@ set( project_pri_LIB_DIRS
 )
 
 set( project_pri_DEPS
-    Qt5::Widgets Qt5::AxContainer MainWindow Models OutlookAPI 
+    Qt5::Widgets Qt5::AxContainer MainWindow Models OutlookAPI OutlookLib
 )
 
 set(qtproject_QRC

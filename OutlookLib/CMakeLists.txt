@@ -15,8 +15,8 @@ add_library( ${PROJECT_NAME}
 set_target_properties( ${PROJECT_NAME} PROPERTIES FOLDER ${FOLDER_NAME} )
 
 target_include_directories( ${PROJECT_NAME} 
-    PUBLIC ${_PROJECT_INCLUDE_DIRECTORIES} ${project_pub_LIB_DIRS}
-    PRIVATE ${project_pri_DEPS} ${project_pri_LIB_DIRS}
+    PUBLIC ${_PROJECT_INCLUDE_DIRECTORIES}
+    PRIVATE ${project_pri_DEPS}
 )
 
 target_link_libraries( ${PROJECT_NAME}
@@ -26,4 +26,3 @@ target_link_libraries( ${PROJECT_NAME}
        ${project_pri_DEPS}
 )
 
-#add_dependencies(${PROJECT_NAME} OutlookLib)
