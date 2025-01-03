@@ -37,6 +37,7 @@ void CEmailView::init()
             if ( fNotifyOnFinish )
                 emit sigFinishedLoading();
             fNotifyOnFinish = true;
+            fImpl->summary->setText( fGroupedModel->summary() );
         } );
     connect( fGroupedModel, &CEmailModel::sigSetStatus, [ = ]( int curr, int max ) { emit sigSetStatus( statusLabel(), curr, max ); } );
     connect(
@@ -59,32 +60,45 @@ void CEmailView::init()
             }
         } );
 
-    auto updateByFilter = [ = ]( bool byEmail )
+    auto updateByFilter = [ = ]()
     {
-        fImpl->fromNames->setEnabled( !byEmail );
-        fImpl->emailAddresses->setEnabled( byEmail );
-        COutlookAPI::instance()->setEmailFilterByEmail( byEmail );
+        auto filterType = getFilterType();
+        setFilterType( filterType );
+        COutlookAPI::instance()->setEmailFilterType( filterType );
+        emit sigFilterTypeChanged();
     };
-    connect(
-        fImpl->byEmailAddress, &QRadioButton::toggled,
-        [ = ]( bool checked )
-        {
-            updateByFilter( checked );
-        } );
-    connect(
-        fImpl->byFromNames, &QRadioButton::toggled,
-        [ = ]( bool checked )
-        {
-            updateByFilter( !checked );
-        } );
 
+    connect( fImpl->byEmailAddress, &QRadioButton::toggled, [ = ]( bool /*checked*/ ) { updateByFilter(); } );
+    connect( fImpl->byDisplayNames, &QRadioButton::toggled, [ = ]( bool /*checked*/ ) { updateByFilter(); } );
+    connect( fImpl->bySubjects, &QRadioButton::toggled, [ = ]( bool /*checked */ ) { updateByFilter(); } );
+
+    setFilterType( COutlookAPI::instance()->emailFilterType() );
     slotRunningStateChanged( false );
 
     setWindowTitle( QObject::tr( "Inbox Emails" ) );
 }
 
+void CEmailView::setFilterType( EFilterType filterType )
+{
+    fImpl->byDisplayNames->setChecked( filterType == EFilterType::eByDisplayName );
+    fImpl->byEmailAddress->setChecked( filterType == EFilterType::eByEmailAddress );
+    fImpl->bySubjects->setChecked( filterType == EFilterType::eBySubject );
+}
+
 CEmailView::~CEmailView()
 {
+}
+
+EFilterType CEmailView::getFilterType() const
+{
+    if ( fImpl->byEmailAddress->isChecked() )
+        return EFilterType::eByEmailAddress;
+    else if ( fImpl->byDisplayNames->isChecked() )
+        return EFilterType::eByDisplayName;
+    else if ( fImpl->bySubjects->isChecked() )
+        return EFilterType::eBySubject;
+    else
+        return EFilterType::eUnknown;
 }
 
 void CEmailView::clear()
@@ -102,41 +116,93 @@ void CEmailView::clearSelection()
 
 void CEmailView::slotSelectionChanged()
 {
-    fImpl->emailAddresses->setText( getDisplayTextForSelection() );
-    fImpl->fromNames->setText( getFromTextForSelection() );
+    fImpl->emailAddresses->setText( getEmailPatternForSelection() );
+    fImpl->displayNames->setText( getDisplayNamePatternForSelection() );
+    fImpl->subjects->setText( getSubjectPatternForSelection() );
     emit sigEmailSelected();
 }
 
-QString CEmailView::getFromTextForSelection() const
+QString CEmailView::getDisplayNamePatternForSelection() const
 {
-    return {};
-}
-
-QString CEmailView::getDisplayTextForSelection() const
-{
-    auto text = getMatchTextForSelection();
+    auto text = getDisplayNamesForSelection();
+    for ( auto &&curr : text )
+    {
+        curr = "'" + curr + "'";
+    }
     return text.join( " or " );
 }
 
-QStringList CEmailView::getMatchTextForSelection() const
+QString CEmailView::getEmailPatternForSelection() const
+{
+    auto text = getEmailsForSelection();
+    return text.join( " or " );
+}
+
+QString CEmailView::getSubjectPatternForSelection() const
+{
+    auto text = getSubjectsForSelection();
+    for ( auto &&curr : text )
+    {
+        curr = "'" + curr + "'";
+    }
+    return text.join( " or " );
+}
+
+QStringList CEmailView::getEmailsForSelection() const
 {
     auto rows = getSelectedRows();
     QStringList retVal;
     for ( auto &&row : rows )
     {
-        retVal << fGroupedModel->matchTextForIndex( row );
+        mergeStringLists( retVal, fGroupedModel->matchTextForIndex( row ) );
     }
-    retVal.removeDuplicates();
-    retVal.removeAll( QString() );
     return retVal;
 }
 
-QString CEmailView::getEmailDisplayNameForSelection() const
+QStringList CEmailView::getDisplayNamesForSelection() const
 {
     auto rows = getSelectedRows();
-    if ( rows.empty() )
+    QStringList retVal;
+    for ( auto &&ii : rows )
+    {
+        retVal << fGroupedModel->displayNamesForIndex( ii, true );
+    }
+    return retVal;
+}
+
+QStringList CEmailView::getSubjectsForSelection() const
+{
+    auto rows = getSelectedRows();
+    QStringList retVal;
+    for ( auto &&ii : rows )
+    {
+        retVal << fGroupedModel->subjectsForIndex( ii, true );
+    }
+    return retVal;
+}
+
+std::pair< QStringList, EFilterType > CEmailView::getPatternsForSelection() const
+{
+    if ( fImpl->byEmailAddress->isChecked() )
+        return { getEmailsForSelection(), EFilterType::eByEmailAddress };
+    else if ( fImpl->byDisplayNames->isChecked() )
+        return { getDisplayNamesForSelection(), EFilterType::eByDisplayName };
+    else if ( fImpl->bySubjects->isChecked() )
+        return { getSubjectsForSelection(), EFilterType::eBySubject };
+    return { QStringList(), EFilterType::eUnknown};
+}
+
+bool CEmailView::selectionHasDisplayName() const
+{
+    return !getDisplayNamesForSelection().empty();
+}
+
+QString CEmailView::getDisplayNameForSingleSelection() const
+{
+    auto displayNames = getDisplayNamesForSelection();
+    if ( displayNames.length() != 1 )
         return {};
-    return fGroupedModel->displayNameForIndex( rows.front() );
+    return displayNames.front();
 }
 
 QModelIndexList CEmailView::getSelectedRows() const
@@ -179,11 +245,17 @@ void CEmailView::reload( bool notifyOnFinish )
 
 void CEmailView::slotRunningStateChanged( bool running )
 {
+    fImpl->displayNames->setEnabled( !running );
+    fImpl->emailAddresses->setEnabled( !running );
+    fImpl->subjects->setEnabled( !running );
+    fImpl->byEmailAddress->setEnabled( !running );
+    fImpl->bySubjects->setEnabled( !running );
+    fImpl->byDisplayNames->setEnabled( !running );
     if ( running )
         return;
 
-    if ( COutlookAPI::instance()->emailFilterByEmail() )
-        fImpl->byEmailAddress->animateClick();
-    else
-        fImpl->byFromNames->animateClick();
+    fImpl->emailAddresses->setEnabled( fImpl->byEmailAddress->isChecked() );
+    fImpl->displayNames->setEnabled( fImpl->byDisplayNames->isChecked() );
+    fImpl->subjects->setEnabled( fImpl->bySubjects->isChecked() );
 }
+

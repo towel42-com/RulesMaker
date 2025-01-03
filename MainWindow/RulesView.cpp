@@ -125,7 +125,7 @@ QModelIndex CRulesView::selectedIndex() const
 
 bool CRulesView::ruleSelected() const
 {
-    return fModel->getRuleItem( selectedIndex() ) != nullptr;
+    return fModel->ruleSelected( selectedIndex() );
 }
 
 QString CRulesView::folderForSelectedRule() const
@@ -137,6 +137,12 @@ QString CRulesView::folderForSelectedRule() const
 std::shared_ptr< Outlook::Rule > CRulesView::selectedRule() const
 {
     return fModel->getRule( selectedIndex() );
+}
+
+EFilterType CRulesView::filterTypeForSelectedRule() const
+{
+    auto rule = selectedRule();
+    return COutlookAPI::instance()->filterTypeForRule( rule );
 }
 
 void CRulesView::slotRunningStateChanged( bool running )

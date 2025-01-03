@@ -143,13 +143,25 @@ void CRulesModel::update()
     endResetModel();
 }
 
+bool CRulesModel::ruleSelected( const QModelIndex &index ) const
+{
+    auto item = itemFromIndex( index );
+    return ruleSelected( item );
+}
+
+bool CRulesModel::ruleSelected( const QStandardItem *item ) const
+{
+    auto rule = getRule( item );
+    return COutlookAPI::isEnabled( rule );
+}
+
 QStandardItem *CRulesModel::getRuleItem( const QModelIndex &index ) const
 {
     auto item = itemFromIndex( index );
     return getRuleItem( item );
 }
 
-QStandardItem *CRulesModel::getRuleItem( QStandardItem *item ) const
+QStandardItem *CRulesModel::getRuleItem( const QStandardItem *item ) const
 {
     if ( !item )
         return nullptr;
@@ -162,7 +174,7 @@ QStandardItem *CRulesModel::getRuleItem( QStandardItem *item ) const
     }
     while ( item->parent() )
         item = item->parent();
-    return item;
+    return const_cast< QStandardItem * >( item );
 }
 
 std::shared_ptr< Outlook::Rule > CRulesModel::getRule( const QModelIndex &index ) const
@@ -171,7 +183,7 @@ std::shared_ptr< Outlook::Rule > CRulesModel::getRule( const QModelIndex &index 
     return getRule( item );
 }
 
-std::shared_ptr< Outlook::Rule > CRulesModel::getRule( QStandardItem *item ) const
+std::shared_ptr< Outlook::Rule > CRulesModel::getRule( const QStandardItem *item ) const
 {
     auto ruleItem = getRuleItem( item );
     if ( !ruleItem )

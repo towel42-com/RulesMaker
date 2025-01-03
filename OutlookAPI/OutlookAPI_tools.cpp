@@ -67,10 +67,7 @@ std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::Rule *lhs, c
     auto lhsRecipients = getRecipients( lhs, msgs );
     if ( !lhsRecipients.has_value() )
         return {};
-    if ( lhsRecipients.value().empty() )
-        return rhs;
-    lhsRecipients.value() << rhs;
-    lhsRecipients.value().removeDuplicates();
+    mergeStringLists( lhsRecipients.value(), rhs, false );
     return lhsRecipients;
 }
 
@@ -97,15 +94,9 @@ std::optional< QStringList > COutlookAPI::mergeRecipients( const std::list< Outl
     {
         auto currRecipients = mergeRecipients( primaryRule, ( *pos ), msgs );
         if ( retVal.has_value() )
-            retVal.value() << currRecipients.value();
+            mergeStringLists( retVal.value(), currRecipients.value(), false );
         else
             retVal = currRecipients;
-    }
-
-    if ( retVal.has_value() )
-    {
-        retVal.value().removeAll( QString() );
-        retVal.value().removeDuplicates();
     }
 
     return retVal;
@@ -368,7 +359,7 @@ bool COutlookAPI::renameRules( bool andSave /*= true*/, bool *needsSaving /*= nu
             QMessageBox::information( fParentWidget, "Renamed Rules", QString( "No rules needed renaming" ) );
         else
             emit sigStatusMessage( QString( "No rules needed renaming" ) );
-        return true;
+        return false;
     }
     if ( fParentWidget )
     {

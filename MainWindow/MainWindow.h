@@ -116,21 +116,25 @@ protected:
         QString toolTip;
         QString separator;
 
-        if ( enabled )
-            toolTip = itemText.toString();
-        else
+        if ( !enabled )
         {
-            if ( reasons.size() == 1 )
+            TReasons disabledReasons;
+            for ( auto &&ii : reasons )
             {
-                toolTip = reasons.front().second;
+                if ( !ii.first )
+                    disabledReasons.push_back( ii );
+            }
+
+            if ( disabledReasons.size() == 1 )
+            {
+                toolTip = disabledReasons.front().second;
                 separator = " - ";
             }
             else
             {
-                for ( auto &&ii : reasons )
+                for ( auto &&ii : disabledReasons )
                 {
-                    if ( !ii.first )
-                        toolTip += "<li>" + ii.second + "<li>\n";
+                    toolTip += "<li>" + ii.second + "<li>\n";
                 }
                 toolTip = "<ul>\n" + toolTip + "</ul>";
                 separator = ":";

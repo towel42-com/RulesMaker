@@ -74,6 +74,16 @@ void COutlookAPI::logout( bool andNotify )
     }
 }
 
+QString COutlookAPI::getSubject( std::shared_ptr< Outlook::MailItem > mailItem )
+{
+    return getSubject( mailItem.get() );
+}
+
+QString COutlookAPI::getSubject( Outlook::MailItem *mailItem )
+{
+    return mailItem ? mailItem->Subject() : QString();
+}
+
 std::shared_ptr< Outlook::Application > COutlookAPI::getApplication()
 {
     static HRESULT comInit = CoInitialize( nullptr );

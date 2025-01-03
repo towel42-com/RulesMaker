@@ -10,6 +10,7 @@ namespace Ui
 }
 
 class CEmailModel;
+enum class EFilterType;
 
 class CEmailView : public CWidgetWithStatus
 {
@@ -25,16 +26,21 @@ public:
     void clearSelection();
     void reload( bool notifyOnFinished );
 
-    QString getEmailDisplayNameForSelection() const;
-    QString getFromTextForSelection() const;
+    std::pair< QStringList, EFilterType > getPatternsForSelection() const;   // the patterns, by emails or display names
 
-    QStringList getMatchTextForSelection() const;
-    QString getDisplayTextForSelection() const;
+    bool selectionHasDisplayName() const;
+    QString getDisplayNameForSingleSelection() const;
+    QString getDisplayNamePatternForSelection() const;
+    QString getEmailPatternForSelection() const;
+    QString getSubjectPatternForSelection() const;
+
+    EFilterType getFilterType() const;
 
 Q_SIGNALS:
     void sigFinishedLoading();
     void sigFinishedGrouping();
     void sigEmailSelected();
+    void sigFilterTypeChanged();
 
 public Q_SLOTS:
     void slotRunningStateChanged( bool running );
@@ -44,6 +50,12 @@ protected Q_SLOTS:
     void slotItemDoubleClicked( const QModelIndex &idx );
 
 protected:
+    void setFilterType( EFilterType filterType );
+
+    QStringList getDisplayNamesForSelection() const;
+    QStringList getEmailsForSelection() const;
+    QStringList getSubjectsForSelection() const;
+
     QModelIndexList getSelectedRows() const;
 
     CEmailModel *fGroupedModel{ nullptr };

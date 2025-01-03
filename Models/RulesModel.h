@@ -32,11 +32,14 @@ public:
 
     void update();
 
+    bool ruleSelected( const QModelIndex &index ) const;
+    bool ruleSelected( const QStandardItem *item ) const;
+
     QStandardItem *getRuleItem( const QModelIndex &index ) const;
-    QStandardItem *getRuleItem( QStandardItem *item ) const;
+    QStandardItem *getRuleItem( const QStandardItem *item ) const;
 
     std::shared_ptr< Outlook::Rule > getRule( const QModelIndex &index ) const;
-    std::shared_ptr< Outlook::Rule > getRule( QStandardItem *item ) const;
+    std::shared_ptr< Outlook::Rule > getRule( const QStandardItem *item ) const;
 
     virtual bool hasChildren( const QModelIndex &parent ) const override;
     virtual void fetchMore( const QModelIndex &parent ) override;
@@ -58,7 +61,7 @@ private:
 
     void loadRules();
 
-    bool loadRule( std::shared_ptr< Outlook::Rule > rule, QStandardItem * ruleItem = nullptr );
+    bool loadRule( std::shared_ptr< Outlook::Rule > rule, QStandardItem *ruleItem = nullptr );
     bool updateRule( std::shared_ptr< Outlook::Rule > rule );
 
     std::pair< std::shared_ptr< Outlook::Rules >, int > fRules{ nullptr, 0 };

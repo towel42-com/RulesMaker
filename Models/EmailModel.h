@@ -9,6 +9,7 @@
 #include <memory>
 #include <list>
 #include <unordered_map>
+#include <unordered_set>
 #include <map>
 
 namespace Outlook
@@ -23,11 +24,15 @@ public:
     CEmailAddressSection() {};
 
     CEmailAddressSection( const QString &itemName ) :
-        QStandardItem( itemName )
+        QStandardItem( itemName ),
+        fName( itemName )
     {
     }
 
     void dumpNodes( int depth = 0 ) const;
+    const CEmailAddressSection *getSibling( int columnNumber ) const;
+    CEmailAddressSection *getSibling( int columnNumber );
+    std::unordered_set< const CEmailAddressSection * > getLeafChildren() const;
 
     std::map< QString, CEmailAddressSection * > fChildItems;
 
@@ -35,6 +40,7 @@ public:
     CEmailAddressSection *parent() const;
 
 private:
+    QString fName;
     bool fAllChildrenNeedDisplayName{ false };
 };
 
@@ -51,17 +57,25 @@ public:
 
     std::shared_ptr< Outlook::MailItem > mailItemFromIndex( const QModelIndex &idx ) const;
     std::shared_ptr< Outlook::MailItem > mailItemFromItem( const QStandardItem *item ) const;
+    std::shared_ptr< Outlook::MailItem > mailItemFromItem( const CEmailAddressSection *item ) const;
 
     QStringList matchTextForIndex( const QModelIndex &idx ) const;
     QStringList matchTextListForItem( QStandardItem *item ) const;
 
-    QString displayNameForIndex( const QModelIndex &idx ) const;
-    QString displayNameForItem( QStandardItem *item ) const;
+    QStringList displayNamesForIndex( const QModelIndex &idx, bool allChildren = false ) const;
+    QStringList displayNamesForItem( QStandardItem *item, bool allChildren = false ) const;
+    QStringList displayNamesForItem( const CEmailAddressSection *item, bool allChildren = false ) const;
+
+    QStringList subjectsForIndex( const QModelIndex &idx, bool allChildren = false ) const;
+    QStringList subjectsForItem( QStandardItem *item, bool allChildren = false ) const;
+    QStringList subjectsForItem( const CEmailAddressSection *item, bool allChildren = false ) const;
 
     void displayEmail( const QModelIndex &idx ) const;
     void displayEmail( QStandardItem *item ) const;
 
     CEmailAddressSection *item( int row, int column = 0 ) const;
+
+    QString summary() const;
 Q_SIGNALS:
     void sigFinishedGrouping();
     void sigSetStatus( int curr, int max );
@@ -77,16 +91,18 @@ private:
     QStringList matchTextListForItem( CEmailAddressSection *item ) const;
 
     void sortAll( QStandardItem *root );
-    void addEmailAddress( std::shared_ptr< Outlook::MailItem > mailItem );
-    CEmailAddressSection *findOrAddEmailAddressSection( const QStringRef &curr, const QVector< QStringRef > &remaining, CEmailAddressSection *parent, const QString &displayName );
-
-    void addToDisplayName( CEmailAddressSection *currItem, const QString &displayName );
+    void addMailItem( std::shared_ptr< Outlook::MailItem > mailItem );
+    CEmailAddressSection *findOrAddEmailAddressSection( const QString &curr, const QVector< QStringRef > &remaining, CEmailAddressSection *parent, const QString &displayName, const QString &subject );
+    std::pair< CEmailAddressSection *, QList< QStandardItem * > > makeRow( const QString &section, bool inBack, const QString &displayName, const QString &subject );
 
     std::shared_ptr< Outlook::Items > fItems{ nullptr };
     mutable std::optional< int > fItemCountCache;
 
+    int fNumEmailsProcessed{ 0 };
+    int fNumEmailAddressesProcessed{ 0 };
+    int fUniqueEmails{ 0 };
     std::map< QString, CEmailAddressSection * > fRootItems;
-    std::map< QString, CEmailAddressSection * > fCache;
+    std::map< QString, CEmailAddressSection * > fDisplayNameEmailCache;
     std::map< QString, CEmailAddressSection * > fDomainCache;
     std::map< const QStandardItem *, std::shared_ptr< Outlook::MailItem > > fEmailCache;
     int fCurrPos{ 1 };

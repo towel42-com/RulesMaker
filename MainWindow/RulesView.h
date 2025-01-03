@@ -3,6 +3,8 @@
 
 #include "WidgetWithStatus.h"
 #include <memory>
+#include <optional>
+
 namespace Ui
 {
     class CRulesView;
@@ -14,6 +16,7 @@ namespace Outlook
     class Folder;
 }
 
+enum class EFilterType;
 class QModelIndex;
 class CRulesModel;
 class CListFilterModel;
@@ -35,6 +38,8 @@ public:
     bool ruleSelected() const;
     QString folderForSelectedRule() const;
     std::shared_ptr< Outlook::Rule > selectedRule() const;
+
+    EFilterType filterTypeForSelectedRule() const;
 
 Q_SIGNALS:
     void sigFinishedLoading();
