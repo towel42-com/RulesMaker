@@ -66,7 +66,7 @@ MACRO(FileForTypeID typeID prefix )
 ENDMACRO()
 
 
-MACRO( GenerateCPPFromFileID fileID prefix )
+MACRO( GenerateCPPFromFileID fileID prefix enumPrefix )
     if( NOT DUMPCPP_EXECUTABLE )
         MESSAGE( FATAL_ERROR "Could not find sab_dumpcpp" )
     endif()
@@ -92,7 +92,7 @@ MACRO( GenerateCPPFromFileID fileID prefix )
     ADD_CUSTOM_COMMAND( 
         OUTPUT 
             ${${prefix}_CPP} ${${prefix}_H}
-        COMMAND ${CMAKE_COMMAND} -E env "PATH=${QT_MSVCDIR}/bin;$ENV{PATH}" "${DUMPCPP_EXECUTABLE}" "${fileID}" -o ${prefix}
+        COMMAND ${CMAKE_COMMAND} -E env "PATH=${QT_MSVCDIR}/bin;$ENV{PATH}" "${DUMPCPP_EXECUTABLE}" "${fileID}" -o ${prefix} -e ${enumPrefix}
         COMMENT "[DUMPCPP] Generating ${prefix}.cpp and ${prefix}.h from '${${prefix}_OLBPATH}' using '${DUMPCPP_EXECUTABLE}'"
         VERBATIM
         DEPENDS
