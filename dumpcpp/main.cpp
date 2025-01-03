@@ -40,10 +40,17 @@
 #include <QCommandLineParser>
 #include <QWidget>
 #include <QFileInfo>
+#include <optional>
+#include <QHash>
+#include <QSet>
+#include <QRegularExpression>
+
 #include <qt_windows.h>
 #include <ocidl.h>
-#include "Version.h"
+
 #include <private/qmetaobject_p.h>
+#include "Version.h"
+
 QT_BEGIN_NAMESPACE
 
 QString sVersionString = QLatin1String( QT_VERSION_STR ) + QLatin1String( ".SAB." ) + NVersion::PATCH_VERSION;
@@ -84,11 +91,167 @@ static QVector< QByteArray > strings;
 static QHash< QByteArray, int > stringIndex;   // Optimization, speeds up generation
 static QByteArrayList vTableOnlyStubs;
 std::map< QString, QString > sEnumMap;
+QHash< QString, bool > sToStringDeclMap;
+QHash< QString, bool > sToStringImplMap;
+QList< std::pair< QString, QString > > sToStringImplList;
+QString sEnumPrefix;
 
+bool writeToFromStringImpl( QTextStream &implOut )
+{
+    for ( auto &&ii : sToStringImplList )
+    {
+        implOut << ii.first << endl;
+        implOut << ii.second << endl;
+    }
+    return true;
+}
+
+QString stripPrefix( QString enumName )
+{
+    if ( enumName.isEmpty() )
+        return {};
+    if ( !sEnumPrefix.isEmpty() && enumName.startsWith( sEnumPrefix, Qt::CaseInsensitive ) )
+        enumName = enumName.mid( sEnumPrefix.length() );
+    return enumName;
+};
+
+QString getValueNameForEnum( QString valueName )
+{
+    valueName = stripPrefix( valueName );
+    if ( !valueName.isEmpty() )
+    {
+        valueName[ 0 ] = valueName[ 0 ].toLower();
+    }
+    return valueName;
+}
+
+QString getEnumDescriptiveString( QString enumName )
+{
+    if ( enumName.isEmpty() )
+        return {};
+    enumName = stripPrefix( enumName );
+
+    QStringList words;
+    auto regEx = QRegularExpression( "[A-Z][a-z]+" );
+    auto iter = regEx.globalMatch( enumName );
+    auto prevEnd = 0;
+    while ( iter.hasNext() )
+    {
+        auto match = iter.next();
+        if ( match.capturedStart( 0 ) != prevEnd )
+        {
+            words << enumName.mid( prevEnd, match.capturedStart( 0 ) - prevEnd );
+        }
+        auto word = match.captured( 0 );
+        words << word;
+        prevEnd = match.capturedEnd( 0 );
+    }
+
+    enumName = words.join( " " );
+    return enumName;
+}
+
+QString getToStringDecl( const QString &enumName, const std::optional< QString > &nameSpace = {} )
+{
+    QString prefix;
+    if ( nameSpace.has_value() )
+        prefix = nameSpace.value() + QLatin1String( "::" );
+
+    return QString( "QString %1toString( %2 %3 )" ).arg( prefix, enumName, getValueNameForEnum( enumName ) );
+}
+
+QString getFromStringDecl( const QString &enumName, const std::optional< QString > &nameSpace = {} )
+{
+    QString prefix;
+    QString templPrefix;
+    QString templDecl;
+    if ( nameSpace.has_value() )
+    {
+        prefix = nameSpace.value() + QLatin1String( "::" );
+        templDecl = QString( "< %1 >" ).arg( enumName );
+    }
+    else
+        templPrefix = QLatin1String( "template<> " );
+
+    return QString( "%1std::optional< %2 > %3fromString%4( const QString & %5Str )" ).arg( templPrefix, enumName, prefix, templDecl, getValueNameForEnum( enumName ) );
+}
+
+std::optional< QString > generateFromString( const QMetaEnum &metaEnum, const QString &nameSpace )
+{
+    QString retVal;
+    QTextStream out( &retVal );
+
+    auto enumName = metaEnum.name();
+    out << getFromStringDecl( enumName, nameSpace ) << endl   //
+        << "{" << endl
+        << "    static QHash< QString, " << enumName << " > sEnumMap;" << endl
+        << "    if ( sEnumMap.isEmpty() )" << endl   //
+        << "    {" << endl;
+
+    for ( int ii = 0; ii < metaEnum.keyCount(); ++ii )
+    {
+        auto enumKey = QString( metaEnum.key( ii ) );
+        auto strippedKey = stripPrefix( enumKey );
+        auto descriptiveKey = getEnumDescriptiveString( enumKey );
+
+        // dont use a set for uniquifying since we want consistant order based on the enum
+        auto keys = QStringList() << enumKey.toLower() << strippedKey.toLower() << descriptiveKey.toLower(); 
+        keys.removeDuplicates();
+
+        auto enumValue = enumName + QLatin1String( "::" ) + metaEnum.key( ii );
+
+        if ( ii )
+            out << endl;
+        for ( auto &&ii : keys )
+        {
+            out << "        " << "sEnumMap[\"" << ii << "\"] = " << enumValue << ";" << endl;
+        }
+    }
+
+    out << "    }" << endl;   //
+
+    out << endl
+        << "    auto pos = sEnumMap.find( " << getValueNameForEnum( enumName ) << "Str.toLower() );" << endl   //
+        << "    if ( pos != sEnumMap.end() )" << endl   //
+        << "        return pos.value();" << endl   //
+        << "    return {};" << endl   //
+        << "};" << endl;
+
+    return retVal;
+}
+
+std::optional< QString > generateToString( const QMetaEnum &metaEnum, const QString &nameSpace )
+{
+    if ( !metaEnum.isValid() )
+        return {};
+
+    QString retVal;
+    QTextStream out( &retVal );
+
+    //qDebug() << "    Generating toString for enum " << enumName;
+
+    auto enumName = metaEnum.name();
+    out << getToStringDecl( enumName, nameSpace ) << endl << "{" << endl << "    switch( " << getValueNameForEnum( enumName ) << " )" << endl << "    {" << endl;
+
+    for ( int ii = 0; ii < metaEnum.keyCount(); ++ii )
+    {
+        auto enumString = getEnumDescriptiveString( metaEnum.key( ii ) );
+        auto key = enumName + QLatin1String( "::" ) + metaEnum.key( ii );
+        out << "        case " << key << ": return \"" << enumString << "\";" << endl;
+    }
+
+    out << QString( R"(        default: return "<UNKNOWN-%1>";)" ).arg( enumName ) << endl   //
+        << "    };" << endl
+        << "};" << endl;
+
+    return retVal;
+}
 
 void writeEnums( QTextStream &out, const QMetaObject *mo, const QString &nameSpace )
 {
     // enums
+    out << "    template< typename T > std::optional< T > fromString( const QString & valueStr );" << endl << endl;
+
     for ( int ienum = mo->enumeratorOffset(); ienum < mo->enumeratorCount(); ++ienum )
     {
         QMetaEnum metaEnum = mo->enumerator( ienum );
@@ -103,6 +266,23 @@ void writeEnums( QTextStream &out, const QMetaObject *mo, const QString &nameSpa
             sEnumMap[ nameSpace + "::" + key ] = nameSpace + "::" + metaEnum.name() + "::" + key;
         }
         out << "    };" << endl;
+        if ( !sToStringDeclMap.contains( metaEnum.name() ) )
+        {
+            sToStringDeclMap[ metaEnum.name() ] = true;
+            out << "    " << getToStringDecl( metaEnum.name() ) << ";" << endl;
+            out << "    " << getFromStringDecl( metaEnum.name() ) << ";" << endl;
+        }
+
+        if ( !sToStringImplMap.contains( metaEnum.name() ) )
+        {
+            auto toStringStr = generateToString( metaEnum, nameSpace );
+            auto fromStringStr = generateFromString( metaEnum, nameSpace );
+            if ( toStringStr.has_value() && fromStringStr.has_value() )
+            {
+                sToStringImplMap[ metaEnum.name() ] = true;
+                sToStringImplList << std::make_pair( toStringStr.value(), fromStringStr.value() );
+            }
+        }
         out << endl;
     }
 }
@@ -121,6 +301,7 @@ void writeHeader( QTextStream &out, const QString &nameSpace, const QString &out
     out << "#include <qaxwidget.h>" << endl;
     out << "#include <qdatetime.h>" << endl;
     out << "#include <qpixmap.h>" << endl;
+    out << "#include <optional>" << endl;
     out << endl;
     out << "struct IDispatch;" << endl;
     out << endl;
@@ -1274,6 +1455,9 @@ bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &n
         }
         generateNameSpace( declOut, namespaceObject, libName.toLatin1() );
 
+        if ( !writeToFromStringImpl( implOut ) )
+            return false;
+
         QList< QByteArray > classList = namespaces.value( libName.toLatin1() );
         if ( classList.count() )
             declOut << "// forward declarations" << endl;
@@ -1608,6 +1792,7 @@ static void parseOptions( Options *options )
 
     const char outputOptionC[] = "-o";
     const char nameSpaceOptionC[] = "-n";
+    const char enumPrefixOptionC[] = "-e";
     const char getfileOptionC[] = "-getfile";
 
     QStringList args = QCoreApplication::arguments();
@@ -1617,7 +1802,7 @@ static void parseOptions( Options *options )
         QString &arg = args[ i ];
         if ( arg.startsWith( QLatin1Char( '/' ) ) )
             arg[ 0 ] = QLatin1Char( '-' );
-        const bool takesOptionValue = arg == QLatin1String( outputOptionC ) || arg == QLatin1String( nameSpaceOptionC ) || arg == QLatin1String( getfileOptionC );
+        const bool takesOptionValue = arg == QLatin1String( outputOptionC ) || arg == QLatin1String( nameSpaceOptionC ) || arg == QLatin1String( getfileOptionC ) || arg == QLatin1String( enumPrefixOptionC );
         i += takesOptionValue ? 2 : 1;
     }
 
@@ -1632,6 +1817,8 @@ static void parseOptions( Options *options )
     parser.addOption( outputOption );
     QCommandLineOption nameSpaceOption( QLatin1String( nameSpaceOptionC + 1 ), QStringLiteral( "The name of the generated C++ namespace." ), QStringLiteral( "namespace" ) );
     parser.addOption( nameSpaceOption );
+    QCommandLineOption enumPrefixOption( QLatin1String( enumPrefixOptionC + 1 ), QStringLiteral( "String to strip off the beginning of an enum for description (case insensitive)." ), QStringLiteral( "enum_prefix" ) );
+    parser.addOption( enumPrefixOption );
     QCommandLineOption noMetaObjectOption( QStringLiteral( "nometaobject" ), QStringLiteral( "Don't generate meta object information (no .cpp file). The meta object is then generated in runtime." ) );
     parser.addOption( noMetaObjectOption );
     QCommandLineOption noDeclarationOption( QStringLiteral( "impl" ), QStringLiteral( "Only generate the .cpp file." ) );
@@ -1649,6 +1836,8 @@ static void parseOptions( Options *options )
         options->outname = parser.value( outputOption );
     if ( parser.isSet( nameSpaceOption ) )
         options->nameSpace = parser.value( nameSpaceOption );
+    if ( parser.isSet( enumPrefixOption ) )
+        sEnumPrefix = parser.value( enumPrefixOption );
     if ( parser.isSet( noMetaObjectOption ) )
         options->category |= NoMetaObject;
     if ( parser.isSet( noDeclarationOption ) )
