@@ -9,6 +9,12 @@
 #*******************************************************************************
 #*******************************************************************************
 
+if( DUMPCPP_EXECUTABLE AND NOT EXISTS ${DUMPCPP_EXECUTABLE} )
+        MESSAGE( WARNING "'${DUMPCPP_EXECUTABLE}' no longer exists" )
+        UNSET( DUMPCPP_EXECUTABLE CACHE )
+        UNSET( DUMPCPP_VERSION CACHE )
+endif()
+
 if( NOT DUMPCPP_EXECUTABLE )
     find_program(DUMPCPP_EXECUTABLE NAMES sab_dumpcpp
       PATHS ${CMAKE_INSTALL_PREFIX} ${CMAKE_BINARY_DIR}/dumpcpp/RelWithDebInfo ${CMAKE_BINARY_DIR}/dumpcpp/Release ${CMAKE_BINARY_DIR}/dumpcpp/Debug
@@ -30,8 +36,6 @@ if( NOT DUMPCPP_EXECUTABLE )
 
         MESSAGE( STATUS "Using dumpcpp: '${DUMPCPP_EXECUTABLE}' - ${DUMPCPP_VERSION}" )
     endif()
-
-
 endif()
 
 MACRO(FileForTypeID typeID prefix )
@@ -65,6 +69,10 @@ ENDMACRO()
 MACRO( GenerateCPPFromFileID fileID prefix )
     if( NOT DUMPCPP_EXECUTABLE )
         MESSAGE( FATAL_ERROR "Could not find sab_dumpcpp" )
+    endif()
+
+    if ( NOT EXISTS ${DUMPCPP_EXECUTABLE} )
+        message( FATAL_ERROR "${DUMPCPP_EXECUTABLE} does not exist" )
     endif()
 
     FileForTypeID( ${fileID} ${prefix} )
