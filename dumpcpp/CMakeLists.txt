@@ -28,6 +28,7 @@ endif()
 
 target_include_directories( ${PROJECT_NAME} PUBLIC ${QT_MSVCDIR}/include/QtCore/${QT_VERSION}/ )
 target_include_directories( ${PROJECT_NAME} PUBLIC ${QT_MSVCDIR}/include/QtCore/${QT_VERSION}/QtCore/ )
+target_include_directories( ${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR} )
 
 target_link_directories( ${PROJECT_NAME}
     PUBLIC
