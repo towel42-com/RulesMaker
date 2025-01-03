@@ -67,7 +67,7 @@ std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::Rule *lhs, c
     auto lhsRecipients = getRecipients( lhs, msgs );
     if ( !lhsRecipients.has_value() )
         return {};
-    mergeStringLists( lhsRecipients.value(), rhs, false );
+    lhsRecipients.value() = mergeStringLists( lhsRecipients.value(), rhs, false );
     return lhsRecipients;
 }
 
@@ -94,7 +94,7 @@ std::optional< QStringList > COutlookAPI::mergeRecipients( const std::list< Outl
     {
         auto currRecipients = mergeRecipients( primaryRule, ( *pos ), msgs );
         if ( retVal.has_value() )
-            mergeStringLists( retVal.value(), currRecipients.value(), false );
+            retVal.value() = mergeStringLists( retVal.value(), currRecipients.value(), false );
         else
             retVal = currRecipients;
     }

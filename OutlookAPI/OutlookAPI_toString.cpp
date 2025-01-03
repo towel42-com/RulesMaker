@@ -541,16 +541,16 @@ QStringList toStringList( const QVariant &variant )
     return retVal;
 }
 
-QStringList &mergeStringLists( QStringList &lhs, const QStringList &rhs, bool andSort )
+QStringList mergeStringLists( const QStringList &lhs, const QStringList &rhs, bool andSort )
 {
-    lhs << rhs;
+    auto retVal = QStringList() << lhs << rhs;
     if ( andSort )
-        lhs.sort( Qt::CaseInsensitive );
+        retVal.sort( Qt::CaseInsensitive );
 
-    lhs.removeDuplicates();
-    lhs.removeAll( QString() );
+    retVal.removeDuplicates();
+    retVal.removeAll( QString() );
 
-    return lhs;
+    return retVal;
 }
 
 QString toString( EFilterType filterType )

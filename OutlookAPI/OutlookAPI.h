@@ -416,7 +416,7 @@ QString toString( Outlook::OlAddressEntryUserType entryUserType );
 QString toString( Outlook::OlObjectClass objectClass );
 QString toString( Outlook::OlDisplayType objectClass );
 
-QStringList &mergeStringLists( QStringList &lhs, const QStringList &rhs, bool andSort = false );
+[[nodiscard]] QStringList mergeStringLists( const QStringList &lhs, const QStringList &rhs, bool andSort = false );
 
 // general API in OutlookAPI.cpp
 COutlookAPI::EAddressTypes operator|( const COutlookAPI::EAddressTypes &lhs, const COutlookAPI::EAddressTypes &rhs );

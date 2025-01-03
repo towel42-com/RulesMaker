@@ -1078,7 +1078,14 @@ bool COutlookAPI::addDisplayNamesToRule( Outlook::Rule *rule, const QStringList 
     if ( header->Enabled() )
         text = toStringList( header->Text() );
 
-    text = mergeStringLists( text, displayNames, true );
+    auto tmp = mergeStringLists( text, displayNames, true );
+    text.clear();
+    for ( auto &&ii : tmp )
+    {
+        text << ii;
+        text << '"' + ii + '"';
+    }
+
     for ( auto &&ii : text )
     {
         ii = "From: " + ii;

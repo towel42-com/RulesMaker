@@ -271,7 +271,7 @@ QStringList CEmailModel::subjectsForItem( const CEmailAddressSection *item, bool
         if ( subject.isEmpty() )
             continue;
 
-        mergeStringLists( retVal, { subject }, true );
+        retVal = mergeStringLists( retVal, { subject }, true );
     }
     return retVal;
 }
@@ -310,7 +310,7 @@ QStringList CEmailModel::displayNamesForItem( const CEmailAddressSection *item, 
 
         auto displayNames = COutlookAPI::getDisplayNames( emailAddresses );
 
-        mergeStringLists( retVal, displayNames, true );
+        retVal = mergeStringLists( retVal, displayNames, true );
     }
 
     return retVal;
@@ -370,7 +370,7 @@ QStringList CEmailModel::matchTextListForItem( CEmailAddressSection *item ) cons
             matchText = "@" + matchText;
         retVal.push_back( matchText );
     }
-    mergeStringLists( retVal, {}, false );
+    retVal = mergeStringLists( retVal, {}, false );
 
     for ( auto &&ii = 0; ii < item->rowCount(); ++ii )
     {
@@ -379,7 +379,7 @@ QStringList CEmailModel::matchTextListForItem( CEmailAddressSection *item ) cons
             continue;
 
         auto curr = matchTextListForItem( child );
-        mergeStringLists( retVal, curr, false );
+        retVal = mergeStringLists( retVal, curr, false );
     }
 
     return retVal;

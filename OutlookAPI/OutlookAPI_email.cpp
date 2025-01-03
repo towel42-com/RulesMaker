@@ -16,7 +16,7 @@
 COutlookAPI::TStringPairList cleanResults( QStringList keys )
 {
     COutlookAPI::TStringPairList retVal;
-    mergeStringLists( keys, {}, false );
+    keys = mergeStringLists( keys, {}, false );
     for ( auto &&ii : keys )
     {
         auto split = ii.split( "<<<BREAK>>>" );

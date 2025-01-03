@@ -154,7 +154,7 @@ QStringList CEmailView::getEmailsForSelection() const
     QStringList retVal;
     for ( auto &&row : rows )
     {
-        mergeStringLists( retVal, fGroupedModel->matchTextForIndex( row ) );
+        retVal = mergeStringLists( retVal, fGroupedModel->matchTextForIndex( row ) );
     }
     return retVal;
 }
