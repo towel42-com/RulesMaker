@@ -240,6 +240,7 @@ void CFoldersModel::clear()
     setHorizontalHeaderLabels( QStringList() << "Folder Name" );
     fFolders.clear();
     fItemToFolderMap.clear();
+    fFolderToItemMap.clear();
 }
 
 QModelIndex CFoldersModel::addFolder( const QModelIndex &parentIndex, QWidget *parent )
