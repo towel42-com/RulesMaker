@@ -248,7 +248,7 @@ QStringList CEmailModel::subjectsForIndex( const QModelIndex &idx, bool allChild
 
 QStringList CEmailModel::subjectsForItem( QStandardItem *item, bool allChildren ) const
 {
-    return displayNamesForItem( dynamic_cast< CEmailAddressSection * >( item ), allChildren );
+    return subjectsForItem( dynamic_cast< CEmailAddressSection * >( item ), allChildren );
 }
 
 QStringList CEmailModel::subjectsForItem( const CEmailAddressSection *item, bool allChildren ) const
