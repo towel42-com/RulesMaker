@@ -1,4 +1,5 @@
 #include "RulesView.h"
+#include "ShowRule.h"
 #include "Models/RulesModel.h"
 #include "Models/ListFilterModel.h"
 #include "OutlookAPI/OutlookAPI.h"
@@ -39,6 +40,8 @@ void CRulesView::init()
     fFilterModel->setSourceModel( fModel );
     fImpl->rules->setModel( fFilterModel );
 
+    connect( fImpl->rules, &QTreeView::doubleClicked, this, &CRulesView::slotRuleDoubleClicked );
+
     connect( fImpl->deleteRule, &QToolButton::clicked, this, &CRulesView::slotDeleteCurrent );
     connect( fImpl->enableRule, &QToolButton::clicked, this, &CRulesView::slotEnableCurrent );
     connect( fImpl->disableRule, &QToolButton::clicked, this, &CRulesView::slotDisableCurrent );
@@ -50,7 +53,7 @@ void CRulesView::init()
         fModel, &CRulesModel::sigFinishedLoading,
         [ = ]()
         {
-            fImpl->rules->resizeColumnToContents( 0 );
+            resizeToContentZero( fImpl->rules, EExpandMode::eNoAction );
             if ( fNotifyOnFinish )
                 emit sigFinishedLoading();
             fNotifyOnFinish = true;
@@ -63,7 +66,7 @@ void CRulesView::init()
         {
             if ( ( max > 10 ) && ( curr == 1 ) || ( ( curr % 10 ) == 0 ) )
             {
-                fImpl->rules->resizeColumnToContents( 0 );
+                resizeToContentZero( fImpl->rules, EExpandMode::eNoAction );
             }
         } );
     connect(
@@ -215,4 +218,17 @@ void CRulesView::updateButtons( const std::shared_ptr< Outlook::Rule > &rule )
     fImpl->deleteRule->setEnabled( rule && !COutlookAPI::instance()->disableRatherThanDeleteRules() );
     fImpl->enableRule->setEnabled( rule && !COutlookAPI::instance()->ruleEnabled( rule ) );
     fImpl->disableRule->setEnabled( rule && COutlookAPI::instance()->ruleEnabled( rule ) );
+}
+
+void CRulesView::slotRuleDoubleClicked()
+{
+    auto rule = fModel->getRule( selectedIndex() );
+    if ( !rule )
+        return;
+    CShowRule dlg( rule, false, this );
+    if ( dlg.exec() == QDialog::Accepted )
+    {
+        //COutlookAPI::instance()->saveRules();
+        //fModel->reload();
+    }
 }

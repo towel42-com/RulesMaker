@@ -55,6 +55,7 @@ protected Q_SLOTS:
     void slotEnableCurrent();
     void slotDisableCurrent();
     void slotOptionsChanged();
+    void slotRuleDoubleClicked();
 
 protected:
     void updateButtons( const QModelIndex &index );
