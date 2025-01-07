@@ -7,6 +7,7 @@ set(qtproject_UIS
     MainWindow.ui
     RulesView.ui
     Settings.ui
+    ShowRule.ui
     StatusProgress.ui
 )
 
@@ -16,6 +17,7 @@ set(project_SRCS
     MainWindow.cpp
     RulesView.cpp
     Settings.cpp
+    ShowRule.cpp
     StatusProgress.cpp
 )
  
@@ -25,6 +27,7 @@ set(qtproject_H
     MainWindow.h
     RulesView.h
     Settings.h
+    ShowRule.h
     StatusProgress.h
     WidgetWithStatus.h
 )

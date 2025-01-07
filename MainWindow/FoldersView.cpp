@@ -35,7 +35,7 @@ void CFoldersView::init()
         fModel, &CFoldersModel::sigFinishedLoading,
         [ = ]()
         {
-            fImpl->folders->expandAll();
+            resizeToContentZero( fImpl->folders, true );
             fImpl->folders->resizeColumnToContents( 0 );
             fImpl->folders->collapseAll();
             fImpl->folders->expand( fFilterModel->index( 0, 0 ) );
