@@ -24,6 +24,7 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     fImpl->setupUi( this );
 
     connect( fImpl->actionSelectServer, &QAction::triggered, this, &CMainWindow::slotSelectServer );
+    connect( fImpl->actionExit, &QAction::triggered, this, &CMainWindow::close );
 
     connect( fImpl->actionReloadAllData, &QAction::triggered, this, &CMainWindow::slotReloadAll );
     connect( fImpl->actionReloadEmail, &QAction::triggered, this, &CMainWindow::slotReloadEmail );
@@ -86,7 +87,6 @@ CMainWindow::CMainWindow( QWidget *parent ) :
             slotUpdateActions();
         } );
 
-    
     connect( this, &CMainWindow::sigRunningStateChanged, fImpl->rules, &CRulesView::slotRunningStateChanged );
     connect( this, &CMainWindow::sigRunningStateChanged, fImpl->email, &CEmailView::slotRunningStateChanged );
     connect( this, &CMainWindow::sigRunningStateChanged, fImpl->folders, &CFoldersView::slotRunningStateChanged );
@@ -182,7 +182,6 @@ void CMainWindow::updateActions()
         }
     }
 
-
     if ( emailSelected.first && !emailHasDisplayName.first )
         setEnabled( fImpl->actionAddFolderForSelectedEmail, emailHasDisplayName );
     else
@@ -222,9 +221,18 @@ void CMainWindow::slotAddRule()
     auto &&[ rules, patternType ] = fImpl->email->getPatternsForSelection();
 
     QStringList msgs;
-    if ( !COutlookAPI::instance()->addRule( destFolder, rules, patternType, msgs ) )
+    auto aOK = COutlookAPI::instance()->addRule( destFolder, rules, patternType, msgs, [ this ]( bool changeCursor ) { changeCursor ? qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) ) : qApp->restoreOverrideCursor(); } );
+
+    if ( !aOK.has_value() )
+    {
+        qApp->restoreOverrideCursor();
+        return;
+    }
+
+    if ( !aOK.value() )
     {
         QMessageBox::critical( this, "Error", "Could not create rule\n" + msgs.join( "\n" ) );
+        qApp->restoreOverrideCursor();
     }
     clearSelection();
     slotReloadEmail();
@@ -239,7 +247,14 @@ void CMainWindow::slotAddToSelectedRule()
     auto &&[ rules, patternType ] = fImpl->email->getPatternsForSelection();
 
     QStringList msgs;
-    if ( !COutlookAPI::instance()->addToRule( rule, rules, patternType, msgs ) )
+    auto aOK = COutlookAPI::instance()->addToRule( rule, rules, patternType, msgs, [ this ]( bool changeCursor ) { changeCursor ? qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) ) : qApp->restoreOverrideCursor(); } );
+    if ( !aOK.has_value() )
+    {
+        qApp->restoreOverrideCursor();
+        return;
+    }
+
+    if ( !aOK.value() )
     {
         QMessageBox::critical( this, "Error", "Could not modify rule\n" + msgs.join( "\n" ) );
     }
