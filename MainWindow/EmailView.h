@@ -51,6 +51,8 @@ protected Q_SLOTS:
 
 protected:
     void setFilterType( EFilterType filterType );
+    void updateEditFields();
+    void updateEditFields( EFilterType filterType );
 
     QStringList getDisplayNamesForSelection() const;
     QStringList getEmailsForSelection() const;

@@ -32,8 +32,8 @@ void CEmailView::init()
         fGroupedModel, &CEmailModel::sigFinishedGrouping,
         [ = ]()
         {
-            fImpl->groupedEmails->expandAll();
-            fImpl->groupedEmails->resizeColumnToContents( 0 );
+            resizeToContentZero( fImpl->groupedEmails, EExpandMode::eExpandAll );
+
             if ( fNotifyOnFinish )
                 emit sigFinishedLoading();
             fNotifyOnFinish = true;
@@ -56,7 +56,7 @@ void CEmailView::init()
                     fImpl->groupedEmails->expand( idx );
                 }
 
-                fImpl->groupedEmails->resizeColumnToContents( 0 );
+                resizeToContentZero( fImpl->groupedEmails, EExpandMode::eNoAction );
             }
         } );
 
@@ -76,13 +76,6 @@ void CEmailView::init()
     slotRunningStateChanged( false );
 
     setWindowTitle( QObject::tr( "Inbox Emails" ) );
-}
-
-void CEmailView::setFilterType( EFilterType filterType )
-{
-    fImpl->byDisplayNames->setChecked( filterType == EFilterType::eByDisplayName );
-    fImpl->byEmailAddress->setChecked( filterType == EFilterType::eByEmailAddress );
-    fImpl->bySubjects->setChecked( filterType == EFilterType::eBySubject );
 }
 
 CEmailView::~CEmailView()
@@ -254,8 +247,25 @@ void CEmailView::slotRunningStateChanged( bool running )
     if ( running )
         return;
 
-    fImpl->emailAddresses->setEnabled( fImpl->byEmailAddress->isChecked() );
-    fImpl->displayNames->setEnabled( fImpl->byDisplayNames->isChecked() );
-    fImpl->subjects->setEnabled( fImpl->bySubjects->isChecked() );
+    updateEditFields();
 }
 
+void CEmailView::updateEditFields()
+{
+    updateEditFields( getFilterType() );
+}
+
+void CEmailView::updateEditFields( EFilterType filterType )
+{
+    fImpl->emailAddresses->setEnabled( filterType == EFilterType::eByEmailAddress );
+    fImpl->displayNames->setEnabled( filterType == EFilterType::eByDisplayName );
+    fImpl->subjects->setEnabled( filterType == EFilterType::eBySubject );
+}
+
+void CEmailView::setFilterType( EFilterType filterType )
+{
+    fImpl->byEmailAddress->setChecked( filterType == EFilterType::eByEmailAddress );
+    fImpl->byDisplayNames->setChecked( filterType == EFilterType::eByDisplayName );
+    fImpl->bySubjects->setChecked( filterType == EFilterType::eBySubject );
+    updateEditFields( filterType );
+}
