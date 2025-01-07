@@ -15,6 +15,15 @@ class QVariant;
 class QWidget;
 struct IDispatch;
 class QStandardItem;
+class QTreeView;
+enum class EWrapperMode
+{
+    eAngleAll,
+    eParenAll,
+    eAngleIndividual,
+    eParenIndividual,
+    eNone
+};
 
 namespace Outlook
 {
@@ -171,8 +180,8 @@ public:
     std::shared_ptr< Outlook::Rule > getRule( const std::shared_ptr< Outlook::Rules > &rules, int num );
     std::shared_ptr< Outlook::Rule > findRule( const QString &ruleName );
 
-    bool addRule( const std::shared_ptr< Outlook::Folder > &folder, const QStringList &rules, EFilterType patternType, QStringList &msgs );
-    bool addToRule( std::shared_ptr< Outlook::Rule > rule, const QStringList &rules, EFilterType patternType, QStringList &msg );
+    std::optional< bool > addRule( const std::shared_ptr< Outlook::Folder > &folder, const QStringList &rules, EFilterType patternType, QStringList &msgs, const std::function< void( bool ) > &changeCursor );
+    std::optional< bool > addToRule( std::shared_ptr< Outlook::Rule > rule, const QStringList &rules, EFilterType patternType, QStringList &msg, const std::function< void( bool ) > &changeCursor );
 
     bool ruleEnabled( const std::shared_ptr< Outlook::Rule > &rule );
     bool disableRule( const std::shared_ptr< Outlook::Rule > &rule );
@@ -185,6 +194,13 @@ public:
     EFilterType filterTypeForRule( const std::shared_ptr< Outlook::Rule > &rule ) const;
 
     static QString ruleNameForRule( std::shared_ptr< Outlook::Rule > rule, bool forDisplay = false, bool rawName = false );
+
+    //static QStringList getConditionalStrings( std::shared_ptr< Outlook::Rule > rule, bool exceptions, bool includeSender=false );
+    static QStringList getActionStrings( std::shared_ptr< Outlook::Rule > rule );
+
+    static QList< QStringList > getConditionalStringList( std::shared_ptr< Outlook::Rule > rule, bool exceptions, EWrapperMode wrapperMode, bool includeSender = false );
+    static QList< QStringList > getActionStringList( std::shared_ptr< Outlook::Rule > rule );
+
     static bool isEnabled( const std::shared_ptr< Outlook::Rule > &rule );
 
     bool ruleBeenLoaded( std::shared_ptr< Outlook::Rule > &rule ) const;
@@ -423,4 +439,13 @@ COutlookAPI::EAddressTypes operator|( const COutlookAPI::EAddressTypes &lhs, con
 COutlookAPI::EAddressTypes getAddressTypes( bool smtpOnly );
 COutlookAPI::EAddressTypes getAddressTypes( std::optional< Outlook::OlMailRecipientType > recipientType, bool smtpOnly );
 
+enum class EExpandMode
+{
+    eExpandAll,
+    eCollapseAll,
+    eExpandAndCollapseAll,
+    eNoAction
+};
+
+void resizeToContentZero( QTreeView *treeView, EExpandMode expandMode );
 #endif

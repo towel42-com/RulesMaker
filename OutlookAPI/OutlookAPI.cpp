@@ -4,6 +4,7 @@
 #include <QMessageBox>
 #include <QDebug>
 #include <QMetaProperty>
+#include <QTreeView>
 
 #include <cstdlib>
 #include <iostream>
@@ -245,4 +246,17 @@ COutlookAPI::EAddressTypes getAddressTypes( std::optional< Outlook::OlMailRecipi
         types = types | COutlookAPI::EAddressTypes::eAllRecipients;
 
     return types;
+}
+
+void resizeToContentZero( QTreeView *treeView, EExpandMode expandMode )
+{
+    if ( !treeView )
+        return;
+    if ( ( expandMode == EExpandMode::eExpandAll ) || ( expandMode == EExpandMode::eExpandAndCollapseAll ) )
+        treeView->expandAll();
+    treeView->resizeColumnToContents( 0 );
+    if ( treeView->columnWidth( 0 ) > 300 )
+        treeView->setColumnWidth( 0, 300 );
+    if ( ( expandMode == EExpandMode::eCollapseAll ) || ( expandMode == EExpandMode::eExpandAndCollapseAll ) )
+        treeView->collapseAll();
 }

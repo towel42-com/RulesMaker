@@ -51,8 +51,7 @@ bool COutlookAPI::enableAllRules( bool andSave /*= true*/, bool *needsSaving /*=
 
 std::optional< QString > COutlookAPI::mergeKey( const std::shared_ptr< Outlook::Rule > &rule ) const
 {
-    auto from = rule->Conditions()->SenderAddress();
-    if ( !from || !from->Enabled() )
+    if ( !rule->Conditions() )
         return {};
 
     auto moveAction = rule->Actions()->MoveToFolder();
