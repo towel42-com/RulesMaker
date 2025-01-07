@@ -35,9 +35,7 @@ void CFoldersView::init()
         fModel, &CFoldersModel::sigFinishedLoading,
         [ = ]()
         {
-            resizeToContentZero( fImpl->folders, true );
-            fImpl->folders->resizeColumnToContents( 0 );
-            fImpl->folders->collapseAll();
+            resizeToContentZero( fImpl->folders, EExpandMode::eCollapseAll );
             fImpl->folders->expand( fFilterModel->index( 0, 0 ) );
             auto inboxIndex = fFilterModel->mapFromSource( fModel->inboxIndex() );
             if ( inboxIndex.isValid() )
@@ -61,7 +59,7 @@ void CFoldersView::init()
                 auto inboxIndex = fFilterModel->mapFromSource( fModel->inboxIndex() );
                 if ( inboxIndex.isValid() )
                     fImpl->folders->expand( inboxIndex );
-                fImpl->folders->resizeColumnToContents( 0 );
+                resizeToContentZero( fImpl->folders, EExpandMode::eNoAction );
             }
         } );
     connect( fImpl->filter, &QLineEdit::textChanged, fFilterModel, &CListFilterModel::slotSetFilter );
