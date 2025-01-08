@@ -52,6 +52,9 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     connect( fImpl->actionEmptyTrash, &QAction::triggered, this, &CMainWindow::slotEmptyTrash );
     connect( fImpl->actionEmptyJunkFolder, &QAction::triggered, this, &CMainWindow::slotEmptyJunkFolder );
 
+    connect( fImpl->actionRuleEnabled, &QAction::triggered, this, &CMainWindow::slotRuleEnabledChecked );
+    connect( fImpl->actionDeleteRule, &QAction::triggered, this, &CMainWindow::slotDeleteRule );
+
     connect( fImpl->actionSettings, &QAction::triggered, this, &CMainWindow::slotSettings );
     connect( fImpl->actionProcessAllEmailWhenLessThan200Emails, &QAction::triggered, [ = ]() { api->setProcessAllEmailWhenLessThan200Emails( fImpl->actionProcessAllEmailWhenLessThan200Emails->isChecked() ); } );
     connect( fImpl->actionOnlyProcessTheFirst500Emails, &QAction::triggered, [ = ]() { api->setOnlyProcessTheFirst500Emails( fImpl->actionOnlyProcessTheFirst500Emails->isChecked() ); } );
@@ -84,6 +87,7 @@ CMainWindow::CMainWindow( QWidget *parent ) :
         [ = ]()
         {
             auto rule = fImpl->rules->selectedRule();
+            fImpl->actionRuleEnabled->setChecked( rule ? COutlookAPI::instance()->ruleEnabled( rule ) : false );
             auto path = COutlookAPI::rawRuleNameForRule( rule );
             slotStatusMessage( QString( "Rule Selected: %1" ).arg( path ) );
             slotUpdateActions();
@@ -148,6 +152,8 @@ void CMainWindow::updateActions()
     TReason emailSelected( !fImpl->email->getEmailPatternForSelection().isEmpty(), "Email not selected" );
     TReason emailHasDisplayName( !fImpl->email->selectionHasDisplayName(), "Selected email does not have a display name" );
     TReason ruleSelected( fImpl->rules->ruleSelected(), "Rule not selected" );
+    TReason disableRatherThanDeleteRules( !COutlookAPI::instance()->disableRatherThanDeleteRules(), "Disable rather than delete rules is enabled" );
+    
     TReason folderSelected( !fImpl->folders->selectedPath().isEmpty(), "Folder not selected" );
     TReason folderSame( true, "Selected folder does not match selected rule's target folder" );
 
@@ -184,7 +190,10 @@ void CMainWindow::updateActions()
         setEnabled( fImpl->actionAddFolderForSelectedEmail, emailSelected );
 
     setEnabled( fImpl->actionRunSelectedRule, ruleSelected );
+    setEnabled( fImpl->actionDeleteRule, { ruleSelected, disableRatherThanDeleteRules } );
     setEnabled( fImpl->actionAddToSelectedRule, { emailSelected, ruleSelected, folderSame } );
+
+    setEnabled( fImpl->actionRuleEnabled, ruleSelected );
 
     setEnabled( fImpl->actionRunAllRulesOnSelectedFolder, folderSelected );
     setEnabled( fImpl->actionRunSelectedRuleOnSelectedFolder, { folderSelected, ruleSelected } );
@@ -305,6 +314,32 @@ void CMainWindow::slotEnableAllRules()
     setWaitCursor( true );
     if ( COutlookAPI::instance()->enableAllRules() )
         slotReloadRules();
+    setWaitCursor( false );
+}
+
+void CMainWindow::slotRuleEnabledChecked()
+{
+    setWaitCursor( true );
+    auto selectedRule = fImpl->rules->selectedRule();
+    if ( !selectedRule )
+        return;
+    auto enable = fImpl->actionRuleEnabled->isChecked();
+    bool status = enable ? COutlookAPI::instance()->enableRule( selectedRule, true ) : COutlookAPI::instance()->disableRule( selectedRule, true );
+    if ( status )
+        slotReloadRules();
+    setWaitCursor( false );
+}
+
+void CMainWindow::slotDeleteRule()
+{
+    setWaitCursor( true );
+    auto selectedRule = fImpl->rules->selectedRule();
+    if ( !selectedRule )
+        return;
+
+    if ( COutlookAPI::instance()->deleteRule( selectedRule, false, true ) )
+        slotReloadRules();
+
     setWaitCursor( false );
 }
 

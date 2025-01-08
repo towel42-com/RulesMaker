@@ -52,8 +52,7 @@ protected Q_SLOTS:
     void slotItemSelected();
 
     void slotDeleteCurrent();
-    void slotEnableCurrent();
-    void slotDisableCurrent();
+    void slotToggleCurrentEnable();
     void slotOptionsChanged();
     void slotRuleDoubleClicked();
 

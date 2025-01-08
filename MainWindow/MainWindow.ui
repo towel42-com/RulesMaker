@@ -69,6 +69,9 @@
     <addaction name="actionAddToSelectedRule"/>
     <addaction name="separator"/>
     <addaction name="menuRun"/>
+    <addaction name="separator"/>
+    <addaction name="actionRuleEnabled"/>
+    <addaction name="actionDeleteRule"/>
    </widget>
    <widget class="QMenu" name="menuSettings">
     <property name="title">
@@ -413,6 +416,19 @@
   <action name="actionFixFromMessageHeaderRules">
    <property name="text">
     <string>Fix &quot;From&quot; Message Header Rules...</string>
+   </property>
+  </action>
+  <action name="actionRuleEnabled">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Rule Enabled?</string>
+   </property>
+  </action>
+  <action name="actionDeleteRule">
+   <property name="text">
+    <string>Delete Rule</string>
    </property>
   </action>
  </widget>

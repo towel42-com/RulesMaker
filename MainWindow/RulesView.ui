@@ -24,7 +24,7 @@
      </property>
     </widget>
    </item>
-   <item row="7" column="3">
+   <item row="6" column="3">
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -37,7 +37,14 @@
      </property>
     </spacer>
    </item>
-   <item row="5" column="3">
+   <item row="0" column="2">
+    <widget class="QLineEdit" name="filter">
+     <property name="placeholderText">
+      <string>&lt;filter&gt;</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="3">
     <widget class="QToolButton" name="deleteRule">
      <property name="text">
       <string>Delete Rule</string>
@@ -49,7 +56,7 @@
     </widget>
    </item>
    <item row="3" column="3">
-    <widget class="QToolButton" name="enableRule">
+    <widget class="QToolButton" name="ruleEnabled">
      <property name="text">
       <string>Enable Rule</string>
      </property>
@@ -57,16 +64,12 @@
       <iconset resource="MainWindow.qrc">
        <normaloff>:/resources/enable.png</normaloff>:/resources/enable.png</iconset>
      </property>
-    </widget>
-   </item>
-   <item row="0" column="2">
-    <widget class="QLineEdit" name="filter">
-     <property name="placeholderText">
-      <string>&lt;filter&gt;</string>
+     <property name="checkable">
+      <bool>true</bool>
      </property>
     </widget>
    </item>
-   <item row="2" column="0" rowspan="6" colspan="3">
+   <item row="2" column="0" rowspan="5" colspan="3">
     <widget class="QTreeView" name="rules">
      <property name="editTriggers">
       <set>QAbstractItemView::NoEditTriggers</set>
@@ -76,17 +79,6 @@
      </property>
      <property name="expandsOnDoubleClick">
       <bool>false</bool>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="3">
-    <widget class="QToolButton" name="disableRule">
-     <property name="text">
-      <string>Disable Rule</string>
-     </property>
-     <property name="icon">
-      <iconset resource="MainWindow.qrc">
-       <normaloff>:/resources/disable.png</normaloff>:/resources/disable.png</iconset>
      </property>
     </widget>
    </item>

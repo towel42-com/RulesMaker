@@ -43,8 +43,7 @@ void CRulesView::init()
     connect( fImpl->rules, &QTreeView::doubleClicked, this, &CRulesView::slotRuleDoubleClicked );
 
     connect( fImpl->deleteRule, &QToolButton::clicked, this, &CRulesView::slotDeleteCurrent );
-    connect( fImpl->enableRule, &QToolButton::clicked, this, &CRulesView::slotEnableCurrent );
-    connect( fImpl->disableRule, &QToolButton::clicked, this, &CRulesView::slotDisableCurrent );
+    connect( fImpl->ruleEnabled, &QToolButton::clicked, this, &CRulesView::slotToggleCurrentEnable );
     connect( fImpl->rules->selectionModel(), &QItemSelectionModel::selectionChanged, this, &CRulesView::slotItemSelected );
 
     connect( COutlookAPI::instance().get(), &COutlookAPI::sigOptionChanged, this, &CRulesView::slotOptionsChanged );
@@ -150,8 +149,7 @@ std::list< EFilterType > CRulesView::filterTypesForSelectedRule() const
 
 void CRulesView::slotRunningStateChanged( bool running )
 {
-    fImpl->enableRule->setEnabled( !running );
-    fImpl->disableRule->setEnabled( !running );
+    fImpl->ruleEnabled->setEnabled( !running );
     fImpl->deleteRule->setEnabled( !running );
     if ( !running )
         updateButtons( selectedIndex() );
@@ -176,28 +174,19 @@ void CRulesView::slotDeleteCurrent()
     qApp->restoreOverrideCursor();
 }
 
-void CRulesView::slotDisableCurrent()
+void CRulesView::slotToggleCurrentEnable()
 {
     if ( !selectedIndex().isValid() )
         return;
-    auto rule = fModel->getRule( selectedIndex() );
-    if ( !rule )
-        return;
-    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
-    COutlookAPI::instance()->disableRule( rule, true );
-    updateButtons( rule );
-    qApp->restoreOverrideCursor();
-}
 
-void CRulesView::slotEnableCurrent()
-{
-    if ( !selectedIndex().isValid() )
-        return;
     auto rule = fModel->getRule( selectedIndex() );
     if ( !rule )
         return;
+
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
-    COutlookAPI::instance()->enableRule( rule, true );
+    bool enabled = fImpl->ruleEnabled->isChecked();
+    auto status = enabled ? COutlookAPI::instance()->enableRule( rule, true ) : COutlookAPI::instance()->disableRule( rule, true );
+    (void)status;
     updateButtons( rule );
     qApp->restoreOverrideCursor();
 }
@@ -216,8 +205,8 @@ void CRulesView::updateButtons( const QModelIndex &index )
 void CRulesView::updateButtons( const std::shared_ptr< Outlook::Rule > &rule )
 {
     fImpl->deleteRule->setEnabled( rule && !COutlookAPI::instance()->disableRatherThanDeleteRules() );
-    fImpl->enableRule->setEnabled( rule && !COutlookAPI::instance()->ruleEnabled( rule ) );
-    fImpl->disableRule->setEnabled( rule && COutlookAPI::instance()->ruleEnabled( rule ) );
+    fImpl->ruleEnabled->setEnabled( rule != nullptr );
+    fImpl->ruleEnabled->setChecked( rule && COutlookAPI::instance()->ruleEnabled( rule ) );
 }
 
 void CRulesView::slotRuleDoubleClicked()
