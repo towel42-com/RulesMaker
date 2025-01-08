@@ -92,8 +92,8 @@ MACRO( GenerateCPPFromFileID fileID prefix enumPrefix )
     ADD_CUSTOM_COMMAND( 
         OUTPUT 
             ${${prefix}_CPP} ${${prefix}_H}
-        COMMAND ${CMAKE_COMMAND} -E env "PATH=${QT_MSVCDIR}/bin;$ENV{PATH}" "${DUMPCPP_EXECUTABLE}" "${fileID}" -o ${prefix} -e ${enumPrefix}
-        COMMENT "[DUMPCPP] Generating ${prefix}.cpp and ${prefix}.h from '${${prefix}_OLBPATH}' using '${DUMPCPP_EXECUTABLE}'"
+        COMMAND ${CMAKE_COMMAND} -E env "PATH=${QT_MSVCDIR}/bin;$ENV{PATH}" "${DUMPCPP_EXECUTABLE}"  
+        COMMENT "[DUMPCPP] Generating ${prefix}.cpp and ${prefix}.h from '${${prefix}_OLBPATH}' using \"${DUMPCPP_EXECUTABLE}\" ${fileID} -o ${prefix} -e ${enumPrefix}"
         VERBATIM
         DEPENDS
            ${${prefix}_OLBPATH}
