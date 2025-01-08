@@ -22,19 +22,19 @@ public:
 
     void init();
 
+    void initFilterTypes();
+
     void clear();
     void clearSelection();
     void reload( bool notifyOnFinished );
 
-    std::pair< QStringList, EFilterType > getPatternsForSelection() const;   // the patterns, by emails or display names
+    std::list< std::pair< QStringList, EFilterType > > getPatternsForSelection() const;   // the patterns, by emails or display names
 
     bool selectionHasDisplayName() const;
     QString getDisplayNameForSingleSelection() const;
     QString getDisplayNamePatternForSelection() const;
     QString getEmailPatternForSelection() const;
     QString getSubjectPatternForSelection() const;
-
-    EFilterType getFilterType() const;
 
 Q_SIGNALS:
     void sigFinishedLoading();
@@ -50,9 +50,7 @@ protected Q_SLOTS:
     void slotItemDoubleClicked( const QModelIndex &idx );
 
 protected:
-    void setFilterType( EFilterType filterType );
     void updateEditFields();
-    void updateEditFields( EFilterType filterType );
 
     QStringList getDisplayNamesForSelection() const;
     QStringList getEmailsForSelection() const;

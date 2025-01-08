@@ -33,27 +33,6 @@
      </property>
     </widget>
    </item>
-   <item row="1" column="1">
-    <widget class="QRadioButton" name="byEmailAddress">
-     <property name="text">
-      <string>Email Addresse(s):</string>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="1">
-    <widget class="QRadioButton" name="bySubjects">
-     <property name="text">
-      <string>Subject(s):</string>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="1">
-    <widget class="QRadioButton" name="byDisplayNames">
-     <property name="text">
-      <string>Display Name(s):</string>
-     </property>
-    </widget>
-   </item>
    <item row="2" column="2">
     <widget class="QLineEdit" name="displayNames">
      <property name="readOnly">
@@ -79,6 +58,30 @@
     <widget class="QLabel" name="summary">
      <property name="text">
       <string>Summary:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <widget class="QCheckBox" name="byEmailAddress">
+     <property name="text">
+      <string>Email Addresse(s):</string>
+     </property>
+     <property name="checked">
+      <bool>false</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
+    <widget class="QCheckBox" name="byDisplayNames">
+     <property name="text">
+      <string>Display Name(s):</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QCheckBox" name="bySubjects">
+     <property name="text">
+      <string>Subject(s):</string>
      </property>
     </widget>
    </item>

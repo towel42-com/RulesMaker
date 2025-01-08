@@ -62,17 +62,15 @@ void CEmailView::init()
 
     auto updateByFilter = [ = ]()
     {
-        auto filterType = getFilterType();
-        setFilterType( filterType );
-        COutlookAPI::instance()->setEmailFilterType( filterType );
+        updateEditFields();
         emit sigFilterTypeChanged();
     };
+    initFilterTypes();
 
-    connect( fImpl->byEmailAddress, &QRadioButton::toggled, [ = ]( bool /*checked*/ ) { updateByFilter(); } );
-    connect( fImpl->byDisplayNames, &QRadioButton::toggled, [ = ]( bool /*checked*/ ) { updateByFilter(); } );
-    connect( fImpl->bySubjects, &QRadioButton::toggled, [ = ]( bool /*checked */ ) { updateByFilter(); } );
+    connect( fImpl->byEmailAddress, &QCheckBox::toggled, [ = ]( bool /*checked*/ ) { updateByFilter(); } );
+    connect( fImpl->byDisplayNames, &QCheckBox::toggled, [ = ]( bool /*checked*/ ) { updateByFilter(); } );
+    connect( fImpl->bySubjects, &QCheckBox::toggled, [ = ]( bool /*checked */ ) { updateByFilter(); } );
 
-    setFilterType( COutlookAPI::instance()->emailFilterType() );
     slotRunningStateChanged( false );
 
     setWindowTitle( QObject::tr( "Inbox Emails" ) );
@@ -80,18 +78,6 @@ void CEmailView::init()
 
 CEmailView::~CEmailView()
 {
-}
-
-EFilterType CEmailView::getFilterType() const
-{
-    if ( fImpl->byEmailAddress->isChecked() )
-        return EFilterType::eByEmailAddress;
-    else if ( fImpl->byDisplayNames->isChecked() )
-        return EFilterType::eByDisplayName;
-    else if ( fImpl->bySubjects->isChecked() )
-        return EFilterType::eBySubject;
-    else
-        return EFilterType::eUnknown;
 }
 
 void CEmailView::clear()
@@ -174,15 +160,16 @@ QStringList CEmailView::getSubjectsForSelection() const
     return retVal;
 }
 
-std::pair< QStringList, EFilterType > CEmailView::getPatternsForSelection() const
+std::list< std::pair< QStringList, EFilterType > > CEmailView::getPatternsForSelection() const
 {
+    std::list< std::pair< QStringList, EFilterType > > retVal;
     if ( fImpl->byEmailAddress->isChecked() )
-        return { getEmailsForSelection(), EFilterType::eByEmailAddress };
-    else if ( fImpl->byDisplayNames->isChecked() )
-        return { getDisplayNamesForSelection(), EFilterType::eByDisplayName };
-    else if ( fImpl->bySubjects->isChecked() )
-        return { getSubjectsForSelection(), EFilterType::eBySubject };
-    return { QStringList(), EFilterType::eUnknown};
+        retVal.emplace_back( getEmailsForSelection(), EFilterType::eByEmailAddress );
+    if ( fImpl->byDisplayNames->isChecked() )
+        retVal.emplace_back( getDisplayNamesForSelection(), EFilterType::eByDisplayName );
+    if ( fImpl->bySubjects->isChecked() )
+        retVal.emplace_back( getSubjectsForSelection(), EFilterType::eBySubject );
+    return retVal;
 }
 
 bool CEmailView::selectionHasDisplayName() const
@@ -252,20 +239,38 @@ void CEmailView::slotRunningStateChanged( bool running )
 
 void CEmailView::updateEditFields()
 {
-    updateEditFields( getFilterType() );
+    fImpl->emailAddresses->setEnabled( fImpl->byEmailAddress->isChecked() );
+    fImpl->displayNames->setEnabled( fImpl->byDisplayNames->isChecked() );
+    fImpl->subjects->setEnabled( fImpl->bySubjects->isChecked() );
+
+    std::list< EFilterType > filterTypes;
+    if ( fImpl->byEmailAddress->isChecked() )
+        filterTypes.push_back( EFilterType::eByEmailAddress );
+    if ( fImpl->byDisplayNames->isChecked() )
+        filterTypes.push_back( EFilterType::eByDisplayName );
+    if ( fImpl->bySubjects->isChecked() )
+        filterTypes.push_back( EFilterType::eBySubject );
+    COutlookAPI::instance()->setEmailFilterTypes( filterTypes );
 }
 
-void CEmailView::updateEditFields( EFilterType filterType )
+void CEmailView::initFilterTypes()
 {
-    fImpl->emailAddresses->setEnabled( filterType == EFilterType::eByEmailAddress );
-    fImpl->displayNames->setEnabled( filterType == EFilterType::eByDisplayName );
-    fImpl->subjects->setEnabled( filterType == EFilterType::eBySubject );
-}
-
-void CEmailView::setFilterType( EFilterType filterType )
-{
-    fImpl->byEmailAddress->setChecked( filterType == EFilterType::eByEmailAddress );
-    fImpl->byDisplayNames->setChecked( filterType == EFilterType::eByDisplayName );
-    fImpl->bySubjects->setChecked( filterType == EFilterType::eBySubject );
-    updateEditFields( filterType );
+    auto filterTypes = COutlookAPI::instance()->emailFilterTypes();
+    for ( auto &&ii : filterTypes )
+    {
+        switch ( ii )
+        {
+            case EFilterType::eByEmailAddress:
+                fImpl->byEmailAddress->setChecked( true );
+                break;
+            case EFilterType::eByDisplayName:
+                fImpl->byDisplayNames->setChecked( true );
+                break;
+            case EFilterType::eBySubject:
+                fImpl->bySubjects->setChecked( true );
+                break;
+            default:
+                break;
+        }
+    }
 }
