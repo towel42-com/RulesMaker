@@ -39,7 +39,7 @@ public:
     QString folderForSelectedRule() const;
     std::shared_ptr< Outlook::Rule > selectedRule() const;
 
-    EFilterType filterTypeForSelectedRule() const;
+    std::list< EFilterType > filterTypesForSelectedRule() const;
 
 Q_SIGNALS:
     void sigFinishedLoading();

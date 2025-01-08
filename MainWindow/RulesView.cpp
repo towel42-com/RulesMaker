@@ -142,10 +142,10 @@ std::shared_ptr< Outlook::Rule > CRulesView::selectedRule() const
     return fModel->getRule( selectedIndex() );
 }
 
-EFilterType CRulesView::filterTypeForSelectedRule() const
+std::list< EFilterType > CRulesView::filterTypesForSelectedRule() const
 {
     auto rule = selectedRule();
-    return COutlookAPI::instance()->filterTypeForRule( rule );
+    return COutlookAPI::instance()->filterTypesForRule( rule );
 }
 
 void CRulesView::slotRunningStateChanged( bool running )
@@ -171,7 +171,7 @@ void CRulesView::slotDeleteCurrent()
     if ( !rule )
         return;
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
-    COutlookAPI::instance()->deleteRule( rule );
+    COutlookAPI::instance()->deleteRule( rule, false, true );
     updateButtons( rule );
     qApp->restoreOverrideCursor();
 }
@@ -184,7 +184,7 @@ void CRulesView::slotDisableCurrent()
     if ( !rule )
         return;
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
-    COutlookAPI::instance()->disableRule( rule );
+    COutlookAPI::instance()->disableRule( rule, true );
     updateButtons( rule );
     qApp->restoreOverrideCursor();
 }
@@ -197,7 +197,7 @@ void CRulesView::slotEnableCurrent()
     if ( !rule )
         return;
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
-    COutlookAPI::instance()->enableRule( rule );
+    COutlookAPI::instance()->enableRule( rule, true );
     updateButtons( rule );
     qApp->restoreOverrideCursor();
 }
@@ -228,7 +228,6 @@ void CRulesView::slotRuleDoubleClicked()
     CShowRule dlg( rule, false, this );
     if ( dlg.exec() == QDialog::Accepted )
     {
-        //COutlookAPI::instance()->saveRules();
         //fModel->reload();
     }
 }
