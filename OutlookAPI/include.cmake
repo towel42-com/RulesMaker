@@ -11,6 +11,11 @@ set(project_SRCS
     OutlookAPI_email.cpp
     OutlookAPI_folders.cpp
     OutlookAPI_rules.cpp
+    OutlookAPI_copyRules.cpp
+    OutlookAPI_equalRules.cpp
+    OutlookAPI_loadRules.cpp
+    OutlookAPI_nameForRules.cpp
+    OutlookAPI_mergeRules.cpp
     OutlookAPI_settings.cpp
     OutlookAPI_tools.cpp
     OutlookAPI_utils.cpp
@@ -21,6 +26,7 @@ set(qtproject_H
 )
 
 set(project_H
+    OutlookAPI_pri.h
 )
 
 set( project_pub_LIB_DIRS 

@@ -2,6 +2,7 @@
 
 #include <QInputDialog>
 #include <QSettings>
+
 #include "MSOUTL.h"
 
 QString COutlookAPI::defaultProfileName() const
@@ -185,7 +186,7 @@ std::shared_ptr< Outlook::Account > COutlookAPI::selectAccount( bool notifyOnCha
     }
 
     bool aOK{ false };
-    auto account = QInputDialog::getItem( fParentWidget, QString( "Select Account:" ), "Account:", accountNames, accountPos, false, &aOK );
+    auto account = QInputDialog::getItem( getParentWidget(), QString( "Select Account:" ), "Account:", accountNames, accountPos, false, &aOK );
     if ( !aOK || account.isEmpty() )
     {
         logout( notifyOnChange );

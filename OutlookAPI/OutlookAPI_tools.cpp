@@ -1,6 +1,11 @@
 #include "OutlookAPI.h"
 
 #include <QMessageBox>
+
+#include <map>
+#include <QRegularExpression>
+#include <QDebug>
+#include <QTextStream>
 #include "MSOUTL.h"
 #include <tuple>
 
@@ -29,7 +34,7 @@ bool COutlookAPI::enableAllRules( bool andSave /*= true*/, bool *needsSaving /*=
             continue;
         if ( rule->Enabled() )
             continue;
-        emit sigStatusMessage( QString( "Enabling rule '%1'" ).arg( rule->Name() ) );
+        emit sigStatusMessage( QString( "Enabling rule '%1'" ).arg( getDisplayName( rule ) ) );
         rule->SetEnabled( true );
         numChanged++;
     }
@@ -47,18 +52,6 @@ bool COutlookAPI::enableAllRules( bool andSave /*= true*/, bool *needsSaving /*=
     if ( andSave && ( numChanged != 0 ) )
         saveRules();
     return true;
-}
-
-std::optional< QString > COutlookAPI::mergeKey( const std::shared_ptr< Outlook::Rule > &rule ) const
-{
-    if ( !rule->Conditions() )
-        return {};
-
-    auto moveAction = rule->Actions()->MoveToFolder();
-    if ( !moveAction || !moveAction->Enabled() )
-        return {};
-    auto key = COutlookAPI::ruleNameForRule( rule );
-    return key;
 }
 
 std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::Rule *lhs, const QStringList &rhs, QStringList *msgs )
@@ -80,26 +73,165 @@ std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::Rule *lhs, O
     return mergeRecipients( lhs, rhsRecipients, msgs );
 }
 
-std::optional< QStringList > COutlookAPI::mergeRecipients( const std::list< Outlook::Rule * > &rules, QStringList *msgs )
+QString COutlookAPI::stripHeaderStringString( const QString &msg )
 {
-    if ( rules.empty() )
-        return {};
-    auto pos = rules.begin();
-    auto primaryRule = ( *pos );
-    pos = std::next( pos );
+    auto regEx = QRegularExpression( R"((From:)|")", QRegularExpression::CaseInsensitiveOption );
+    auto retVal = msg;
+    retVal = retVal.remove( regEx ).trimmed();
+    return retVal;
+}
 
-    std::optional< QStringList > retVal;
-    for ( ; pos != rules.end(); ++pos )
+QStringList COutlookAPI::getFromMessageHeaderString( const QString &address )
+{
+    auto stripped = stripHeaderStringString( address );
+    if ( stripped.isEmpty() )
+        return {};
+
+    auto retVal = QStringList()   //
+                  << QString( R"(From: %1)" ).arg( stripped )   //
+                  << QString( R"(From: "%1")" ).arg( stripped );
+    return retVal;
+}
+
+QStringList COutlookAPI::getFromMessageHeaderStrings( const QStringList &addresses )
+{
+    QStringList retVal;
+    for ( auto &&address : addresses )
     {
-        auto currRecipients = mergeRecipients( primaryRule, ( *pos ), msgs );
-        if ( retVal.has_value() )
-            retVal.value() = mergeStringLists( retVal.value(), currRecipients.value(), false );
-        else
-            retVal = currRecipients;
+        auto cleandedAddresses = getFromMessageHeaderString( address );
+        retVal << cleandedAddresses;
     }
+    retVal.removeDuplicates();
+    retVal.removeAll( QString() );
+    retVal.sort( Qt::CaseInsensitive );
 
     return retVal;
 }
+
+QString getULForList( const QStringList &list )
+{
+    QString retVal;
+    for ( auto &&ii : list )
+        retVal += QString( "<li style=\"white-space:nowrap\">%1</li>\n" ).arg( ii.toHtmlEscaped() );
+    retVal = QString( "<ul>\n%1</ul>" ).arg( retVal );
+    return retVal;
+};
+
+struct SMessage
+{
+    SMessage() = default;
+    SMessage( const QString &msg, const QStringList &params ) :
+        fMessage( msg ),
+        fParams( params )
+    {
+    }
+
+    const QString &toString( bool toHtml ) { return parameterize( toHtml ); }
+    const QString &parameterize( bool toHtml )
+    {
+        for ( auto &&param : fParams )
+        {
+            if ( toHtml )
+                param = param.toHtmlEscaped();
+        }
+        for ( auto &&param : fParams )
+            fMessage = fMessage.arg( param );
+        fParams.clear();
+        return fMessage;
+    }
+
+private:
+    QString fMessage;
+    QStringList fParams;
+};
+
+struct SDisplayMessage
+{
+    SDisplayMessage() {};
+
+    QString toString( bool toHtml, int level = 0 )
+    {
+        QString retVal;
+        QTextStream ts( &retVal );
+
+        bool isListItem = level != 0;
+        if ( isListItem )
+        {
+            ts << indent( level );
+            if ( toHtml )
+                ts << "<li>\n";
+            level++;
+        }
+
+        for ( auto &&ii = fTitle.begin(); ii != fTitle.end(); ++ii )
+        {
+            ts << indent( level ) << ( *ii ).toString( toHtml );
+            if ( toHtml && ( std::next( ii ) != fTitle.end() ) )
+                ts << R"(<br>)";
+            ts << "\n";
+        }
+
+        auto isList = isListItem || ( fChildren.size() + fMessages.size() ) > 1;
+        if ( toHtml )
+        {
+            if ( isList )
+                ts << indent( level ) << "<ul>\n";
+        }
+        for ( auto &&msg : fMessages )
+        {
+            if ( toHtml && isList )
+                ts << indent( level + 1 ) << QString( "<li style=\"white-space:nowrap\">%1</li>\n" ).arg( msg.toString( toHtml ) );
+            else
+                ts << indent( level + 1 ) << msg.toString( toHtml ) << "\n";
+        }
+        for ( auto &&child : fChildren )
+        {
+            ts << child.toString( toHtml, level + 1 );
+        }
+        if ( toHtml && isList )
+            ts << indent( level ) << "</ul>\n";
+
+        for ( auto &&ii = fFooter.begin(); ii != fFooter.end(); ++ii )
+        {
+            ts << indent( level ) << ( *ii ).toString( toHtml );
+            if ( toHtml && ( std::next( ii ) != fFooter.end() ) )
+                ts << R"(<br>)";
+            ts << "\n";
+        }
+
+        if ( isListItem )
+        {
+            level--;
+            ts << indent( level );
+            if ( toHtml )
+                ts << "</li>\n";
+        }
+
+        if ( toHtml && ( level == 0 ) )
+            retVal = retVal.remove( "\n" );
+        return retVal;
+    }
+
+    QString indent( int level ) { return QString( level * 4, ' ' ); }
+
+    void addTitle( const QString &msg, const QStringList &parameters ) { fTitle.emplace_back( msg, parameters ); }
+    void addTitle( const QString &msg ) { addTitle( msg, {} ); }
+
+    void addMessage( const QString &msg, const QStringList &parameters ) { fMessages.emplace_back( msg, parameters ); }
+    void addMessage( const QString &msg ) { addMessage( msg, {} ); }
+
+    void addFooter( const QString &msg, const QStringList &parameters ) { fFooter.emplace_back( msg, parameters ); }
+    void addFooter( const QString &msg ) { addFooter( msg, {} ); }
+
+    void addChild( const SDisplayMessage &child ) { fChildren.push_back( child ); }
+
+private:
+    std::list< SMessage > fTitle;
+    std::list< SMessage > fMessages;
+    std::list< SMessage > fFooter;
+
+    std::list< SDisplayMessage > fChildren;
+};
 
 bool COutlookAPI::mergeRules( bool andSave /*= true*/, bool *needsSaving /*= nullptr*/ )
 {
@@ -111,94 +243,45 @@ bool COutlookAPI::mergeRules( bool andSave /*= true*/, bool *needsSaving /*= nul
 
     slotClearCanceled();
 
-    auto numRules = fRules->Count();
-    emit sigInitStatus( "Analyzing Rules for Merging:", numRules );
-
-    std::map< QString, std::list< std::pair< std::shared_ptr< Outlook::Rule >, int > > > rules;
-
-    for ( int ii = 1; ii <= numRules; ++ii )
-    {
-        emit sigIncStatusValue( "Analyzing Rules for Merging:" );
-        if ( canceled() )
-            return false;
-
-        auto rule = getRule( fRules->Item( ii ) );
-        if ( !rule || !rule->Enabled() )
-            continue;
-
-        auto key = mergeKey( rule );
-        if ( !key.has_value() )
-            continue;
-
-        rules[ key.value() ].emplace_back( rule, ii );
-    }
+    auto rules = findMergableRules();
     if ( canceled() )
         return false;
 
     bool forMsgBox = fParentWidget != nullptr;
+    SDisplayMessage msg;
+    msg.addTitle( QString( "%1 merge(s) found" ), { QString::number( rules.size() ) } );
+    if ( !rules.empty() )
+        msg.addTitle( QString( "Merging the following rules:" ) );
 
-    QString msg;
-    for ( auto &&ii = rules.begin(); ii != rules.end(); )
+    for ( auto &&[ key, matches ] : rules )
     {
-        if ( ( *ii ).second.size() < 2 )
+        auto primaryRule = matches.first;
+        auto &&matchedRules = matches.second;
+
+        SDisplayMessage ruleMessage;
+        ruleMessage.addTitle( QString( "Primary Rule: %1" ), { getDisplayName( primaryRule ) } );
+        for ( auto &&currRule : matchedRules )
         {
-            ii = rules.erase( ii );
-            continue;
+            ruleMessage.addMessage( QString( "Rule: %1" ), { getDisplayName( currRule ) } );
         }
-        auto &&curr = *ii;
-        ++ii;
-
-        if ( curr.second.size() < 2 )
-            continue;
-
-        auto pos = curr.second.begin();
-        auto ruleName = ( *pos ).first->Name();
-        if ( forMsgBox )
-            ruleName = ruleName.toHtmlEscaped();
-
-        QString currMsg = QString( "Primary Rule: %1 (%2)" ).arg( ruleName ).arg( ( *pos ).second );
-        if ( forMsgBox )
-            currMsg = "\t<li>" + currMsg + "\n\t\t<ul>";
-        ++pos;
-        for ( ; pos != curr.second.end(); ++pos )
-        {
-            ruleName = ( *pos ).first->Name();
-            if ( forMsgBox )
-                ruleName = ruleName.toHtmlEscaped();
-
-            auto currRule = QString( "%1 (%2)" ).arg( ruleName ).arg( ( *pos ).second );
-            if ( forMsgBox )
-                currRule = "\n\t\t\t<li>" + currRule + "</li>";
-            currRule += "\n";
-            currMsg += currRule;
-        }
-        if ( forMsgBox )
-            currMsg += "\t\t</ul>\n\t</li>";
-        currMsg += "\n";
-        msg += currMsg;
+        msg.addChild( ruleMessage );
     }
 
-    auto title = QString( "%1 merge(s) found%2" ).arg( rules.size() ).arg( forMsgBox ? "<br>\n" : "\n" );
-    if ( !rules.empty() )
-        title += QString( "Merging the following rules:\n%2" ).arg( forMsgBox ? "<ul>\n" : "" );
-
-    msg = title + msg;
     if ( !forMsgBox )
-        emit sigStatusMessage( msg );
+        emit sigStatusMessage( msg.toString( false ) );
     else
     {
         if ( !rules.empty() )
         {
-            msg += "</ul>Do you wish to continue?";
-            msg = msg.remove( "\n" );
+            msg.addFooter( "Do you wish to continue?" );
 
-            auto process = QMessageBox::information( fParentWidget, R"(Merge Rules by Target Folder)", msg, QMessageBox::Yes | QMessageBox::No );
+            auto process = QMessageBox::information( fParentWidget, R"(Merge Rules by Target Folder)", msg.toString( true ), QMessageBox::Yes | QMessageBox::No );
             if ( process == QMessageBox::No )
                 return false;
         }
         else
         {
-            QMessageBox::information( fParentWidget, R"(Merge Rules by Target Folder)", msg );
+            QMessageBox::information( fParentWidget, R"(Merge Rules by Target Folder)", msg.toString( true ) );
             return false;
         }
     }
@@ -208,50 +291,128 @@ bool COutlookAPI::mergeRules( bool andSave /*= true*/, bool *needsSaving /*= nul
 
     emit sigInitStatus( "Merging Rules:", static_cast< int >( rules.size() ) );
 
-    std::list< int > toRemove;
     for ( auto &&ii : rules )
     {
         if ( canceled() )
             return false;
 
-        std::list< Outlook::Rule * > currRules;
-        for ( auto &&jj : ii.second )
-            currRules.push_back( jj.first.get() );
-
-        auto mergedRecipients = mergeRecipients( currRules, nullptr );
-        if ( !mergedRecipients.has_value() )
-            continue;
-
-        auto pos = std::next( ii.second.begin() );
-
-        for ( ; pos != ii.second.end(); ++pos )
-        {
-            if ( disableRatherThanDeleteRules() )
-                ( *pos ).first->SetEnabled( false );
-            else
-                toRemove.push_back( ( *pos ).second );
-        }
-        ii.second.front().first->Conditions()->SenderAddress()->SetAddress( mergedRecipients.value() );
+        mergeRules( ii.second );
 
         emit sigIncStatusValue( "Merging Rules:" );
     }
 
-    toRemove.sort();
-    if ( !toRemove.empty() )
-        emit sigInitStatus( "Deleting old Rules:", static_cast< int >( toRemove.size() ) );
-
-    for ( auto &&ii = toRemove.rbegin(); ii != toRemove.rend(); ++ii )
-    {
-        if ( canceled() )
-            return false;
-        fRules->Remove( *ii );
-        emit sigIncStatusValue( "Deleting old Rules:" );
-    }
 
     if ( needsSaving )
         *needsSaving = !rules.empty();
 
     if ( andSave && !rules.empty() )
+        saveRules();
+
+    return true;
+}
+
+bool COutlookAPI::fixFromMessageHeaderRules( bool andSave /*= true*/, bool *needsSaving /*= nullptr*/ )
+{
+    if ( needsSaving )
+        *needsSaving = false;
+
+    if ( !fRules )
+        return false;
+
+    slotClearCanceled();
+
+    auto numRules = fRules->Count();
+    emit sigInitStatus( "Fixing From Message Header Rules:", numRules );
+    std::list< std::pair< std::shared_ptr< Outlook::Rule >, std::pair< QStringList, QStringList > > > changes;
+    for ( int ii = 1; ii <= numRules; ++ii )
+    {
+        if ( canceled() )
+            return false;
+
+        auto rule = getRule( fRules->Item( ii ) );
+        if ( !rule )
+            continue;
+
+        emit sigIncStatusValue( "Fixing From Message Header Rules:" );
+
+        auto conditions = rule->Conditions();
+        if ( !conditions )
+            continue;
+
+        auto header = rule->Conditions()->MessageHeader();
+        if ( !header || !header->Enabled() )
+            continue;
+
+        emit sigStatusMessage( QString( "Checking Message Header on rule '%1'" ).arg( getDisplayName( rule ) ) );
+
+        auto headerText = toStringList( header->Text() );
+        auto newHeaderText = getFromMessageHeaderStrings( headerText );
+        bool currChanged = !equal( headerText, newHeaderText );
+
+        if ( currChanged )
+        {
+            changes.emplace_back( rule, std::make_pair( headerText, newHeaderText ) );
+        }
+    }
+
+    if ( changes.empty() )
+    {
+        if ( fParentWidget )
+            QMessageBox::information( fParentWidget, "Fixing From Message Header Rules", QString( "No rules needed fixing" ) );
+        else
+            emit sigStatusMessage( QString( "No rules needed fixing" ) );
+        return false;
+    }
+
+    if ( fParentWidget )
+    {
+        QStringList tmp;
+        for ( auto &&ii : changes )
+        {
+            auto curr = QString( "<li style=\"white-space:nowrap\">Rule: %1 will change in the following manner:<br>" ).arg( getDisplayName( ii.first ).toHtmlEscaped() );
+
+            curr += "\nFrom:" + getULForList( ii.second.first );
+            curr += "\nTo:" + getULForList( ii.second.second );
+            curr += "\n</li>";
+
+            tmp << curr;
+        }
+        auto msg = QString( "Rules to be changed:<ul>\n%1</ul>\nDo you wish to continue?" ).arg( tmp.join( "\n" ) );
+        auto process = QMessageBox::information( fParentWidget, "Renamed Rules", msg, QMessageBox::Yes | QMessageBox::No );
+        if ( process == QMessageBox::No )
+            return false;
+    }
+    else
+    {
+        QStringList tmp;
+        for ( auto &&ii : changes )
+        {
+            emit sigStatusMessage( QString( "Rule: %1 will change in the following manner:\n" ).arg( ii.first->Name() ) );
+            emit sigStatusMessage( "    From: \n" + ii.second.first.join( "    \n" ) );
+            emit sigStatusMessage( "    To: \n" + ii.second.second.join( "    \n" ) );
+        }
+    }
+
+    for ( auto &&change : changes )
+    {
+        auto rule = change.first;
+        if ( !rule )
+            continue;
+
+        auto conditions = rule->Conditions();
+        if ( !conditions )
+            continue;
+
+        auto header = rule->Conditions()->MessageHeader();
+        if ( !header || !header->Enabled() )
+            continue;
+        header->SetText( change.second.second );
+        header->SetEnabled( true );
+    }
+
+    if ( needsSaving )
+        *needsSaving = true;
+    if ( andSave )
         saveRules();
 
     return true;
@@ -268,8 +429,8 @@ bool COutlookAPI::moveFromToAddress( bool andSave /*= true*/, bool *needsSaving 
     slotClearCanceled();
 
     auto numRules = fRules->Count();
-    emit sigInitStatus( "Fixing Rules:", numRules );
-    int numChanged = 0;
+    emit sigInitStatus( "Transforming From to Address Rules:", numRules );
+    std::list< std::pair< std::shared_ptr< Outlook::Rule >, QStringList > > changes;
     for ( int ii = 1; ii <= numRules; ++ii )
     {
         if ( canceled() )
@@ -279,7 +440,7 @@ bool COutlookAPI::moveFromToAddress( bool andSave /*= true*/, bool *needsSaving 
         if ( !rule )
             continue;
 
-        emit sigIncStatusValue( "Fixing Rules:" );
+        emit sigIncStatusValue( "Transforming From to Address Rules:" );
 
         auto conditions = rule->Conditions();
         if ( !conditions )
@@ -289,30 +450,78 @@ bool COutlookAPI::moveFromToAddress( bool andSave /*= true*/, bool *needsSaving 
         if ( !from->Enabled() )
             continue;
 
-        emit sigStatusMessage( QString( "Checking from email addresses on rule '%1'" ).arg( rule->Name() ) );
+        emit sigStatusMessage( QString( "Checking from email addresses on rule '%1'" ).arg( getDisplayName( rule ) ) );
         auto fromEmails = getEmailAddresses( from->Recipients(), {}, true );
         if ( fromEmails.isEmpty() )
             continue;
 
-        QStringList msgs;
-        if ( !addRecipientsToRule( rule.get(), fromEmails, msgs ) )
-            return false;
-
-        from->SetEnabled( false );
-        numChanged++;
+        changes.emplace_back( rule, fromEmails );
     }
-    if ( numChanged )
-        saveRules();
+
+    if ( changes.empty() )
+    {
+        if ( fParentWidget )
+            QMessageBox::information( fParentWidget, "Transforming From to Address", QString( "No rules needed fixing" ) );
+        else
+            emit sigStatusMessage( QString( "No rules needed fixing" ) );
+        return false;
+    }
 
     if ( fParentWidget )
-        QMessageBox::information( fParentWidget, R"(Move "From" to "Address")", QString( "%1 rules modified" ).arg( numChanged ) );
+    {
+        QStringList tmp;
+        for ( auto &&ii : changes )
+        {
+            auto curr = QString( "<li style=\"white-space:nowrap\">Rule: %1 will have the following Address(es) now:<br>" ).arg( getDisplayName( ii.first ).toHtmlEscaped() );
+            curr += "From:" + getULForList( ii.second );
+            curr += "</li>";
+
+            tmp << curr;
+        }
+
+        auto msg = QString( "Rules to be changed:<ul>%1</ul>Do you wish to continue?" ).arg( tmp.join( "\n" ) );
+        auto process = QMessageBox::information( fParentWidget, "Renamed Rules", msg, QMessageBox::Yes | QMessageBox::No );
+        if ( process == QMessageBox::No )
+            return false;
+    }
     else
-        emit sigStatusMessage( QString( "%1 rules modified" ).arg( numChanged ) );
+    {
+        QStringList tmp;
+        for ( auto &&ii : changes )
+        {
+            emit sigStatusMessage( QString( "Rule: %1 will have the following Address(es):\n" ).arg( getDisplayName( ii.first ) ) );
+            emit sigStatusMessage( "    From: \n" + ii.second.join( "    \n" ) );
+        }
+    }
+
+    QStringList msgs;
+    for ( auto &&change : changes )
+    {
+        auto rule = change.first;
+        if ( !rule )
+            continue;
+
+        auto conditions = rule->Conditions();
+        if ( !conditions )
+            continue;
+
+        auto from = conditions->From();
+        if ( !from->Enabled() )
+            continue;
+
+        auto senderAddress = rule->Conditions()->SenderAddress();
+        if ( !senderAddress )
+            continue;
+
+        from->SetEnabled( false );
+        senderAddress->SetEnabled( false );
+        if ( !addRecipientsToRule( rule.get(), change.second, msgs ) )
+            return false;
+    }
 
     if ( needsSaving )
-        *needsSaving = numChanged != 0;
-
-    if ( andSave && ( numChanged != 0 ) )
+        *needsSaving = true;
+    if ( andSave )
         saveRules();
 
     return true;
@@ -360,12 +569,13 @@ bool COutlookAPI::renameRules( bool andSave /*= true*/, bool *needsSaving /*= nu
             emit sigStatusMessage( QString( "No rules needed renaming" ) );
         return false;
     }
+
     if ( fParentWidget )
     {
         QStringList tmp;
         for ( auto &&ii : changes )
         {
-            tmp << "<li>" + ii.first->Name().toHtmlEscaped() + " => " + ii.second.toHtmlEscaped() + "</li>";
+            tmp << "<li style=\"white-space:nowrap\">" + getDisplayName( ii.first ).toHtmlEscaped() + " => " + ii.second.toHtmlEscaped() + "</li>";
         }
         auto msg = QString( "Rules to be changed:<ul>%1</ul>Do you wish to continue?" ).arg( tmp.join( "\n" ) );
         auto process = QMessageBox::information( fParentWidget, "Renamed Rules", msg, QMessageBox::Yes | QMessageBox::No );
@@ -376,7 +586,7 @@ bool COutlookAPI::renameRules( bool andSave /*= true*/, bool *needsSaving /*= nu
     {
         for ( auto &&ii : changes )
         {
-            emit sigStatusMessage( QString( "Rule '%1' will be renamed to '%2'" ).arg( ii.first->Name(), ii.second ) );
+            emit sigStatusMessage( QString( "Rule '%1' will be renamed to '%2'" ).arg( getDisplayName( ii.first ), ii.second ) );
         }
     }
 
@@ -392,7 +602,6 @@ bool COutlookAPI::renameRules( bool andSave /*= true*/, bool *needsSaving /*= nu
 
     if ( andSave && !changes.empty() )
         saveRules();
-    saveRules();
 
     return true;
 }
@@ -454,7 +663,7 @@ bool COutlookAPI::sortRules( bool andSave /*= true*/, bool *needsSaving /*= null
 
         if ( ii->ExecutionOrder() != pos )
         {
-            auto msg = QString( "%1 - %2 -> %3" ).arg( ii->Name() ).arg( ii->ExecutionOrder() ).arg( pos );
+            auto msg = QString( "%1 -> %3" ).arg( getDisplayName( ii ) ).arg( pos );
             if ( !fParentWidget )
                 emit sigStatusMessage( msg );
             rulesChanged.emplace_back( msg.toHtmlEscaped(), ii, pos );
@@ -479,7 +688,7 @@ bool COutlookAPI::sortRules( bool andSave /*= true*/, bool *needsSaving /*= null
                     msg += "And More...";
                     break;
                 }
-                msg += "<li>" + std::get< 0 >( ii ) + "</li>";
+                msg += "<li style=\"white-space:nowrap\">" + std::get< 0 >( ii ) + "</li>";
                 cnt++;
             }
             msg += "</ul>";

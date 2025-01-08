@@ -11,7 +11,7 @@ void COutlookAPI::initSettings()
     setIncludeJunkFolderWhenRunningOnAllFolders( settings.value( "IncludeJunkFolderWhenRunningOnAllFolders", false ).toBool(), false );
     setIncludeDeletedFolderWhenRunningOnAllFolders( settings.value( "IncludeJunkDeletedWhenRunningOnAllFolders", false ).toBool(), false );
     setDisableRatherThanDeleteRules( settings.value( "DisableRatherThanDeleteRules", true ).toBool(), false );
-    setEmailFilterType( static_cast< EFilterType >( settings.value( "EmailFilterType", 1 ).toInt() ) );
+    setEmailFilterTypes( static_cast< EFilterType >( settings.value( "EmailFilterTypes", 1 ).toInt() ) );
     setRulesToSkip( settings.value( "RulesToSkip", true ).toStringList(), false );
 
     setRootFolder( settings.value( "RootFolder", R"(\Inbox)" ).toString(), false );
@@ -83,11 +83,25 @@ void COutlookAPI::setDisableRatherThanDeleteRules( bool value, bool update )
         emit sigOptionChanged();
 }
 
-void COutlookAPI::setEmailFilterType( EFilterType value )
+void COutlookAPI::setEmailFilterTypes( const std::list< EFilterType > &value )
 {
-    fEmailFilterType = value;
+    int tmp = 0;
+    for ( auto &&ii : value )
+        tmp |= static_cast< int >( ii );
+    setEmailFilterTypes( static_cast< EFilterType >( tmp ) );
+}
+
+void COutlookAPI::setEmailFilterTypes( EFilterType value )
+{
+    fEmailFilterTypes.clear();
+    if ( ( static_cast< int >( value ) & static_cast< int >( EFilterType::eByDisplayName ) ) != 0 )
+        fEmailFilterTypes.push_back( EFilterType::eByDisplayName );
+    if ( ( static_cast< int >( value ) & static_cast< int >( EFilterType::eByEmailAddress ) ) != 0 )
+        fEmailFilterTypes.push_back( EFilterType::eByEmailAddress );
+    if ( ( static_cast< int >( value ) & static_cast< int >( EFilterType::eBySubject ) ) != 0 )
+        fEmailFilterTypes.push_back( EFilterType::eBySubject );
     QSettings settings;
-    settings.setValue( "EmailFilterType", static_cast< int >( value ) );
+    settings.setValue( "EmailFilterTypes", static_cast< int >( value ) );
 }
 
 void COutlookAPI::setRulesToSkip( const QStringList &value, bool update )

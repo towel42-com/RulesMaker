@@ -16,9 +16,10 @@ std::shared_ptr< COutlookAPI > COutlookAPI::sInstance;
 
 Q_DECLARE_METATYPE( std::shared_ptr< Outlook::Rule > );
 
-COutlookAPI::COutlookAPI( QWidget *parent, COutlookAPI::SPrivate )
+COutlookAPI::COutlookAPI( const std::function< bool( std::shared_ptr< Outlook::Rule > ) > &showRule, QWidget *parent, COutlookAPI::SPrivate )
 {
     getApplication();
+    fShowRule = showRule;
     fParentWidget = parent;
 
     initSettings();
@@ -31,17 +32,18 @@ std::shared_ptr< COutlookAPI > COutlookAPI::cliInstance()
 {
     if ( !sInstance )
     {
-        sInstance = std::make_shared< COutlookAPI >( nullptr, SPrivate() );
+        sInstance = std::make_shared< COutlookAPI >( std::function< bool( std::shared_ptr< Outlook::Rule > ) >(), nullptr, SPrivate() );
     }
     return sInstance;
 }
 
-std::shared_ptr< COutlookAPI > COutlookAPI::instance( QWidget *parent )
+std::shared_ptr< COutlookAPI > COutlookAPI::instance( const std::function< bool( std::shared_ptr< Outlook::Rule > ) > &showRule, QWidget *parent )
 {
     if ( !sInstance )
     {
         Q_ASSERT( parent );
-        sInstance = std::make_shared< COutlookAPI >( parent, SPrivate() );
+        Q_ASSERT( showRule.operator bool() );
+        sInstance = std::make_shared< COutlookAPI >( showRule, parent, SPrivate() );
     }
     else
     {
@@ -73,6 +75,44 @@ void COutlookAPI::logout( bool andNotify )
         if ( andNotify )
             emit sigAccountChanged();
     }
+}
+
+QString COutlookAPI::getDebugName( const std::shared_ptr< Outlook::Rule > &rule )
+{
+    return getDebugName( rule.get() );
+}
+
+QString COutlookAPI::getDebugName( const Outlook::Rule * rule )
+{
+    if ( !rule )
+        return {};
+    return QString( "%1%3" ).arg( getDisplayName( rule ) ).arg( rule->Enabled() ? "" : " (Disabled)" );
+}
+
+QString COutlookAPI::getDebugName( const Outlook::_Rule *rule )
+{
+    if ( !rule )
+        return {};
+    return QString( "%1%3" ).arg( getDisplayName( rule ) ).arg( rule->Enabled() ? "" : " (Disabled)" );
+}
+
+QString COutlookAPI::getDisplayName( const std::shared_ptr< Outlook::Rule > &rule )
+{
+    return getDisplayName( rule.get() );
+}
+
+QString COutlookAPI::getDisplayName( const Outlook::Rule *rule )
+{
+    if ( !rule )
+        return {};
+    return QString( "%1 (%2)" ).arg( rule->Name() ).arg( rule->ExecutionOrder() );
+}
+
+QString COutlookAPI::getDisplayName( const Outlook::_Rule *rule )
+{
+    if ( !rule )
+        return {};
+    return QString( "%1 (%2)" ).arg( rule->Name() ).arg( rule->ExecutionOrder() );
 }
 
 QString COutlookAPI::getSubject( std::shared_ptr< Outlook::MailItem > mailItem )
@@ -152,6 +192,18 @@ std::shared_ptr< Outlook::Folder > COutlookAPI::getTrashFolder()
         return fTrashFolder;
 
     return fTrashFolder = getDefaultFolder( Outlook::OlDefaultFolders::olFolderDeletedItems );
+}
+
+QWidget *COutlookAPI::getParentWidget() const
+{
+    return fParentWidget;
+}
+
+bool COutlookAPI::showRule( std::shared_ptr< Outlook::Rule > rule )
+{
+    if ( !fShowRule )
+        return true;
+    return fShowRule( rule );
 }
 
 void COutlookAPI::slotHandleException( int code, const QString &source, const QString &desc, const QString &help )
@@ -246,6 +298,19 @@ COutlookAPI::EAddressTypes getAddressTypes( std::optional< Outlook::OlMailRecipi
         types = types | COutlookAPI::EAddressTypes::eAllRecipients;
 
     return types;
+}
+
+bool equal( const QStringList &lhs, const QStringList &rhs )
+{
+    auto retVal = lhs.count() == rhs.count();
+
+    auto cnt = lhs.count() < rhs.count() ? lhs.count() : rhs.count();
+
+    for ( auto ii = 0; retVal && ( ii < cnt ); ++ii )
+    {
+        retVal = retVal && ( lhs[ ii ] == rhs[ ii ] );
+    }
+    return retVal;
 }
 
 void resizeToContentZero( QTreeView *treeView, EExpandMode expandMode )

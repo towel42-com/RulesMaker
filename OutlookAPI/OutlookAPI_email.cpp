@@ -320,15 +320,6 @@ COutlookAPI::TStringPairList COutlookAPI::getEmailAddresses( Outlook::AddressEnt
     }
     else
     {
-        //qDebug() << "Address" << address->Address()   //
-        //         << "\nAddressEntryUserType" << toString( address->AddressEntryUserType() )   //
-        //         << "\nApplication" << address->Application()   //
-        //         << "\nClass" << toString( address->Class() )   //
-        //         << "\nDisplayType" << toString( address->DisplayType() )   //
-        //         << "\nID" << address->ID()   //
-        //         << "\nName" << address->Name()   //
-        //         << "\nType" << address->Type()   //
-        //    ;
         retVal << std::make_pair( address->Address(), address->Name() );
     }
 

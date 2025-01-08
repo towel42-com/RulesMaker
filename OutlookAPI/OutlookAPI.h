@@ -16,6 +16,7 @@ class QWidget;
 struct IDispatch;
 class QStandardItem;
 class QTreeView;
+
 enum class EWrapperMode
 {
     eAngleAll,
@@ -83,10 +84,10 @@ namespace Outlook
 
 enum class EFilterType
 {
-    eUnknown,
-    eByEmailAddress,
-    eByDisplayName,
-    eBySubject
+    eUnknown = 0x00,
+    eByEmailAddress = 0x01,
+    eByDisplayName = 0x02,
+    eBySubject = 0x04
 };
 
 QString toString( EFilterType filterType );
@@ -102,11 +103,9 @@ class COutlookAPI : public QObject
 public:
     // general API in OutlookAPI.cpp
     friend class COutlookSetup;
-    COutlookAPI( QWidget *parentWidget, SPrivate pri );
+    COutlookAPI( const std::function< bool( std::shared_ptr< Outlook::Rule > ) > &showRule, QWidget *parentWidget, SPrivate pri );
 
-    void initSettings();
-
-    static std::shared_ptr< COutlookAPI > instance( QWidget *parentWidget = nullptr );
+    static std::shared_ptr< COutlookAPI > instance( const std::function< bool( std::shared_ptr< Outlook::Rule > ) > &showRule = {}, QWidget *parentWidget = nullptr );
     static std::shared_ptr< COutlookAPI > cliInstance();
     virtual ~COutlookAPI();
 
@@ -140,9 +139,11 @@ public:
     void setRulesToSkip( const QStringList &rulesToSkip, bool update = true );
     QStringList rulesToSkip() const { return fRulesToSkip; }
 
-    void setEmailFilterType( EFilterType value );
-    EFilterType emailFilterType() { return fEmailFilterType; }
+    void setEmailFilterTypes( const std::list< EFilterType > &value );
+    std::list< EFilterType > emailFilterTypes() { return fEmailFilterTypes; }
 
+    QWidget *getParentWidget() const;
+    bool showRule( std::shared_ptr< Outlook::Rule > rule );
 Q_SIGNALS:
     void sigAccountChanged();
     void sigStatusMessage( const QString &msg );
@@ -180,26 +181,36 @@ public:
     std::shared_ptr< Outlook::Rule > getRule( const std::shared_ptr< Outlook::Rules > &rules, int num );
     std::shared_ptr< Outlook::Rule > findRule( const QString &ruleName );
 
-    std::optional< bool > addRule( const std::shared_ptr< Outlook::Folder > &folder, const QStringList &rules, EFilterType patternType, QStringList &msgs, const std::function< void( bool ) > &changeCursor );
-    std::optional< bool > addToRule( std::shared_ptr< Outlook::Rule > rule, const QStringList &rules, EFilterType patternType, QStringList &msg, const std::function< void( bool ) > &changeCursor );
+    std::optional< bool > addRule( const std::shared_ptr< Outlook::Folder > &folder, const std::list< std::pair< QStringList, EFilterType > > &patterns, QStringList &msgs );
+    std::optional< bool > addToRule( std::shared_ptr< Outlook::Rule > rule, const std::list< std::pair< QStringList, EFilterType > > &patterns, QStringList &msg, bool copyFirst );
+    std::shared_ptr< Outlook::Rule > copyRule( std::shared_ptr< Outlook::Rule > rule );
+
+    static QString getDebugName( const std::shared_ptr< Outlook::Rule > &rule );
+    static QString getDebugName( const Outlook::Rule *rule );
+    static QString getDebugName( const Outlook::_Rule *rule );
+    static QString getDisplayName( const std::shared_ptr< Outlook::Rule > &rule );
+    static QString getDisplayName( const Outlook::Rule *rule );
+    static QString getDisplayName( const Outlook::_Rule *rule );
 
     bool ruleEnabled( const std::shared_ptr< Outlook::Rule > &rule );
-    bool disableRule( const std::shared_ptr< Outlook::Rule > &rule );
-    bool enableRule( const std::shared_ptr< Outlook::Rule > &rule );
-    bool deleteRule( std::shared_ptr< Outlook::Rule > rule );
+    bool disableRule( const std::shared_ptr< Outlook::Rule > &rule, bool andSave );
+    bool enableRule( const std::shared_ptr< Outlook::Rule > &rule, bool andSave );
+    bool deleteRule( std::shared_ptr< Outlook::Rule > rule, bool forceDisable, bool andSave );
 
     void loadRuleData( QStandardItem *ruleItem, std::shared_ptr< Outlook::Rule > rule, bool force = false );
 
     QString moveTargetFolderForRule( const std::shared_ptr< Outlook::Rule > &rule ) const;
-    EFilterType filterTypeForRule( const std::shared_ptr< Outlook::Rule > &rule ) const;
+    std::list< EFilterType > filterTypesForRule( const std::shared_ptr< Outlook::Rule > &rule ) const;
 
-    static QString ruleNameForRule( std::shared_ptr< Outlook::Rule > rule, bool forDisplay = false, bool rawName = false );
+    static QString ruleNameForRule( std::shared_ptr< Outlook::Rule > rule, bool forDisplay = false );
+    static std::optional< QString > getDestFolderNameForRule( std::shared_ptr< Outlook::Rule > rule, bool moveOnly );   // if move only false, checks move than copy
 
-    //static QStringList getConditionalStrings( std::shared_ptr< Outlook::Rule > rule, bool exceptions, bool includeSender=false );
+    static QString rawRuleNameForRule( std::shared_ptr< Outlook::Rule > rule );
+
     static QStringList getActionStrings( std::shared_ptr< Outlook::Rule > rule );
 
-    static QList< QStringList > getConditionalStringList( std::shared_ptr< Outlook::Rule > rule, bool exceptions, EWrapperMode wrapperMode, bool includeSender = false );
-    static QList< QStringList > getActionStringList( std::shared_ptr< Outlook::Rule > rule );
+    static std::list< QStringList > getConditionalStringList( std::shared_ptr< Outlook::Rule > rule, bool exceptions, EWrapperMode wrapperMode, bool includeSender = false );
+    static std::list< QStringList > getActionStringList( std::shared_ptr< Outlook::Rule > rule );
 
     static bool isEnabled( const std::shared_ptr< Outlook::Rule > &rule );
 
@@ -217,7 +228,9 @@ public:
     // tools API in OutlookAPI_tools.cpp
     bool enableAllRules( bool andSave = true, bool *needsSaving = nullptr );
     bool mergeRules( bool andSave = true, bool *needsSaving = nullptr );
+
     bool moveFromToAddress( bool andSave = true, bool *needsSaving = nullptr );
+    bool fixFromMessageHeaderRules( bool andSave = true, bool *needsSaving = nullptr );
     bool renameRules( bool andSave = true, bool *needsSaving = nullptr );
     bool sortRules( bool andSave = true, bool *needsSaving = nullptr );
     bool saveRules();
@@ -294,6 +307,9 @@ public:
     static TStringPairList getEmailAddresses( Outlook::AddressEntries *entries, EAddressTypes types );   // returns the list of email addresses, display names, types is used for SMTP only
     static QStringList getEmailAddresses( Outlook::AddressEntries *entries, bool smtpOnly );
 
+    static std::list< Outlook::AddressEntry * > getAddressEntries( Outlook::Recipients *recipients );
+    static std::list< Outlook::AddressEntry * > getAddressEntries( Outlook::Recipient *recipients );
+
     void displayEmail( const std::shared_ptr< Outlook::MailItem > &email ) const;
 
     // dump API in OutlookAPI_dump.cpp
@@ -317,6 +333,9 @@ private:
     }
     static Outlook::OlObjectClass getObjectClass( IDispatch *item );
 
+    void initSettings();
+    void setEmailFilterTypes( EFilterType value );
+
     template< typename T >
     T connectToException( T obj )
     {
@@ -332,6 +351,7 @@ private:
     }
 
     QWidget *fParentWidget{ nullptr };
+    std::function< bool( std::shared_ptr< Outlook::Rule > ) > fShowRule{ nullptr };
     std::shared_ptr< Outlook::Application > fOutlookApp{ nullptr };
     std::shared_ptr< Outlook::NameSpace > fSession{ nullptr };
     std::shared_ptr< Outlook::Account > fAccount{ nullptr };
@@ -353,7 +373,7 @@ private:
     bool fIncludeJunkFolderWhenRunningOnAllFolders{ false };
     bool fIncludeDeletedFolderWhenRunningOnAllFolders{ false };
     bool fDisableRatherThanDeleteRules{ false };
-    EFilterType fEmailFilterType{ EFilterType::eByEmailAddress };
+    std::list< EFilterType > fEmailFilterTypes{ EFilterType::eByEmailAddress };
     QStringList fRulesToSkip;
     bool fSaveRulesSuccess{ true };
 
@@ -386,10 +406,23 @@ private:
 
     // tools API in OutlookAPI_tools.cpp
 private:
+    using TRuleList = std::list< std::shared_ptr< Outlook::Rule > >;
+    using TRulePair = std::pair< std::shared_ptr< Outlook::Rule >, TRuleList >;
+    using TMergeRuleMap = std::multimap< QString, TRulePair >;
+
     std::optional< QString > mergeKey( const std::shared_ptr< Outlook::Rule > &rule ) const;
     std::optional< QStringList > mergeRecipients( Outlook::Rule *lhs, Outlook::Rule *rhs, QStringList *msgs );
     std::optional< QStringList > mergeRecipients( Outlook::Rule *lhs, const QStringList &rhs, QStringList *msgs );
     std::optional< QStringList > mergeRecipients( const std::list< Outlook::Rule * > &rules, QStringList *msgs );
+
+    static QString stripHeaderStringString( const QString &msg );   // can include the "From" portion of the pattern as well as quotes, returns the raw pattern
+    static QStringList getFromMessageHeaderString( const QString &address );   // can include the "From" portion of the pattern as well as quotes, calls stripHeaderStringString first, returns both proper patterns From: "XXX" and From: XXX
+    static QStringList getFromMessageHeaderStrings( const QStringList &msgs );   // can include the "From" portion of the pattern as well as quotes, returns the raw pattern, cleans each string first then gets all the proper patterns
+    bool canMergeRules( std::shared_ptr< Outlook::Rule > lhs, std::shared_ptr< Outlook::Rule > rhs );
+
+    void mergeRules( TRulePair &rules );
+    std::shared_ptr< Outlook::Rule > mergeRule( std::shared_ptr< Outlook::Rule > &lhs, std::shared_ptr< Outlook::Rule > &rhs );
+    TMergeRuleMap findMergableRules();
 
 private:
     // folders API in OutlookAPI_folders.cpp
@@ -420,24 +453,16 @@ private:
     void dumpFolder( Outlook::Folder *root );
 };
 
-// toString API in OutlookAPI_toString.cpp
 QString toString( const QVariant &variant, const QString &joinSeparator );
 QStringList toStringList( const QVariant &variant );
-//QString toString( Outlook::OlItemType olItemType );
-//QString toString( Outlook::OlRuleConditionType olItemType );
-//QString toString( Outlook::OlImportance importance );
-//QString toString( Outlook::OlSensitivity sensitivity );
-//QString toString( Outlook::OlMarkInterval markInterval );
-//QString toString( Outlook::OlAddressEntryUserType entryUserType );
-//QString toString( Outlook::OlObjectClass objectClass );
-//QString toString( Outlook::OlDisplayType objectClass );
-
 [[nodiscard]] QStringList mergeStringLists( const QStringList &lhs, const QStringList &rhs, bool andSort = false );
 
 // general API in OutlookAPI.cpp
 COutlookAPI::EAddressTypes operator|( const COutlookAPI::EAddressTypes &lhs, const COutlookAPI::EAddressTypes &rhs );
 COutlookAPI::EAddressTypes getAddressTypes( bool smtpOnly );
 COutlookAPI::EAddressTypes getAddressTypes( std::optional< Outlook::OlMailRecipientType > recipientType, bool smtpOnly );
+
+bool equal( const QStringList &lhs, const QStringList &rhs );
 
 enum class EExpandMode
 {
