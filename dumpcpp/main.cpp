@@ -1942,11 +1942,18 @@ int main( int argc, char **argv )
         }
         settings.endGroup();
 
-        for ( int c = 0; c < codes.count(); ++c )
+        for ( int c = 0; !QFile::exists( typeLib ) && ( c < codes.count() ); ++c )
         {
-            typeLib = settings.value( key + QLatin1Char( '/' ) + codes.at( c ) + QLatin1String( "/win32/." ) ).toString();
-            if ( QFile::exists( typeLib ) )
-                break;
+            auto codeKey = key + QLatin1Char( '/' ) + codes.at( c );
+            settings.beginGroup( codeKey );
+            auto oses = settings.childGroups();
+            settings.endGroup();
+            for ( auto &&os : oses )
+            {
+                typeLib = settings.value( codeKey + QString( "/%1/." ).arg( os ) ).toString();
+                if ( QFile::exists( typeLib ) )
+                    break;
+            }
         }
     }
 
