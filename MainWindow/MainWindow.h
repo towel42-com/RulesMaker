@@ -12,6 +12,11 @@ namespace Ui
     class CMainWindow;
 }
 
+namespace Outlook
+{
+    class Rule;
+}
+
 class QPushButton;
 class CStatusProgress;
 class QModelIndex;
@@ -27,6 +32,9 @@ public:
     ~CMainWindow();
     bool running() const;
 
+    void setWaitCursor( bool wait );
+    bool showRule( std::shared_ptr< Outlook::Rule > rule );
+    bool editRule( std::shared_ptr< Outlook::Rule > rule );
 Q_SIGNALS:
     void sigRunningStateChanged( bool running );
 
@@ -50,6 +58,7 @@ protected Q_SLOTS:
     void slotSortRules();
     void slotMoveFromToAddress();
     void slotEnableAllRules();
+    void slotFixFromMessageHeaderRules();
 
     void slotAddFolderForSelectedEmail();
 
@@ -78,6 +87,7 @@ protected Q_SLOTS:
 
 protected:
     void updateActions();
+    bool showRuleDialog( std::shared_ptr< Outlook::Rule > rule, bool readOnly );
 
     template< typename T >
     void setEnabled( T *item )
@@ -134,7 +144,7 @@ protected:
             {
                 for ( auto &&ii : disabledReasons )
                 {
-                    toolTip += "<li>" + ii.second + "<li>\n";
+                    toolTip += "<li style=\"white-space:nowrap\">" + ii.second + "<li>\n";
                 }
                 toolTip = "<ul>\n" + toolTip + "</ul>";
                 separator = ":";

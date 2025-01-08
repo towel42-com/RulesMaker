@@ -112,9 +112,13 @@
     </property>
     <addaction name="actionRenameRules"/>
     <addaction name="actionSortRules"/>
-    <addaction name="actionMoveFromToAddress"/>
+    <addaction name="separator"/>
     <addaction name="actionMergeRules"/>
+    <addaction name="separator"/>
     <addaction name="actionEnableAllRules"/>
+    <addaction name="separator"/>
+    <addaction name="actionMoveFromToAddress"/>
+    <addaction name="actionFixFromMessageHeaderRules"/>
     <addaction name="separator"/>
     <addaction name="actionEmptyJunkFolder"/>
     <addaction name="actionEmptyTrash"/>
@@ -404,6 +408,11 @@
   <action name="actionIncludeDeletedFolderWhenRunningOnAllFolders">
    <property name="text">
     <string>Include Deleted Folder when Running on All Folders?</string>
+   </property>
+  </action>
+  <action name="actionFixFromMessageHeaderRules">
+   <property name="text">
+    <string>Fix &quot;From&quot; Message Header Rules...</string>
    </property>
   </action>
  </widget>

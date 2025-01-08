@@ -1,4 +1,5 @@
 #include "MainWindow.h"
+#include "ShowRule.h"
 #include "OutlookAPI/OutlookAPI.h"
 #include "StatusProgress.h"
 #include "Version.h"
@@ -19,7 +20,7 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     QMainWindow( parent ),
     fImpl( new Ui::CMainWindow )
 {
-    auto api = COutlookAPI::instance( this );
+    auto api = COutlookAPI::instance( [ this ]( std::shared_ptr< Outlook::Rule > rule ) { return showRule( rule ); }, this );
 
     fImpl->setupUi( this );
 
@@ -36,6 +37,7 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     connect( fImpl->actionMergeRules, &QAction::triggered, this, &CMainWindow::slotMergeRules );
     connect( fImpl->actionEnableAllRules, &QAction::triggered, this, &CMainWindow::slotEnableAllRules );
     connect( fImpl->actionMoveFromToAddress, &QAction::triggered, this, &CMainWindow::slotMoveFromToAddress );
+    connect( fImpl->actionFixFromMessageHeaderRules, &QAction::triggered, this, &CMainWindow::slotFixFromMessageHeaderRules );
 
     connect( fImpl->actionAddFolderForSelectedEmail, &QAction::triggered, this, &CMainWindow::slotAddFolderForSelectedEmail );
 
@@ -82,7 +84,7 @@ CMainWindow::CMainWindow( QWidget *parent ) :
         [ = ]()
         {
             auto rule = fImpl->rules->selectedRule();
-            auto path = COutlookAPI::instance()->ruleNameForRule( rule, false, true );
+            auto path = COutlookAPI::rawRuleNameForRule( rule );
             slotStatusMessage( QString( "Rule Selected: %1" ).arg( path ) );
             slotUpdateActions();
         } );
@@ -146,7 +148,6 @@ void CMainWindow::updateActions()
     TReason emailSelected( !fImpl->email->getEmailPatternForSelection().isEmpty(), "Email not selected" );
     TReason emailHasDisplayName( !fImpl->email->selectionHasDisplayName(), "Selected email does not have a display name" );
     TReason ruleSelected( fImpl->rules->ruleSelected(), "Rule not selected" );
-    TReason ruleStyleSame( fImpl->rules->ruleSelected(), fImpl->rules->ruleSelected() ? "Selected Rule filters by %1 and %2 is selected" : "Rule not selected" );
     TReason folderSelected( !fImpl->folders->selectedPath().isEmpty(), "Folder not selected" );
     TReason folderSame( true, "Selected folder does not match selected rule's target folder" );
 
@@ -157,13 +158,14 @@ void CMainWindow::updateActions()
     setEnabled( fImpl->actionSortRules, accountSelected );
     setEnabled( fImpl->actionRenameRules, accountSelected );
     setEnabled( fImpl->actionMoveFromToAddress, accountSelected );
+    setEnabled( fImpl->actionFixFromMessageHeaderRules, accountSelected );
     setEnabled( fImpl->actionReloadAllData, accountSelected );
     setEnabled( fImpl->actionRunAllRules, accountSelected );
     setEnabled( fImpl->actionRunAllRulesOnAllFolders, accountSelected );
     setEnabled( fImpl->actionEmptyTrash, accountSelected );
     setEnabled( fImpl->actionEmptyJunkFolder, accountSelected );
 
-    if ( emailSelected.first && ruleSelected.first && ruleStyleSame.first )
+    if ( emailSelected.first && ruleSelected.first )
     {
         auto selectedFolder = fImpl->folders->selectedFolder();
         if ( selectedFolder )
@@ -174,12 +176,6 @@ void CMainWindow::updateActions()
         }
         else
             folderSame.first = true;
-
-        ruleStyleSame.first = fImpl->rules->filterTypeForSelectedRule() == COutlookAPI::instance()->emailFilterType();
-        if ( !ruleStyleSame.first )
-        {
-            ruleStyleSame.second = ruleStyleSame.second.arg( toString( fImpl->rules->filterTypeForSelectedRule() ), toString( COutlookAPI::instance()->emailFilterType() ) );
-        }
     }
 
     if ( emailSelected.first && !emailHasDisplayName.first )
@@ -188,7 +184,7 @@ void CMainWindow::updateActions()
         setEnabled( fImpl->actionAddFolderForSelectedEmail, emailSelected );
 
     setEnabled( fImpl->actionRunSelectedRule, ruleSelected );
-    setEnabled( fImpl->actionAddToSelectedRule, { emailSelected, ruleSelected, folderSame, ruleStyleSame } );
+    setEnabled( fImpl->actionAddToSelectedRule, { emailSelected, ruleSelected, folderSame } );
 
     setEnabled( fImpl->actionRunAllRulesOnSelectedFolder, folderSelected );
     setEnabled( fImpl->actionRunSelectedRuleOnSelectedFolder, { folderSelected, ruleSelected } );
@@ -206,51 +202,51 @@ void CMainWindow::clearSelection()
 
 void CMainWindow::slotAddFolderForSelectedEmail()
 {
-    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    setWaitCursor( true );
 
     auto folderName = fImpl->email->getDisplayNameForSingleSelection();
     fImpl->folders->addFolder( folderName );
 
-    qApp->restoreOverrideCursor();
+    setWaitCursor( false );
 }
 
 void CMainWindow::slotAddRule()
 {
-    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    setWaitCursor( true );
     auto destFolder = fImpl->folders->selectedFolder();
-    auto &&[ rules, patternType ] = fImpl->email->getPatternsForSelection();
+    auto patterns = fImpl->email->getPatternsForSelection();
 
     QStringList msgs;
-    auto aOK = COutlookAPI::instance()->addRule( destFolder, rules, patternType, msgs, [ this ]( bool changeCursor ) { changeCursor ? qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) ) : qApp->restoreOverrideCursor(); } );
+    auto aOK = COutlookAPI::instance()->addRule( destFolder, patterns, msgs );
 
     if ( !aOK.has_value() )
     {
-        qApp->restoreOverrideCursor();
+        setWaitCursor( false );
         return;
     }
 
     if ( !aOK.value() )
     {
         QMessageBox::critical( this, "Error", "Could not create rule\n" + msgs.join( "\n" ) );
-        qApp->restoreOverrideCursor();
+        setWaitCursor( false );
     }
     clearSelection();
     slotReloadEmail();
     slotReloadRules();
-    qApp->restoreOverrideCursor();
+    setWaitCursor( false );
 }
 
 void CMainWindow::slotAddToSelectedRule()
 {
-    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    setWaitCursor( true );
     auto rule = fImpl->rules->selectedRule();
-    auto &&[ rules, patternType ] = fImpl->email->getPatternsForSelection();
+    auto patterns = fImpl->email->getPatternsForSelection();
 
     QStringList msgs;
-    auto aOK = COutlookAPI::instance()->addToRule( rule, rules, patternType, msgs, [ this ]( bool changeCursor ) { changeCursor ? qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) ) : qApp->restoreOverrideCursor(); } );
+    auto aOK = COutlookAPI::instance()->addToRule( rule, patterns, msgs, true );
     if ( !aOK.has_value() )
     {
-        qApp->restoreOverrideCursor();
+        setWaitCursor( false );
         return;
     }
 
@@ -260,52 +256,61 @@ void CMainWindow::slotAddToSelectedRule()
     }
     clearSelection();
     slotReloadEmail();
-    qApp->restoreOverrideCursor();
+    slotReloadRules();
+    setWaitCursor( false );
 }
 
 void CMainWindow::slotMergeRules()
 {
-    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    setWaitCursor( true );
     if ( COutlookAPI::instance()->mergeRules() )
         slotReloadRules();
-    qApp->restoreOverrideCursor();
+    setWaitCursor( false );
 }
 
 void CMainWindow::slotRenameRules()
 {
-    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    setWaitCursor( true );
     if ( COutlookAPI::instance()->renameRules() )
         slotReloadRules();
-    qApp->restoreOverrideCursor();
+    setWaitCursor( false );
 }
 
 void CMainWindow::slotSortRules()
 {
-    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    setWaitCursor( true );
     if ( COutlookAPI::instance()->sortRules() )
         slotReloadRules();
-    qApp->restoreOverrideCursor();
+    setWaitCursor( false );
 }
 
 void CMainWindow::slotMoveFromToAddress()
 {
-    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    setWaitCursor( true );
     if ( COutlookAPI::instance()->moveFromToAddress() )
         slotReloadRules();
-    qApp->restoreOverrideCursor();
+    setWaitCursor( false );
+}
+
+void CMainWindow::slotFixFromMessageHeaderRules()
+{
+    setWaitCursor( true );
+    if ( COutlookAPI::instance()->fixFromMessageHeaderRules() )
+        slotReloadRules();
+    setWaitCursor( false );
 }
 
 void CMainWindow::slotEnableAllRules()
 {
-    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    setWaitCursor( true );
     if ( COutlookAPI::instance()->enableAllRules() )
         slotReloadRules();
-    qApp->restoreOverrideCursor();
+    setWaitCursor( false );
 }
 
 void CMainWindow::slotRunSelectedRule()
 {
-    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    setWaitCursor( true );
     auto selectedRule = fImpl->rules->selectedRule();
     if ( !selectedRule )
         return;
@@ -313,12 +318,12 @@ void CMainWindow::slotRunSelectedRule()
     COutlookAPI::instance()->runRule( selectedRule );
 
     slotReloadEmail();
-    qApp->restoreOverrideCursor();
+    setWaitCursor( false );
 }
 
 void CMainWindow::slotRunSelectedRuleOnSelectedFolder()
 {
-    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    setWaitCursor( true );
     auto destFolder = fImpl->folders->selectedFolder();
     if ( !destFolder )
         return;
@@ -330,28 +335,28 @@ void CMainWindow::slotRunSelectedRuleOnSelectedFolder()
     COutlookAPI::instance()->runRule( selectedRule, destFolder );
 
     slotReloadEmail();
-    qApp->restoreOverrideCursor();
+    setWaitCursor( false );
 }
 
 void CMainWindow::slotRunAllRules()
 {
-    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    setWaitCursor( true );
     COutlookAPI::instance()->runAllRules();
     slotReloadEmail();
-    qApp->restoreOverrideCursor();
+    setWaitCursor( false );
 }
 
 void CMainWindow::slotRunAllRulesOnAllFolders()
 {
-    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    setWaitCursor( true );
     COutlookAPI::instance()->runAllRulesOnAllFolders();
     slotReloadEmail();
-    qApp->restoreOverrideCursor();
+    setWaitCursor( false );
 }
 
 void CMainWindow::slotRunAllRulesOnSelectedFolder()
 {
-    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    setWaitCursor( true );
     auto destFolder = fImpl->folders->selectedFolder();
     if ( !destFolder )
         return;
@@ -359,23 +364,23 @@ void CMainWindow::slotRunAllRulesOnSelectedFolder()
     COutlookAPI::instance()->runAllRules( destFolder );
 
     slotReloadEmail();
-    qApp->restoreOverrideCursor();
+    setWaitCursor( false );
 }
 
 void CMainWindow::slotEmptyTrash()
 {
-    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    setWaitCursor( true );
     COutlookAPI::instance()->emptyTrash();
     fImpl->folders->reloadTrash();
-    qApp->restoreOverrideCursor();
+    setWaitCursor( false );
 }
 
 void CMainWindow::slotEmptyJunkFolder()
 {
-    qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    setWaitCursor( true );
     COutlookAPI::instance()->emptyJunk();
     fImpl->folders->reloadJunk();
-    qApp->restoreOverrideCursor();
+    setWaitCursor( false );
 }
 
 void CMainWindow::slotReloadAll()
@@ -629,4 +634,41 @@ void CMainWindow::slotOptionsChanged()
     fImpl->actionDisableRatherThanDeleteRules->setChecked( api->disableRatherThanDeleteRules() );
 
     updateWindowTitle();
+}
+
+void CMainWindow::setWaitCursor( bool wait )
+{
+    if ( wait )
+        qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
+    else
+        qApp->restoreOverrideCursor();
+}
+
+bool CMainWindow::showRule( std::shared_ptr< Outlook::Rule > rule )
+{
+    return showRuleDialog( rule, true );
+}
+
+bool CMainWindow::editRule( std::shared_ptr< Outlook::Rule > rule )
+{
+    return showRuleDialog( rule, false );
+}
+
+bool CMainWindow::showRuleDialog( std::shared_ptr< Outlook::Rule > rule, bool readOnly )
+{
+    CShowRule ruleDlg( rule, readOnly, this );
+    bool restoreOverride = qApp->overrideCursor() != nullptr;
+    if ( restoreOverride )
+        setWaitCursor( false );
+
+    if ( ruleDlg.exec() != QDialog::Accepted )
+    {
+        if ( restoreOverride )
+            setWaitCursor( true );
+        return false;
+    }
+
+    if ( restoreOverride )
+        setWaitCursor( true );
+    return true;
 }
