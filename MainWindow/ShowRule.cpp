@@ -38,7 +38,7 @@ QString getHtml( QStringList list, const QString &separator )
     return retVal;
 }
 
-QString getHtml( QList< QStringList > list )
+QString getHtml( const std::list< QStringList > &list )
 {
     int count = 0;
     for ( auto &&ii : list )
@@ -116,6 +116,8 @@ void CShowRule::accept()
 {
     if ( !fReadOnly )
     {
+        //if ( !COutlookAPI::instance()->saveRules() )
+        // return;
     }
     QDialog::accept();
 }
