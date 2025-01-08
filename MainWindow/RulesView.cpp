@@ -188,6 +188,7 @@ void CRulesView::slotToggleCurrentEnable()
     auto status = enabled ? COutlookAPI::instance()->enableRule( rule, true ) : COutlookAPI::instance()->disableRule( rule, true );
     (void)status;
     updateButtons( rule );
+    emit sigRuleSelected();
     qApp->restoreOverrideCursor();
 }
 
