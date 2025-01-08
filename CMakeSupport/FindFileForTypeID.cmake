@@ -15,7 +15,7 @@ if( DUMPCPP_EXECUTABLE AND NOT EXISTS ${DUMPCPP_EXECUTABLE} )
         UNSET( DUMPCPP_VERSION CACHE )
 endif()
 
-if( NOT DUMPCPP_EXECUTABLE )
+if( NOT DUMPCPP_EXECUTABLE OR NOT DUMPCPP_VERSION )
     find_program(DUMPCPP_EXECUTABLE NAMES sab_dumpcpp
       PATHS ${CMAKE_INSTALL_PREFIX} ${CMAKE_BINARY_DIR}/dumpcpp/RelWithDebInfo ${CMAKE_BINARY_DIR}/dumpcpp/Release ${CMAKE_BINARY_DIR}/dumpcpp/Debug
         DOC "path to the dumpcpp executable (from build area)" 
@@ -87,13 +87,14 @@ MACRO( GenerateCPPFromFileID fileID prefix enumPrefix )
 
     #message( STATUS "${prefix}_CPP=${${prefix}_CPP}" )
     #message( STATUS "${prefix}_H=${${prefix}_H}" )
-    #message( STATUS "DUMPCPP_EXECUTABLE=${DUMPCPP_EXECUTABLE} - ${DUMPCPP_VERSION}" )
+    message( STATUS "DUMPCPP_EXECUTABLE=${DUMPCPP_EXECUTABLE} - ${DUMPCPP_VERSION}" )
 
     ADD_CUSTOM_COMMAND( 
         OUTPUT 
             ${${prefix}_CPP} ${${prefix}_H}
-        COMMAND ${CMAKE_COMMAND} -E env "PATH=${QT_MSVCDIR}/bin;$ENV{PATH}" "${DUMPCPP_EXECUTABLE}"  
-        COMMENT "[DUMPCPP] Generating ${prefix}.cpp and ${prefix}.h from '${${prefix}_OLBPATH}' using \"${DUMPCPP_EXECUTABLE}\" ${fileID} -o ${prefix} -e ${enumPrefix}"
+        COMMENT "[DUMPCPP] Generating ${prefix}.cpp and ${prefix}.h from '${${prefix}_OLBPATH}' using \"${DUMPCPP_EXECUTABLE} - ${DUMPCPP_VERSION}\" ${fileID} -o ${prefix} -e ${enumPrefix}"
+        COMMAND echo "${DUMPCPP_EXECUTABLE}" ${fileID} -o ${prefix} -e ${enumPrefix}
+        COMMAND "${DUMPCPP_EXECUTABLE}" ${fileID} -o ${prefix} -e ${enumPrefix}
         VERBATIM
         DEPENDS
            ${${prefix}_OLBPATH}
