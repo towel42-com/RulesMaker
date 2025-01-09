@@ -22,7 +22,7 @@ MACRO(CreateVersion dir versionTemplate )
     #message( STATUS "_CREATE_VERSION_MINOR=${_CREATE_VERSION_MINOR}" )
     #message( STATUS "_CREATE_VERSION_PATCH=${_CREATE_VERSION_PATCH}" )
     #message( STATUS "_CREATE_VERSION_DIFF=${_CREATE_VERSION_DIFF}" )
-    message( STATUS "Generating version file '${OUTFILE}'" )
+    message( STATUS "Generating (or updating) version file '${OUTFILE}'" )
     
     set(VERSION_FILE_MAJOR_VERSION ${_CREATE_VERSION_MAJOR})
     set(VERSION_FILE_MINOR_VERSION ${_CREATE_VERSION_MINOR})
