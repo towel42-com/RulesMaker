@@ -22,15 +22,16 @@ FUNCTION (InstallFile inFile outFile)
 
     get_filename_component( baseName ${outFile} NAME)
 
-        EXECUTE_PROCESS( 
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${inFile}" "${outFile}"
-            RESULT_VARIABLE copyResult
-            OUTPUT_QUIET 
-            ERROR_QUIET
-        )
-        IF ( NOT copyResult EQUAL 0 )
-            message( FATAL_ERROR "Problem copying ${inFile} to ${outFile}" )
-        ENDIF()
+    EXECUTE_PROCESS( 
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${inFile}" "${outFile}"
+        RESULT_VARIABLE copyResult
+        OUTPUT_QUIET 
+        ERROR_QUIET
+    )
+    IF ( NOT copyResult EQUAL 0 )
+        message( FATAL_ERROR "Problem copying ${inFile} to ${outFile}" )
+    ENDIF()
+
     if ( _REMOVE_ORIG )
         file(REMOVE ${inFile})
     ENDIF()

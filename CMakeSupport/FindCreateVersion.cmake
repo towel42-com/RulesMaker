@@ -46,6 +46,7 @@ MACRO(CreateVersion dir versionTemplate )
     )
 
     InstallFile( ${TMP_OUTFILE} ${OUTFILE} REMOVE_ORIG ) # creates a dependency on TMP_OUTFILE
+    
     set_property( 
         DIRECTORY ${dir} 
         APPEND
