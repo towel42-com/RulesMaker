@@ -19,28 +19,18 @@ FUNCTION (InstallFile inFile outFile)
 
     #MESSAGE( STATUS "inFile=${inFile}" )
     #MESSAGE( STATUS "outFile=${outFile}" )
-        
-    get_filename_component( baseName ${outFile} NAME)
-    configure_file( ${inFile} ${outFile} COPYONLY ) # creates a dependency on TMP_OUTFILE
 
-    #configure file does all the work, but I want to see what happened
-    IF ( EXISTS ${outFile} )
+    get_filename_component( baseName ${outFile} NAME)
+
         EXECUTE_PROCESS( 
-            COMMAND ${CMAKE_COMMAND} -E compare_files ${inFile} ${outFile} 
-            RESULT_VARIABLE filesDifferent
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${inFile}" "${outFile}"
+            RESULT_VARIABLE copyResult
             OUTPUT_QUIET 
             ERROR_QUIET
         )
-
-        IF ( ${filesDifferent} )
-            MESSAGE( STATUS "${outFile} has been updated." )
-        else()
-            MESSAGE( STATUS "${outFile} is up to date." )
+        IF ( NOT copyResult EQUAL 0 )
+            message( FATAL_ERROR "Problem copying ${inFile} to ${outFile}" )
         ENDIF()
-    ELSE ()
-        MESSAGE( STATUS "${outFile} has been updated." )
-    ENDIF ()
-
     if ( _REMOVE_ORIG )
         file(REMOVE ${inFile})
     ENDIF()
