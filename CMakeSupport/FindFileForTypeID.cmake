@@ -15,6 +15,14 @@ if( DUMPCPP_EXECUTABLE AND NOT EXISTS ${DUMPCPP_EXECUTABLE} )
         UNSET( DUMPCPP_VERSION CACHE )
 endif()
 
+if( NOT DUMPCPP_EXECUTABLE  )
+    message( STATUS "DUMPCPP_EXECUTABLE not set" )
+endif()
+
+if( NOT DUMPCPP_VERSION  )
+    message( STATUS "DUMPCPP_VERSION not set" )
+endif()
+
 if( NOT DUMPCPP_EXECUTABLE OR NOT DUMPCPP_VERSION )
     find_program(DUMPCPP_EXECUTABLE NAMES sab_dumpcpp
       PATHS ${CMAKE_INSTALL_PREFIX} ${CMAKE_BINARY_DIR}/dumpcpp/RelWithDebInfo ${CMAKE_BINARY_DIR}/dumpcpp/Release ${CMAKE_BINARY_DIR}/dumpcpp/Debug
@@ -31,7 +39,8 @@ if( NOT DUMPCPP_EXECUTABLE OR NOT DUMPCPP_VERSION )
     endif()
 
     if( DUMPCPP_EXECUTABLE )
-        execute_process( COMMAND ${DUMPCPP_EXECUTABLE} --version OUTPUT_VARIABLE DUMPCPP_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+        execute_process( COMMAND ${DUMPCPP_EXECUTABLE} --version OUTPUT_VARIABLE version OUTPUT_STRIP_TRAILING_WHITESPACE)
+        SET( DUMPCPP_VERSION ${version} CACHE STRING "dumpcpp version" FORCE )
         mark_as_advanced(DUMPCPP_VERSION)
 
         MESSAGE( STATUS "Using dumpcpp: '${DUMPCPP_EXECUTABLE}' - ${DUMPCPP_VERSION}" )
@@ -87,7 +96,7 @@ MACRO( GenerateCPPFromFileID fileID prefix enumPrefix )
 
     #message( STATUS "${prefix}_CPP=${${prefix}_CPP}" )
     #message( STATUS "${prefix}_H=${${prefix}_H}" )
-    message( STATUS "DUMPCPP_EXECUTABLE=${DUMPCPP_EXECUTABLE} - ${DUMPCPP_VERSION}" )
+    #message( STATUS "DUMPCPP_EXECUTABLE=${DUMPCPP_EXECUTABLE} - ${DUMPCPP_VERSION}" )
 
     ADD_CUSTOM_COMMAND( 
         OUTPUT 
