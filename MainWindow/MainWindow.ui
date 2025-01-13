@@ -63,6 +63,9 @@
      <addaction name="actionRunAllRules"/>
      <addaction name="actionRunAllRulesOnSelectedFolder"/>
      <addaction name="separator"/>
+     <addaction name="actionRunAllRulesOnJunkFolder"/>
+     <addaction name="actionRunAllRulesOnTrashFolder"/>
+     <addaction name="separator"/>
      <addaction name="actionRunAllRulesOnAllFolders"/>
     </widget>
     <addaction name="actionAddRule"/>
@@ -429,6 +432,16 @@
   <action name="actionDeleteRule">
    <property name="text">
     <string>Delete Rule</string>
+   </property>
+  </action>
+  <action name="actionRunAllRulesOnJunkFolder">
+   <property name="text">
+    <string>Run All Rules on Junk Folder</string>
+   </property>
+  </action>
+  <action name="actionRunAllRulesOnTrashFolder">
+   <property name="text">
+    <string>Run All Rules on Trash Folder</string>
    </property>
   </action>
  </widget>

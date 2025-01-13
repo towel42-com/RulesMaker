@@ -46,6 +46,8 @@ CMainWindow::CMainWindow( QWidget *parent ) :
 
     connect( fImpl->actionRunAllRules, &QAction::triggered, this, &CMainWindow::slotRunAllRules );
     connect( fImpl->actionRunAllRulesOnAllFolders, &QAction::triggered, this, &CMainWindow::slotRunAllRulesOnAllFolders );
+    connect( fImpl->actionRunAllRulesOnTrashFolder, &QAction::triggered, this, &CMainWindow::slotRunAllRulesOnTrashFolder );
+    connect( fImpl->actionRunAllRulesOnJunkFolder, &QAction::triggered, this, &CMainWindow::slotRunAllRulesOnJunkFolder );
     connect( fImpl->actionRunSelectedRule, &QAction::triggered, this, &CMainWindow::slotRunSelectedRule );
     connect( fImpl->actionRunAllRulesOnSelectedFolder, &QAction::triggered, this, &CMainWindow::slotRunAllRulesOnSelectedFolder );
     connect( fImpl->actionRunSelectedRuleOnSelectedFolder, &QAction::triggered, this, &CMainWindow::slotRunSelectedRuleOnSelectedFolder );
@@ -168,6 +170,8 @@ void CMainWindow::updateActions()
     setEnabled( fImpl->actionReloadAllData, accountSelected );
     setEnabled( fImpl->actionRunAllRules, accountSelected );
     setEnabled( fImpl->actionRunAllRulesOnAllFolders, accountSelected );
+    setEnabled( fImpl->actionRunAllRulesOnTrashFolder, accountSelected );
+    setEnabled( fImpl->actionRunAllRulesOnJunkFolder, accountSelected );
     setEnabled( fImpl->actionEmptyTrash, accountSelected );
     setEnabled( fImpl->actionEmptyJunkFolder, accountSelected );
 
@@ -389,6 +393,22 @@ void CMainWindow::slotRunAllRulesOnAllFolders()
     setWaitCursor( false );
 }
 
+void CMainWindow::slotRunAllRulesOnTrashFolder()
+{
+    setWaitCursor( true );
+    COutlookAPI::instance()->runAllRulesOnTrashFolder();
+    slotReloadEmail();
+    setWaitCursor( false );
+}
+
+void CMainWindow::slotRunAllRulesOnJunkFolder()
+{
+    setWaitCursor( true );
+    COutlookAPI::instance()->runAllRulesOnJunkFolder();
+    slotReloadEmail();
+    setWaitCursor( false );
+}
+
 void CMainWindow::slotRunAllRulesOnSelectedFolder()
 {
     setWaitCursor( true );
@@ -420,9 +440,14 @@ void CMainWindow::slotEmptyJunkFolder()
 
 void CMainWindow::slotReloadAll()
 {
+    reloadAll( true );
+}
+
+void CMainWindow::reloadAll( bool andLoadServer )
+{
     clearViews();
     updateWindowTitle();
-    if ( COutlookAPI::instance()->accountSelected() )
+    if ( andLoadServer && COutlookAPI::instance()->accountSelected() )
     {
         fImpl->folders->reload( true );
         fImpl->rules->reload( true );
@@ -479,9 +504,7 @@ void CMainWindow::slotSelectServer()
     if ( !COutlookAPI::instance()->closeAndSelectAccount( false ) )
         return;
 
-    updateWindowTitle();
-    clearViews();
-    slotReloadAll();
+    reloadAll( COutlookAPI::instance()->loadAccountInfo() );
 }
 
 bool CMainWindow::running() const

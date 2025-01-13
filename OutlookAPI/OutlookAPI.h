@@ -136,6 +136,12 @@ public:
     void setDisableRatherThanDeleteRules( bool value, bool update = true );
     bool disableRatherThanDeleteRules() { return fDisableRatherThanDeleteRules; }
 
+    void setLoadAccountInfo( bool value, bool update = true );
+    bool loadAccountInfo() const { return fLoadAccountInfo; }
+
+    void setLastAccountName( const QString &account, bool update = true );
+    QString lastAccountName() const { return fLastAccountName; }
+
     void setRulesToSkip( const QStringList &rulesToSkip, bool update = true );
     QStringList rulesToSkip() const { return fRulesToSkip; }
 
@@ -165,8 +171,9 @@ public Q_SLOTS:
 public:
     // account API in OutlookAPI_account.cpp
     QString defaultProfileName() const;
+    std::optional< std::map< QString, std::shared_ptr< Outlook::Account > > > getAllAccounts( const QString &profile );
 
-    QString defaultAccountName( const QString &profileName );
+    QString defaultAccountName();
     QString accountName() const;
     bool accountSelected() const;
 
@@ -219,6 +226,9 @@ public:
 
     bool runAllRules( const std::shared_ptr< Outlook::Folder > &folder = {} );
     bool runAllRulesOnAllFolders();
+    bool runAllRulesOnTrashFolder();
+    bool runAllRulesOnJunkFolder();
+
     bool runRule( std::shared_ptr< Outlook::Rule > rule, const std::shared_ptr< Outlook::Folder > &folder = {} );
 
     // run from command line
@@ -373,6 +383,8 @@ private:
     bool fIncludeJunkFolderWhenRunningOnAllFolders{ false };
     bool fIncludeDeletedFolderWhenRunningOnAllFolders{ false };
     bool fDisableRatherThanDeleteRules{ false };
+    bool fLoadAccountInfo{ true };
+    QString fLastAccountName;
     std::list< EFilterType > fEmailFilterTypes{ EFilterType::eByEmailAddress };
     QStringList fRulesToSkip;
     bool fSaveRulesSuccess{ true };
@@ -380,7 +392,6 @@ private:
     // account API in OutlookAPI_account.cpp
 private:
     std::shared_ptr< Outlook::Account > getAccount( Outlook::_Account *item );
-    std::optional< std::map< QString, std::shared_ptr< Outlook::Account > > > getAllAccounts( const QString &profile );
     std::shared_ptr< Outlook::NameSpace > getNamespace( Outlook::_NameSpace *ns );
 
     // rules api in Outlook_rules.cpp

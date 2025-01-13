@@ -24,6 +24,7 @@ void CSettings::init()
     fImpl->includeDeletedFolderWhenRunningOnAllFolders->setChecked( api->includeDeletedFolderWhenRunningOnAllFolders() );
     fImpl->disableRatherThanDeleteRules->setChecked( api->disableRatherThanDeleteRules() );
     fImpl->rulesToSkip->addItems( api->rulesToSkip() );
+    fImpl->loadAccountInfo->setChecked( api->loadAccountInfo() );
 
     connect( fImpl->rulesToSkip, &QListWidget::itemSelectionChanged, this, &CSettings::slotRegexSelectionChanged );
     connect( fImpl->addRegex, &QAbstractButton::clicked, this, &CSettings::slotAddRegex );
@@ -44,7 +45,8 @@ void CSettings::accept()
     api->setOnlyProcessTheFirst500Emails( fImpl->onlyProcessTheFirst500Emails->isChecked() );
     api->setIncludeJunkFolderWhenRunningOnAllFolders( fImpl->includeJunkFolderWhenRunningOnAllFolders->isChecked() );
     api->setIncludeDeletedFolderWhenRunningOnAllFolders( fImpl->includeDeletedFolderWhenRunningOnAllFolders->isChecked() );
-    
+    api->setLoadAccountInfo( fImpl->loadAccountInfo->isChecked() );
+   
     api->setDisableRatherThanDeleteRules( fImpl->disableRatherThanDeleteRules->isChecked() );
     auto regexes = QStringList();
     for ( auto &&ii = 0; ii < fImpl->rulesToSkip->count(); ++ii )
@@ -63,6 +65,7 @@ bool CSettings::changed() const
     retVal = retVal || ( fImpl->onlyProcessTheFirst500Emails->isChecked() != api->onlyProcessTheFirst500Emails() );
     retVal = retVal || ( fImpl->includeJunkFolderWhenRunningOnAllFolders->isChecked() != api->includeJunkFolderWhenRunningOnAllFolders() );
     retVal = retVal || ( fImpl->includeDeletedFolderWhenRunningOnAllFolders->isChecked() != api->includeDeletedFolderWhenRunningOnAllFolders() );
+    retVal = retVal || ( fImpl->loadAccountInfo->isChecked() != api->loadAccountInfo() );
     
     retVal = retVal || ( fImpl->disableRatherThanDeleteRules->isChecked() != api->disableRatherThanDeleteRules() );
 

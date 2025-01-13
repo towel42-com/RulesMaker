@@ -65,6 +65,8 @@ protected Q_SLOTS:
     void slotRunSelectedRule();
     void slotRunAllRules();
     void slotRunAllRulesOnAllFolders();
+    void slotRunAllRulesOnTrashFolder();
+    void slotRunAllRulesOnJunkFolder();
     void slotRunAllRulesOnSelectedFolder();
     void slotRunSelectedRuleOnSelectedFolder();
 
@@ -90,6 +92,7 @@ protected Q_SLOTS:
 
 protected:
     void updateActions();
+    void reloadAll( bool andLoadServerInfo );
     bool showRuleDialog( std::shared_ptr< Outlook::Rule > rule, bool readOnly );
 
     template< typename T >

@@ -11,6 +11,8 @@ void COutlookAPI::initSettings()
     setIncludeJunkFolderWhenRunningOnAllFolders( settings.value( "IncludeJunkFolderWhenRunningOnAllFolders", false ).toBool(), false );
     setIncludeDeletedFolderWhenRunningOnAllFolders( settings.value( "IncludeJunkDeletedWhenRunningOnAllFolders", false ).toBool(), false );
     setDisableRatherThanDeleteRules( settings.value( "DisableRatherThanDeleteRules", true ).toBool(), false );
+    setLoadAccountInfo( settings.value( "LoadAccountInfo", true ).toBool(), false );
+    setLastAccountName( settings.value( "Account", QString() ).toString(), false );
     setEmailFilterTypes( static_cast< EFilterType >( settings.value( "EmailFilterTypes", 1 ).toInt() ) );
     setRulesToSkip( settings.value( "RulesToSkip", true ).toStringList(), false );
 
@@ -41,7 +43,7 @@ void COutlookAPI::setIncludeJunkFolderWhenRunningOnAllFolders( bool value, bool 
 
 void COutlookAPI::setIncludeDeletedFolderWhenRunningOnAllFolders( bool value, bool update )
 {
-    update = update || ( fIncludeDeletedFolderWhenRunningOnAllFolders != value );
+    update = update && ( fIncludeDeletedFolderWhenRunningOnAllFolders != value );
 
     fIncludeDeletedFolderWhenRunningOnAllFolders = value;
     QSettings settings;
@@ -52,7 +54,7 @@ void COutlookAPI::setIncludeDeletedFolderWhenRunningOnAllFolders( bool value, bo
 
 void COutlookAPI::setProcessAllEmailWhenLessThan200Emails( bool value, bool update )
 {
-    update = update || ( fProcessAllEmailWhenLessThan200Emails != value );
+    update = update && ( fProcessAllEmailWhenLessThan200Emails != value );
 
     fProcessAllEmailWhenLessThan200Emails = value;
     QSettings settings;
@@ -63,7 +65,7 @@ void COutlookAPI::setProcessAllEmailWhenLessThan200Emails( bool value, bool upda
 
 void COutlookAPI::setOnlyProcessTheFirst500Emails( bool value, bool update )
 {
-    update = update || ( fOnlyProcessTheFirst500Emails != value );
+    update = update && ( fOnlyProcessTheFirst500Emails != value );
 
     fOnlyProcessTheFirst500Emails = value;
     QSettings settings;
@@ -74,11 +76,33 @@ void COutlookAPI::setOnlyProcessTheFirst500Emails( bool value, bool update )
 
 void COutlookAPI::setDisableRatherThanDeleteRules( bool value, bool update )
 {
-    update = update || ( fDisableRatherThanDeleteRules != value );
+    update = update && ( fDisableRatherThanDeleteRules != value );
 
     fDisableRatherThanDeleteRules = value;
     QSettings settings;
     settings.setValue( "DisableRatherThanDeleteRules", value );
+    if ( update )
+        emit sigOptionChanged();
+}
+
+void COutlookAPI::setLoadAccountInfo( bool value, bool update )
+{
+    update = update && ( fLoadAccountInfo != value );
+
+    fLoadAccountInfo = value;
+    QSettings settings;
+    settings.setValue( "LoadAccountInfo", value );
+    if ( update )
+        emit sigOptionChanged();
+}
+
+void COutlookAPI::setLastAccountName( const QString &value, bool update )
+{
+    update = update && ( fLastAccountName != value );
+
+    fLastAccountName = value;
+    QSettings settings;
+    settings.setValue( "Account", value );
     if ( update )
         emit sigOptionChanged();
 }
@@ -106,10 +130,12 @@ void COutlookAPI::setEmailFilterTypes( EFilterType value )
 
 void COutlookAPI::setRulesToSkip( const QStringList &value, bool update )
 {
-    update = update && ( value.length() != fRulesToSkip.length() );
-    auto count = ( std::min( fRulesToSkip.length(), value.length() ) );
-    for ( int ii = 0; update && ( ii < count ); ++ii )
-        update = update || ( fRulesToSkip[ ii ] != value[ ii ] );
+    auto dataChanged = ( value.length() != fRulesToSkip.length() );
+    auto count = std::min( fRulesToSkip.length(), value.length() );
+    for ( int ii = 0; !dataChanged && ( ii < count ); ++ii )
+        dataChanged = dataChanged || ( fRulesToSkip[ ii ] != value[ ii ] );
+
+    update = update && dataChanged;
 
     fRulesToSkip = value;
     QSettings settings;

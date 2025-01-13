@@ -6,9 +6,9 @@ set(qtproject_UIS
     FoldersView.ui
     MainWindow.ui
     RulesView.ui
+    SelectAccount.ui
     Settings.ui
     ShowRule.ui
-    StatusProgress.ui
 )
 
 set(project_SRCS
@@ -16,6 +16,7 @@ set(project_SRCS
     FoldersView.cpp
     MainWindow.cpp
     RulesView.cpp
+    SelectAccount.cpp
     Settings.cpp
     ShowRule.cpp
     StatusProgress.cpp
@@ -26,6 +27,7 @@ set(qtproject_H
     FoldersView.h
     MainWindow.h
     RulesView.h
+    SelectAccount.h
     Settings.h
     ShowRule.h
     StatusProgress.h

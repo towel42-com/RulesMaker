@@ -319,6 +319,40 @@ bool COutlookAPI::runAllRulesOnAllFolders()
     return retVal;
 }
 
+bool COutlookAPI::runAllRulesOnTrashFolder()
+{
+    auto allRules = getAllRules();
+    auto folder = getTrashFolder();
+
+    bool retVal = true;
+
+    int numFolders = 1;
+
+    auto msg = QString( "Running All Rules on Trash Folder:" );
+    emit sigInitStatus( msg, numFolders );
+
+    if ( folder )
+        retVal = runRules( allRules, folder, true, msg ) && retVal;
+    return retVal;
+}
+
+bool COutlookAPI::runAllRulesOnJunkFolder()
+{
+    auto allRules = getAllRules();
+    auto folder = getJunkFolder();
+
+    bool retVal = true;
+
+    int numFolders = 1;
+
+    auto msg = QString( "Running All Rules on Junk Folder:" );
+    emit sigInitStatus( msg, numFolders );
+
+    if ( folder )
+        retVal = runRules( allRules, folder, true, msg ) && retVal;
+    return retVal;
+}
+
 bool COutlookAPI::runRule( std::shared_ptr< Outlook::Rule > rule, const std::shared_ptr< Outlook::Folder > &folder )
 {
     return runRules( std::vector< std::shared_ptr< Outlook::Rule > >( { rule } ), folder );

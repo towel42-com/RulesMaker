@@ -1,6 +1,6 @@
 #include "OutlookAPI.h"
 
-#include <QInputDialog>
+#include "MainWindow/SelectAccount.h"
 #include <QSettings>
 
 #include "MSOUTL.h"
@@ -89,9 +89,10 @@ std::optional< std::map< QString, std::shared_ptr< Outlook::Account > > > COutlo
     return retVal;
 }
 
-QString COutlookAPI::defaultAccountName( const QString &profileName )
+QString COutlookAPI::defaultAccountName()
 {
-    auto allAccounts = getAllAccounts( profileName );
+    auto lastAccount = lastAccountName();
+    auto allAccounts = getAllAccounts( lastAccount );
     if ( !allAccounts.has_value() )
         return {};
 
@@ -99,8 +100,6 @@ QString COutlookAPI::defaultAccountName( const QString &profileName )
     {
         return ( *allAccounts.value().begin() ).first;
     }
-    QSettings settings;
-    auto lastAccount = settings.value( "Account", QString() ).toString();
     if ( !lastAccount.isEmpty() )
     {
         if ( allAccounts.value().find( lastAccount ) != allAccounts.value().end() )
@@ -147,59 +146,31 @@ std::shared_ptr< Outlook::Account > COutlookAPI::selectAccount( bool notifyOnCha
     if ( fOutlookApp->isNull() )
         return {};
 
-    auto profileName = defaultProfileName();
-    auto allAccounts = getAllAccounts( profileName );
-    if ( !allAccounts.has_value() )
+    CSelectAccount dlg( getParentWidget() );
+    auto init = dlg.initResult();
+    if ( ( init == CSelectAccount::EInitResult::eError ) || ( init == CSelectAccount::EInitResult::eNoAccounts ) )
     {
         logout( notifyOnChange );
         return {};
     }
-
-    if ( allAccounts.value().size() == 0 )
+    
+    if ( init != CSelectAccount::EInitResult::eSingleAccount )
     {
-        logout( notifyOnChange );
-        return {};
-    }
-
-    QSettings settings;
-    if ( allAccounts.value().size() == 1 )
-    {
-        auto pos = allAccounts.value().begin();
-        fAccount = ( *pos ).second;
-        settings.setValue( "Account", fAccount->DisplayName() );
-        return fAccount;
-    }
-
-    auto lastAccount = settings.value( "Account", QString() ).toString();
-    QStringList accountNames;
-
-    int accountPos = -1;
-    int currPos = 0;
-    for ( auto &&account : allAccounts.value() )
-    {
-        accountNames << account.first;
-        if ( account.first == lastAccount )
+        if ( dlg.exec() != QDialog::Accepted )
         {
-            accountPos = static_cast< int >( currPos );
+            return {};
         }
-        currPos++;
     }
 
-    bool aOK{ false };
-    auto account = QInputDialog::getItem( getParentWidget(), QString( "Select Account:" ), "Account:", accountNames, accountPos, false, &aOK );
-    if ( !aOK || account.isEmpty() )
+    auto &&[ accountName, account ] = dlg.account();
+    fAccount = dlg.account().second;
+    if ( !fAccount )
     {
         logout( notifyOnChange );
         return {};
     }
-    auto pos = allAccounts.value().find( account );
-    if ( pos == allAccounts.value().end() )
-    {
-        logout( notifyOnChange );
-        return {};
-    }
-    settings.setValue( "Account", account );
-    fAccount = ( *pos ).second;
+    setLastAccountName( fAccount->DisplayName() );
+    setLoadAccountInfo( dlg.loadAccountInfo() );
 
     if ( notifyOnChange )
         emit sigAccountChanged();

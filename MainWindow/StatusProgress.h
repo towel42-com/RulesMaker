@@ -2,7 +2,9 @@
 #define STATUSPROGRESS_H
 
 #include <QWidget>
-#include <memory>
+class QLabel;
+class QProgressBar;
+
 namespace Ui
 {
     class CStatusProgress;
@@ -34,7 +36,8 @@ Q_SIGNALS:
     void sigFinished();
 
 protected:
-    std::unique_ptr< Ui::CStatusProgress > fImpl;
+    QLabel *fLabel{ nullptr };
+    QProgressBar *fProgressBar{ nullptr };
 };
 
 #endif   // STATUSPROGRESS_H
