@@ -1,6 +1,6 @@
 #include "MainWindow.h"
-#include "ShowRule.h"
 #include "OutlookAPI/OutlookAPI.h"
+#include "OutlookAPI/ShowRule.h"
 #include "StatusProgress.h"
 #include "Version.h"
 #include "Settings.h"
@@ -20,7 +20,7 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     QMainWindow( parent ),
     fImpl( new Ui::CMainWindow )
 {
-    auto api = COutlookAPI::instance( [ this ]( std::shared_ptr< Outlook::Rule > rule ) { return showRule( rule ); }, this );
+    auto api = COutlookAPI::instance( this );
 
     fImpl->setupUi( this );
 
@@ -704,29 +704,23 @@ void CMainWindow::setWaitCursor( bool wait )
 
 bool CMainWindow::showRule( std::shared_ptr< Outlook::Rule > rule )
 {
-    return showRuleDialog( rule, true );
+    bool restoreOverride = qApp->overrideCursor() != nullptr;
+    if ( restoreOverride )
+        setWaitCursor( false );
+    auto retVal = COutlookAPI::instance()->showRule( rule );
+    if ( restoreOverride )
+        setWaitCursor( true );
+    return retVal;
 }
 
 bool CMainWindow::editRule( std::shared_ptr< Outlook::Rule > rule )
 {
-    return showRuleDialog( rule, false );
-}
-
-bool CMainWindow::showRuleDialog( std::shared_ptr< Outlook::Rule > rule, bool readOnly )
-{
-    CShowRule ruleDlg( rule, readOnly, this );
     bool restoreOverride = qApp->overrideCursor() != nullptr;
     if ( restoreOverride )
         setWaitCursor( false );
-
-    if ( ruleDlg.exec() != QDialog::Accepted )
-    {
-        if ( restoreOverride )
-            setWaitCursor( true );
-        return false;
-    }
-
+    auto retVal = COutlookAPI::instance()->editRule( rule );
     if ( restoreOverride )
         setWaitCursor( true );
-    return true;
+    return retVal;
 }
+

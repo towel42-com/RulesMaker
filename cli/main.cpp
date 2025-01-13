@@ -71,7 +71,7 @@ std::pair< EParseResult, EOperation > parseCommandLine( QCommandLineParser &pars
         settings.setValue( "Account", accountName );
     }
     else
-        accountName = api->defaultAccountName( profileName );
+        accountName = api->defaultAccountName();
 
     if ( accountName.isEmpty() )
     {

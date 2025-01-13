@@ -33,8 +33,6 @@ public:
     bool running() const;
 
     void setWaitCursor( bool wait );
-    bool showRule( std::shared_ptr< Outlook::Rule > rule );
-    bool editRule( std::shared_ptr< Outlook::Rule > rule );
 Q_SIGNALS:
     void sigRunningStateChanged( bool running );
 
@@ -91,9 +89,10 @@ protected Q_SLOTS:
     void slotSettings();
 
 protected:
+    bool showRule( std::shared_ptr< Outlook::Rule > rule );
+    bool editRule( std::shared_ptr< Outlook::Rule > rule );
     void updateActions();
     void reloadAll( bool andLoadServerInfo );
-    bool showRuleDialog( std::shared_ptr< Outlook::Rule > rule, bool readOnly );
 
     template< typename T >
     void setEnabled( T *item )

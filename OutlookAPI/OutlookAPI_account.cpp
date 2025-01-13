@@ -1,6 +1,6 @@
 #include "OutlookAPI.h"
 
-#include "MainWindow/SelectAccount.h"
+#include "SelectAccount.h"
 #include <QSettings>
 
 #include "MSOUTL.h"

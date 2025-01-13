@@ -1,4 +1,5 @@
 #include "OutlookAPI.h"
+#include "ShowRule.h"
 
 #include <QInputDialog>
 #include <QMessageBox>
@@ -16,10 +17,9 @@ std::shared_ptr< COutlookAPI > COutlookAPI::sInstance;
 
 Q_DECLARE_METATYPE( std::shared_ptr< Outlook::Rule > );
 
-COutlookAPI::COutlookAPI( const std::function< bool( std::shared_ptr< Outlook::Rule > ) > &showRule, QWidget *parent, COutlookAPI::SPrivate )
+COutlookAPI::COutlookAPI( QWidget *parent, COutlookAPI::SPrivate )
 {
     getApplication();
-    fShowRule = showRule;
     fParentWidget = parent;
 
     initSettings();
@@ -32,18 +32,17 @@ std::shared_ptr< COutlookAPI > COutlookAPI::cliInstance()
 {
     if ( !sInstance )
     {
-        sInstance = std::make_shared< COutlookAPI >( std::function< bool( std::shared_ptr< Outlook::Rule > ) >(), nullptr, SPrivate() );
+        sInstance = std::make_shared< COutlookAPI >( nullptr, SPrivate() );
     }
     return sInstance;
 }
 
-std::shared_ptr< COutlookAPI > COutlookAPI::instance( const std::function< bool( std::shared_ptr< Outlook::Rule > ) > &showRule, QWidget *parent )
+std::shared_ptr< COutlookAPI > COutlookAPI::instance( QWidget *parent )
 {
     if ( !sInstance )
     {
         Q_ASSERT( parent );
-        Q_ASSERT( showRule.operator bool() );
-        sInstance = std::make_shared< COutlookAPI >( showRule, parent, SPrivate() );
+        sInstance = std::make_shared< COutlookAPI >( parent, SPrivate() );
     }
     else
     {
@@ -199,11 +198,23 @@ QWidget *COutlookAPI::getParentWidget() const
     return fParentWidget;
 }
 
+
+
 bool COutlookAPI::showRule( std::shared_ptr< Outlook::Rule > rule )
 {
-    if ( !fShowRule )
-        return true;
-    return fShowRule( rule );
+    return showRuleDialog( rule, true );
+}
+
+bool COutlookAPI::editRule( std::shared_ptr< Outlook::Rule > rule )
+{
+    return showRuleDialog( rule, false );
+}
+
+bool COutlookAPI::showRuleDialog( std::shared_ptr< Outlook::Rule > rule, bool readOnly )
+{
+    CShowRule ruleDlg( rule, readOnly, fParentWidget );
+
+    return ruleDlg.exec() == QDialog::Accepted;
 }
 
 void COutlookAPI::slotHandleException( int code, const QString &source, const QString &desc, const QString &help )

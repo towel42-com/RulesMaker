@@ -103,9 +103,9 @@ class COutlookAPI : public QObject
 public:
     // general API in OutlookAPI.cpp
     friend class COutlookSetup;
-    COutlookAPI( const std::function< bool( std::shared_ptr< Outlook::Rule > ) > &showRule, QWidget *parentWidget, SPrivate pri );
+    COutlookAPI( QWidget *parentWidget, SPrivate pri );
 
-    static std::shared_ptr< COutlookAPI > instance( const std::function< bool( std::shared_ptr< Outlook::Rule > ) > &showRule = {}, QWidget *parentWidget = nullptr );
+    static std::shared_ptr< COutlookAPI > instance( QWidget *parentWidget = nullptr );
     static std::shared_ptr< COutlookAPI > cliInstance();
     virtual ~COutlookAPI();
 
@@ -150,6 +150,7 @@ public:
 
     QWidget *getParentWidget() const;
     bool showRule( std::shared_ptr< Outlook::Rule > rule );
+    bool editRule( std::shared_ptr< Outlook::Rule > rule );
 Q_SIGNALS:
     void sigAccountChanged();
     void sigStatusMessage( const QString &msg );
@@ -328,6 +329,8 @@ public:
 
 private:
     // general API in OutlookAPI.cpp
+    bool showRuleDialog( std::shared_ptr< Outlook::Rule > rule, bool readOnly );
+
     std::shared_ptr< Outlook::Application > getApplication();
     std::shared_ptr< Outlook::Application > outlookApp();
 
@@ -361,7 +364,6 @@ private:
     }
 
     QWidget *fParentWidget{ nullptr };
-    std::function< bool( std::shared_ptr< Outlook::Rule > ) > fShowRule{ nullptr };
     std::shared_ptr< Outlook::Application > fOutlookApp{ nullptr };
     std::shared_ptr< Outlook::NameSpace > fSession{ nullptr };
     std::shared_ptr< Outlook::Account > fAccount{ nullptr };

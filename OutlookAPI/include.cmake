@@ -2,6 +2,8 @@ set(_PROJECT_NAME OutlookAPI)
 set(FOLDER_NAME libs)
 
 set(qtproject_UIS
+    SelectAccount.ui
+    ShowRule.ui
 )
 
 set(project_SRCS
@@ -19,10 +21,14 @@ set(project_SRCS
     OutlookAPI_settings.cpp
     OutlookAPI_tools.cpp
     OutlookAPI_utils.cpp
+    ShowRule.cpp
+    SelectAccount.cpp
 )
  
 set(qtproject_H
     OutlookAPI.h
+    SelectAccount.h
+    ShowRule.h
 )
 
 set(project_H

@@ -1,8 +1,8 @@
 #include "RulesView.h"
-#include "ShowRule.h"
 #include "Models/RulesModel.h"
 #include "Models/ListFilterModel.h"
 #include "OutlookAPI/OutlookAPI.h"
+#include "OutlookAPI/ShowRule.h"
 
 #include "ui_RulesView.h"
 
