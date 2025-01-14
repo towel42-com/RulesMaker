@@ -285,6 +285,7 @@ void writeEnums( QTextStream &out, const QMetaObject *mo, const QString &nameSpa
         }
         out << endl;
     }
+    sBeenWritten = true;
 }
 
 void writeHeader( QTextStream &out, const QString &nameSpace, const QString &outFileName )
@@ -957,6 +958,7 @@ void generateClassImpl( QTextStream &out, const QMetaObject *mo, const QByteArra
     if ( !nameSpace.isEmpty() )
         qualifiedClassName = nameSpace + "::";
     qualifiedClassName += className;
+    //qDebug() << "    Generating implementation for class " << qualifiedClassName;
     QByteArray qualifiedClassNameIdentifier = qualifiedClassName;
     qualifiedClassNameIdentifier.replace( ':', '_' );
 
@@ -1110,6 +1112,7 @@ void generateClassImpl( QTextStream &out, const QMetaObject *mo, const QByteArra
 
     if ( thisEnumCount )
     {
+        //QTextStream out( stdout );
         out << " // enums: name, flags, count, data" << endl;
         enumStart += thisEnumCount * 4;
         for ( int i = mo->enumeratorOffset(); i < allEnumCount; ++i )
@@ -1227,6 +1230,134 @@ static void writeForwardDeclaration( QTextStream &declOut, const QByteArray &cla
     }
 }
 
+bool generateToString( QTextStream &out, ITypeLib *typelib, ObjectCategories category )
+{
+    if ( !typelib )
+        return false;
+
+    bool metaObjectFound = false;
+    UINT typeCount = typelib->GetTypeInfoCount();
+    for ( UINT index = 0; index < typeCount; ++index )
+    {
+        ITypeInfo *typeinfo = nullptr;
+        typelib->GetTypeInfo( index, &typeinfo );
+        if ( !typeinfo )
+            continue;
+
+        TYPEATTR *typeattr;
+        typeinfo->GetTypeAttr( &typeattr );
+        if ( !typeattr )
+        {
+            typeinfo->Release();
+            continue;
+        }
+
+        TYPEKIND typekind;
+        typelib->GetTypeInfoType( index, &typekind );
+
+        ObjectCategories object_category = category;
+        if ( !( typeattr->wTypeFlags & TYPEFLAG_FCANCREATE ) )
+            object_category |= SubObject;
+        else if ( typeattr->wTypeFlags & TYPEFLAG_FCONTROL )
+            object_category |= ActiveX;
+
+        QMetaObject *metaObject = 0;
+        QUuid guid( typeattr->guid );
+
+        if ( !( object_category & ActiveX ) )
+        {
+            QSettings settings( QLatin1String( "HKEY_LOCAL_MACHINE\\Software\\Classes\\CLSID\\" ) + guid.toString(), QSettings::NativeFormat );
+            if ( settings.childGroups().contains( QLatin1String( "Control" ) ) )
+            {
+                object_category |= ActiveX;
+                object_category &= ~SubObject;
+            }
+        }
+
+        switch ( typekind )
+        {
+            case TKIND_COCLASS:
+                if ( object_category & ActiveX )
+                    metaObject = qax_readClassInfo( typelib, typeinfo, &QWidget::staticMetaObject );
+                else
+                    metaObject = qax_readClassInfo( typelib, typeinfo, &QObject::staticMetaObject );
+                break;
+            case TKIND_DISPATCH:
+                if ( object_category & ActiveX )
+                    metaObject = qax_readInterfaceInfo( typelib, typeinfo, &QWidget::staticMetaObject );
+                else
+                    metaObject = qax_readInterfaceInfo( typelib, typeinfo, &QObject::staticMetaObject );
+                break;
+            default:
+                break;
+        }
+
+        if ( !metaObject )
+        {
+            typeinfo->ReleaseTypeAttr( typeattr );
+            typeinfo->Release();
+            continue;
+        }
+
+        auto getEnumString = []( QString enumName ) -> QString
+        {
+            if ( enumName.isEmpty() )
+                return {};
+            if ( enumName.startsWith( "ol", Qt::CaseInsensitive ) )
+                enumName = enumName.mid( 2 );
+
+            QStringList words;
+            auto regEx = QRegularExpression( "[A-Z][a-z]+" );
+            auto iter = regEx.globalMatch( enumName );
+            auto prevPos = 0;
+            while ( iter.hasNext() )
+            {
+                auto match = iter.next();
+                auto word = match.captured( 0 );
+                words << word;
+            }
+
+            enumName = words.join( " " );
+            return enumName;
+        };
+
+        int allEnumCount = metaObject->enumeratorCount();
+        int thisEnumCount = allEnumCount - metaObject->enumeratorOffset();
+        if ( thisEnumCount )
+        {
+            for ( auto ii = metaObject->enumeratorOffset(); ii < allEnumCount; ++ii )
+            {
+                auto mo = metaObject->enumerator( ii );
+                if ( mo.isValid() )
+                {
+                    auto enumName = mo.name();
+                    //qDebug() << "    Generating toString for enum " << enumName;
+                    out << endl   //
+                        << "QString toString( " << enumName << " value )" << endl
+                        << "{" << endl
+                        << "    switch( value )" << endl
+                        << "    {" << endl;
+
+                    for ( int j = 0; j < mo.keyCount(); ++j )
+                    {
+                        out << "        case " << mo.key( j ) << ": return \"" << getEnumString( mo.key( j ) ) << "\";" << endl;
+                    }
+                    out << QString( R"(        default: return "<UNKNOWN-%1>";)" ).arg( enumName ) << endl   //
+                        << "    };" << endl
+                        << "};" << endl;
+                }
+            }
+            metaObjectFound = true;
+            out.flush();
+        }
+        qax_deleteMetaObject( metaObject );
+        typeinfo->ReleaseTypeAttr( typeattr );
+        typeinfo->Release();
+        break;
+    }
+    return metaObjectFound;
+}
+
 bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &nameSpace, ObjectCategories category )
 {
     typeLibFile.replace( QLatin1Char( '/' ), QLatin1Char( '\\' ) );
@@ -1278,6 +1409,7 @@ bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &n
         qWarning( "dumpcpp: Cannot open temporary file." );
         return false;
     }
+    //qDebug() << "Temp File: " << classImplFile.fileName();
     QTextStream classImplOut( &classImplFile );
     QFile implFile( outname + QLatin1String( ".cpp" ) );
     QTextStream implOut( &implFile );
@@ -1302,7 +1434,11 @@ bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &n
         implOut << endl;
     }
 
+    if ( !generateToString( implOut, typelib, category ) )
+        return false;
+
     QFile declFile( outname + QLatin1String( ".h" ) );
+    //qDebug() << "Generating decl file " << QFileInfo( declFile.fileName() ).absoluteFilePath();
     QTextStream declOut( &declFile );
     QByteArray classes;
     QTextStream classesOut( &classes, QIODevice::WriteOnly );
@@ -1575,7 +1711,7 @@ bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &n
                     inlinesOut << endl;
                 }
                 if ( implFile.isOpen() )
-                    generateClassImpl( classImplOut, metaObject, className, libName.toLatin1(), object_category );
+                    generateClassImpl( declOut, metaObject, className, libName.toLatin1(), object_category );
             }
             currentTypeInfo = 0;
         }
