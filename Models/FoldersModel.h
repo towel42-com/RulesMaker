@@ -65,7 +65,6 @@ private:
 
     [[nodiscard]] QStandardItem *loadFolder( const std::shared_ptr< Outlook::Folder > &folder, QStandardItem *parentItem );
 
-
     std::unordered_map< QStandardItem *, std::unique_ptr< SCurrFolderInfo > > fFolders;
     std::unordered_map< QStandardItem *, std::shared_ptr< Outlook::Folder > > fItemToFolderMap;
     std::map< QString, QStandardItem * > fFolderToItemMap;

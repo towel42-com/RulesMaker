@@ -153,7 +153,7 @@ std::shared_ptr< Outlook::Account > COutlookAPI::selectAccount( bool notifyOnCha
         logout( notifyOnChange );
         return {};
     }
-    
+
     if ( init != CSelectAccount::EInitResult::eSingleAccount )
     {
         if ( dlg.exec() != QDialog::Accepted )

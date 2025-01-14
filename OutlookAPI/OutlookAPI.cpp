@@ -81,7 +81,7 @@ QString COutlookAPI::getDebugName( const std::shared_ptr< Outlook::Rule > &rule 
     return getDebugName( rule.get() );
 }
 
-QString COutlookAPI::getDebugName( const Outlook::Rule * rule )
+QString COutlookAPI::getDebugName( const Outlook::Rule *rule )
 {
     if ( !rule )
         return {};
@@ -197,8 +197,6 @@ QWidget *COutlookAPI::getParentWidget() const
 {
     return fParentWidget;
 }
-
-
 
 bool COutlookAPI::showRule( std::shared_ptr< Outlook::Rule > rule )
 {

@@ -593,4 +593,3 @@ bool COutlookAPI::addSubjectsToRule( Outlook::Rule *rule, const QStringList &sub
 
     return true;
 }
-

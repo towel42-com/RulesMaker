@@ -72,7 +72,6 @@ static QStringList conditionRuleNameBase( T *condition, const QString &condition
     return conditionRuleNameBase( condition, conditionStr, QStringList() << value, wrapperMode );
 }
 
-
 void loadConditions( QStandardItem *parent, std::shared_ptr< Outlook::Rule > rule )
 {
     return loadConditions( parent, rule, false );
@@ -415,4 +414,3 @@ void loadAttribute( QStandardItem *parent, const QString &label, const QString &
     auto valueItem = new QStandardItem( value );
     parent->appendRow( { keyItem, valueItem } );
 }
-

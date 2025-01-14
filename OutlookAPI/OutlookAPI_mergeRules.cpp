@@ -154,10 +154,10 @@ void COutlookAPI::mergeRules( COutlookAPI::TRulePair &rules )
     if ( !rules.first || rules.second.empty() )
         return;
 
-    auto && primaryRule = rules.first;
+    auto &&primaryRule = rules.first;
     qDebug() << "Primary Rule: " << getDebugName( primaryRule );
 
-    auto && toRemove = rules.second;
+    auto &&toRemove = rules.second;
     for ( auto &&ii : toRemove )
     {
         qDebug() << "    To be Merged: " << getDebugName( ii );

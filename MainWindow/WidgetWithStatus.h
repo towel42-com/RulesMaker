@@ -25,4 +25,4 @@ protected:
     QString fStatusLabel;
 };
 
-#endif   
+#endif

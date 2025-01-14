@@ -116,7 +116,6 @@ bool loadCondition( QStandardItem *parent, Outlook::SensitivityRuleCondition *co
 bool loadCondition( QStandardItem *parent, Outlook::TextRuleCondition *condition, const QString &ruleName );
 bool loadCondition( QStandardItem *parent, Outlook::ToOrFromRuleCondition *condition, bool from );   // from or sentTo
 
-
 void loadConditions( QStandardItem *parent, std::shared_ptr< Outlook::Rule > rule );
 void loadConditions( QStandardItem *parent, std::shared_ptr< Outlook::Rule > rule, bool exceptions );
 void loadExceptions( QStandardItem *parent, std::shared_ptr< Outlook::Rule > rule );

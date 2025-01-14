@@ -301,7 +301,6 @@ bool COutlookAPI::mergeRules( bool andSave /*= true*/, bool *needsSaving /*= nul
         emit sigIncStatusValue( "Merging Rules:" );
     }
 
-
     if ( needsSaving )
         *needsSaving = !rules.empty();
 

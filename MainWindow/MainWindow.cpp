@@ -155,7 +155,7 @@ void CMainWindow::updateActions()
     TReason emailHasDisplayName( !fImpl->email->selectionHasDisplayName(), "Selected email does not have a display name" );
     TReason ruleSelected( fImpl->rules->ruleSelected(), "Rule not selected" );
     TReason disableRatherThanDeleteRules( !COutlookAPI::instance()->disableRatherThanDeleteRules(), "Disable rather than delete rules is enabled" );
-    
+
     TReason folderSelected( !fImpl->folders->selectedPath().isEmpty(), "Folder not selected" );
     TReason folderSame( true, "Selected folder does not match selected rule's target folder" );
 
@@ -723,4 +723,3 @@ bool CMainWindow::editRule( std::shared_ptr< Outlook::Rule > rule )
         setWaitCursor( true );
     return retVal;
 }
-

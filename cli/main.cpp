@@ -175,7 +175,7 @@ bool runRules( QCommandLineParser &parser )
     return aOK;
 }
 
-void msgHandler( QtMsgType /*type*/, const QMessageLogContext &/*context*/, const QString &/*msg*/ )
+void msgHandler( QtMsgType /*type*/, const QMessageLogContext & /*context*/, const QString & /*msg*/ )
 {
     //Logger::instance()->handleMessage( type, msg );
 }

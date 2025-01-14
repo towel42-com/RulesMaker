@@ -407,4 +407,3 @@ QString actionName( Outlook::SendRuleAction *action, const QString &actionName )
 
     return QString( "%1: %2" ).arg( actionName ).arg( recipients.join( " and " ) );
 }
-

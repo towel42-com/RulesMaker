@@ -195,7 +195,7 @@ std::optional< QString > generateFromString( const QMetaEnum &metaEnum, const QS
         auto descriptiveKey = getEnumDescriptiveString( enumKey );
 
         // dont use a set for uniquifying since we want consistant order based on the enum
-        auto keys = QStringList() << enumKey.toLower() << strippedKey.toLower() << descriptiveKey.toLower(); 
+        auto keys = QStringList() << enumKey.toLower() << strippedKey.toLower() << descriptiveKey.toLower();
         keys.removeDuplicates();
 
         auto enumValue = enumName + QLatin1String( "::" ) + metaEnum.key( ii );

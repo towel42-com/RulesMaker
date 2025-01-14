@@ -30,7 +30,7 @@ protected Q_SLOTS:
 
 protected:
     void init();
-    std::shared_ptr< Outlook::Rule > fRule; 
+    std::shared_ptr< Outlook::Rule > fRule;
     std::unique_ptr< Ui::CShowRule > fImpl;
     bool fReadOnly{ false };
 };
