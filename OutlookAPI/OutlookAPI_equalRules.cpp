@@ -1,5 +1,6 @@
 #include "OutlookAPI.h"
 #include "OutlookAPI_pri.h"
+#include "EmailAddress.h"
 
 #include "MSOUTL.h"
 
@@ -114,8 +115,8 @@ bool actionEqual( Outlook::SendRuleAction *lhsAction, Outlook::SendRuleAction *r
     if ( !lhsAction->Enabled() || !lhsAction->Enabled() )
         return true;
 
-    auto lhsRecipients = COutlookAPI::getEmailAddresses( lhsAction->Recipients(), {}, false );
-    auto rhsRecipients = COutlookAPI::getEmailAddresses( rhsAction->Recipients(), {}, false );
+    auto lhsRecipients = COutlookAPI::getEmailAddresses( lhsAction->Recipients() );
+    auto rhsRecipients = COutlookAPI::getEmailAddresses( rhsAction->Recipients() );
     if ( !equal( lhsRecipients, rhsRecipients ) )
         return false;
 
@@ -246,8 +247,8 @@ bool conditionEqual( Outlook::ToOrFromRuleCondition *lhsCondition, Outlook::ToOr
     if ( !lhsCondition->Enabled() || !rhsCondition->Enabled() )
         return true;
 
-    auto lhsAddresses = COutlookAPI::getEmailAddresses( lhsCondition->Recipients(), {}, false );
-    auto rhsAddresses = COutlookAPI::getEmailAddresses( rhsCondition->Recipients(), {}, false );
+    auto lhsAddresses = COutlookAPI::getEmailAddresses( lhsCondition->Recipients() );
+    auto rhsAddresses = COutlookAPI::getEmailAddresses( rhsCondition->Recipients() );
     if ( !equal( lhsAddresses, rhsAddresses ) )
         return false;
 
@@ -320,8 +321,8 @@ bool conditionEqual( Outlook::SenderInAddressListRuleCondition *lhsCondition, Ou
     if ( !lhsCondition->Enabled() || !rhsCondition->Enabled() )
         return true;
 
-    auto lhsAddresses = COutlookAPI::getEmailAddresses( lhsCondition->AddressList(), false );
-    auto rhsAddresses = COutlookAPI::getEmailAddresses( rhsCondition->AddressList(), false );
+    auto lhsAddresses = COutlookAPI::getEmailAddresses( lhsCondition->AddressList() );
+    auto rhsAddresses = COutlookAPI::getEmailAddresses( rhsCondition->AddressList() );
     if ( !equal( lhsAddresses, rhsAddresses ) )
         return false;
 

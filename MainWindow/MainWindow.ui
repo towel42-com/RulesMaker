@@ -25,7 +25,7 @@
         <enum>Qt::Horizontal</enum>
        </property>
        <widget class="CFoldersView" name="folders" native="true"/>
-       <widget class="CEmailView" name="email" native="true"/>
+       <widget class="CFilterFromEmailView" name="email" native="true"/>
       </widget>
       <widget class="CRulesView" name="rules" native="true"/>
      </widget>
@@ -453,9 +453,9 @@
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>CEmailView</class>
+   <class>CFilterFromEmailView</class>
    <extends>QWidget</extends>
-   <header>EmailView.h</header>
+   <header>FilterFromEmailView.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>

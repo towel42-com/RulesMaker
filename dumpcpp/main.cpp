@@ -285,7 +285,6 @@ void writeEnums( QTextStream &out, const QMetaObject *mo, const QString &nameSpa
         }
         out << endl;
     }
-    sBeenWritten = true;
 }
 
 void writeHeader( QTextStream &out, const QString &nameSpace, const QString &outFileName )

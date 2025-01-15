@@ -6,19 +6,19 @@
 #include <QModelIndexList>
 namespace Ui
 {
-    class CEmailView;
+    class CFilterFromEmailView;
 }
 
 class CEmailModel;
 enum class EFilterType;
 
-class CEmailView : public CWidgetWithStatus
+class CFilterFromEmailView : public CWidgetWithStatus
 {
     Q_OBJECT
 
 public:
-    explicit CEmailView( QWidget *parent = nullptr );
-    ~CEmailView();
+    explicit CFilterFromEmailView( QWidget *parent = nullptr );
+    ~CFilterFromEmailView();
 
     void init();
 
@@ -30,11 +30,14 @@ public:
 
     std::list< std::pair< QStringList, EFilterType > > getPatternsForSelection() const;   // the patterns, by emails or display names
 
+    bool selectionHasOutlookContact() const;
     bool selectionHasDisplayName() const;
+
     QString getDisplayNameForSingleSelection() const;
     QString getDisplayNamePatternForSelection() const;
     QString getEmailPatternForSelection() const;
     QString getSubjectPatternForSelection() const;
+    QString getOutlookContactsPatternForSelection() const;
 
 Q_SIGNALS:
     void sigFinishedLoading();
@@ -55,11 +58,12 @@ protected:
     QStringList getDisplayNamesForSelection() const;
     QStringList getEmailsForSelection() const;
     QStringList getSubjectsForSelection() const;
+    QStringList getOutlookContactsForSelection() const;
 
     QModelIndexList getSelectedRows() const;
 
     CEmailModel *fGroupedModel{ nullptr };
-    std::unique_ptr< Ui::CEmailView > fImpl;
+    std::unique_ptr< Ui::CFilterFromEmailView > fImpl;
     bool fNotifyOnFinish{ true };
 };
 

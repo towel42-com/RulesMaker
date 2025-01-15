@@ -1,5 +1,6 @@
 #include "OutlookAPI.h"
 #include "OutlookAPI_pri.h"
+#include "EmailAddress.h"
 
 #include "MSOUTL.h"
 
@@ -205,9 +206,9 @@ QStringList conditionNames( Outlook::SenderInAddressListRuleCondition *condition
     if ( !condition || !condition->Enabled() )
         return {};
 
-    auto addresses = COutlookAPI::instance()->getEmailAddresses( condition->AddressList(), false );
+    auto addresses = COutlookAPI::instance()->getEmailAddresses( condition->AddressList() );
 
-    return conditionRuleNameBase( condition, conditionStr, addresses, wrapperMode );
+    return conditionRuleNameBase( condition, conditionStr, toStringList( addresses ), wrapperMode );
 }
 
 QStringList conditionNames( Outlook::AddressRuleCondition *condition, const QString &conditionStr, EWrapperMode wrapperMode )
@@ -247,7 +248,7 @@ QStringList conditionNames( Outlook::ToOrFromRuleCondition *condition, const QSt
     if ( !condition || !condition->Enabled() )
         return {};
 
-    return conditionRuleNameBase( condition, conditionStr, COutlookAPI::getEmailAddresses( condition->Recipients(), {}, false ), wrapperMode );
+    return conditionRuleNameBase( condition, conditionStr, toStringList( COutlookAPI::getEmailAddresses( condition->Recipients() ) ), wrapperMode );
 }
 
 QStringList conditionNames( Outlook::CategoryRuleCondition *condition, const QString &conditionStr, EWrapperMode wrapperMode )
@@ -403,7 +404,7 @@ QString actionName( Outlook::SendRuleAction *action, const QString &actionName )
         return {};
     if ( !action->Enabled() )
         return false;
-    auto recipients = COutlookAPI::getEmailAddresses( action->Recipients(), {}, false );
+    auto recipients = COutlookAPI::getEmailAddresses( action->Recipients() );
 
-    return QString( "%1: %2" ).arg( actionName ).arg( recipients.join( " and " ) );
+    return QString( "%1: %2" ).arg( actionName ).arg( toStringList( recipients ).join( " and " ) );
 }

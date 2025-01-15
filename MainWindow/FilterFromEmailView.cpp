@@ -1,16 +1,16 @@
-#include "EmailView.h"
-#include "Models/EmailModel.h"
+#include "FilterFromEmailView.h"
+#include "Models/FilterFromEmailModel.h"
 #include "OutlookAPI/OutlookAPI.h"
 
-#include "ui_EmailView.h"
+#include "ui_FilterFromEmailView.h"
 
 #include <list>
 #include <set>
 #include <QTimer>
 
-CEmailView::CEmailView( QWidget *parent ) :
+CFilterFromEmailView::CFilterFromEmailView( QWidget *parent ) :
     CWidgetWithStatus( parent ),
-    fImpl( new Ui::CEmailView )
+    fImpl( new Ui::CFilterFromEmailView )
 {
     init();
 
@@ -18,7 +18,7 @@ CEmailView::CEmailView( QWidget *parent ) :
         QTimer::singleShot( 0, [ = ]() { reload( true ); } );
 }
 
-void CEmailView::init()
+void CFilterFromEmailView::init()
 {
     fImpl->setupUi( this );
     setStatusLabel( "Grouping Emails:" );
@@ -26,8 +26,8 @@ void CEmailView::init()
     fGroupedModel = new CEmailModel( this );
     fImpl->groupedEmails->setModel( fGroupedModel );
 
-    connect( fImpl->groupedEmails, &QTreeView::doubleClicked, this, &CEmailView::slotItemDoubleClicked );
-    connect( fImpl->groupedEmails->selectionModel(), &QItemSelectionModel::selectionChanged, this, &CEmailView::slotSelectionChanged );
+    connect( fImpl->groupedEmails, &QTreeView::doubleClicked, this, &CFilterFromEmailView::slotItemDoubleClicked );
+    connect( fImpl->groupedEmails->selectionModel(), &QItemSelectionModel::selectionChanged, this, &CFilterFromEmailView::slotSelectionChanged );
     connect(
         fGroupedModel, &CEmailModel::sigFinishedGrouping,
         [ = ]()
@@ -70,38 +70,41 @@ void CEmailView::init()
     connect( fImpl->byEmailAddress, &QCheckBox::toggled, [ = ]( bool /*checked*/ ) { updateByFilter(); } );
     connect( fImpl->byDisplayNames, &QCheckBox::toggled, [ = ]( bool /*checked*/ ) { updateByFilter(); } );
     connect( fImpl->bySubjects, &QCheckBox::toggled, [ = ]( bool /*checked */ ) { updateByFilter(); } );
+    connect( fImpl->byOutlookContacts, &QCheckBox::toggled, [ = ]( bool /*checked*/ ) { updateByFilter(); } );
 
     slotRunningStateChanged( false );
 
     setWindowTitle( QObject::tr( "Inbox Emails" ) );
 }
 
-CEmailView::~CEmailView()
+CFilterFromEmailView::~CFilterFromEmailView()
 {
 }
 
-void CEmailView::clear()
+void CFilterFromEmailView::clear()
 {
     if ( fGroupedModel )
         fGroupedModel->clear();
 }
 
-void CEmailView::clearSelection()
+void CFilterFromEmailView::clearSelection()
 {
     fImpl->groupedEmails->clearSelection();
     fImpl->groupedEmails->setCurrentIndex( {} );
     slotSelectionChanged();
 }
 
-void CEmailView::slotSelectionChanged()
+void CFilterFromEmailView::slotSelectionChanged()
 {
     fImpl->emailAddresses->setText( getEmailPatternForSelection() );
     fImpl->displayNames->setText( getDisplayNamePatternForSelection() );
     fImpl->subjects->setText( getSubjectPatternForSelection() );
+    fImpl->outlookContacts->setText( getOutlookContactsPatternForSelection() );
+    updateEditFields();
     emit sigEmailSelected();
 }
 
-QString CEmailView::getDisplayNamePatternForSelection() const
+QString CFilterFromEmailView::getDisplayNamePatternForSelection() const
 {
     auto text = getDisplayNamesForSelection();
     for ( auto &&curr : text )
@@ -111,13 +114,13 @@ QString CEmailView::getDisplayNamePatternForSelection() const
     return text.join( " or " );
 }
 
-QString CEmailView::getEmailPatternForSelection() const
+QString CFilterFromEmailView::getEmailPatternForSelection() const
 {
     auto text = getEmailsForSelection();
     return text.join( " or " );
 }
 
-QString CEmailView::getSubjectPatternForSelection() const
+QString CFilterFromEmailView::getSubjectPatternForSelection() const
 {
     auto text = getSubjectsForSelection();
     for ( auto &&curr : text )
@@ -127,7 +130,13 @@ QString CEmailView::getSubjectPatternForSelection() const
     return text.join( " or " );
 }
 
-QStringList CEmailView::getEmailsForSelection() const
+QString CFilterFromEmailView::getOutlookContactsPatternForSelection() const
+{
+    auto text = getOutlookContactsForSelection();
+    return text.join( " or " );
+}
+
+QStringList CFilterFromEmailView::getEmailsForSelection() const
 {
     auto rows = getSelectedRows();
     QStringList retVal;
@@ -138,7 +147,7 @@ QStringList CEmailView::getEmailsForSelection() const
     return retVal;
 }
 
-QStringList CEmailView::getDisplayNamesForSelection() const
+QStringList CFilterFromEmailView::getDisplayNamesForSelection() const
 {
     auto rows = getSelectedRows();
     QStringList retVal;
@@ -149,7 +158,7 @@ QStringList CEmailView::getDisplayNamesForSelection() const
     return retVal;
 }
 
-QStringList CEmailView::getSubjectsForSelection() const
+QStringList CFilterFromEmailView::getSubjectsForSelection() const
 {
     auto rows = getSelectedRows();
     QStringList retVal;
@@ -160,7 +169,23 @@ QStringList CEmailView::getSubjectsForSelection() const
     return retVal;
 }
 
-std::list< std::pair< QStringList, EFilterType > > CEmailView::getPatternsForSelection() const
+QStringList CFilterFromEmailView::getOutlookContactsForSelection() const
+{
+    auto rows = getSelectedRows();
+    QStringList retVal;
+    for ( auto &&ii : rows )
+    {
+        retVal << fGroupedModel->outlookContactsForIndex( ii, true );
+    }
+    return retVal;
+}
+
+bool CFilterFromEmailView::selectionHasOutlookContact() const
+{
+    return !getOutlookContactsForSelection().isEmpty();
+}
+
+std::list< std::pair< QStringList, EFilterType > > CFilterFromEmailView::getPatternsForSelection() const
 {
     std::list< std::pair< QStringList, EFilterType > > retVal;
     if ( fImpl->byEmailAddress->isChecked() )
@@ -169,15 +194,17 @@ std::list< std::pair< QStringList, EFilterType > > CEmailView::getPatternsForSel
         retVal.emplace_back( getDisplayNamesForSelection(), EFilterType::eByDisplayName );
     if ( fImpl->bySubjects->isChecked() )
         retVal.emplace_back( getSubjectsForSelection(), EFilterType::eBySubject );
+    if ( fImpl->byOutlookContacts->isChecked() )
+        retVal.emplace_back( getOutlookContactsForSelection(), EFilterType::eByOutlookContact );
     return retVal;
 }
 
-bool CEmailView::selectionHasDisplayName() const
+bool CFilterFromEmailView::selectionHasDisplayName() const
 {
     return !getDisplayNamesForSelection().empty();
 }
 
-QString CEmailView::getDisplayNameForSingleSelection() const
+QString CFilterFromEmailView::getDisplayNameForSingleSelection() const
 {
     auto displayNames = getDisplayNamesForSelection();
     if ( displayNames.length() != 1 )
@@ -185,7 +212,7 @@ QString CEmailView::getDisplayNameForSingleSelection() const
     return displayNames.front();
 }
 
-QModelIndexList CEmailView::getSelectedRows() const
+QModelIndexList CFilterFromEmailView::getSelectedRows() const
 {
     auto selection = fImpl->groupedEmails->selectionModel()->selectedIndexes();
 
@@ -210,38 +237,42 @@ QModelIndexList CEmailView::getSelectedRows() const
     return retVal;
 }
 
-void CEmailView::slotItemDoubleClicked( const QModelIndex &idx )
+void CFilterFromEmailView::slotItemDoubleClicked( const QModelIndex &idx )
 {
     if ( !idx.isValid() )
         return;
     fGroupedModel->displayEmail( idx );
 }
 
-void CEmailView::reload( bool notifyOnFinish )
+void CFilterFromEmailView::reload( bool notifyOnFinish )
 {
     fNotifyOnFinish = notifyOnFinish;
     fGroupedModel->reload();
 }
 
-void CEmailView::slotRunningStateChanged( bool running )
+void CFilterFromEmailView::slotRunningStateChanged( bool running )
 {
     fImpl->displayNames->setEnabled( !running );
     fImpl->emailAddresses->setEnabled( !running );
     fImpl->subjects->setEnabled( !running );
+    fImpl->outlookContacts->setEnabled( !running );
     fImpl->byEmailAddress->setEnabled( !running );
     fImpl->bySubjects->setEnabled( !running );
     fImpl->byDisplayNames->setEnabled( !running );
+    fImpl->byOutlookContacts->setEnabled( !running );
     if ( running )
         return;
 
     updateEditFields();
 }
 
-void CEmailView::updateEditFields()
+void CFilterFromEmailView::updateEditFields()
 {
+    fImpl->byOutlookContacts->setEnabled( selectionHasOutlookContact() );
     fImpl->emailAddresses->setEnabled( fImpl->byEmailAddress->isChecked() );
     fImpl->displayNames->setEnabled( fImpl->byDisplayNames->isChecked() );
     fImpl->subjects->setEnabled( fImpl->bySubjects->isChecked() );
+    fImpl->outlookContacts->setEnabled( fImpl->byOutlookContacts->isChecked() );
 
     std::list< EFilterType > filterTypes;
     if ( fImpl->byEmailAddress->isChecked() )
@@ -250,10 +281,12 @@ void CEmailView::updateEditFields()
         filterTypes.push_back( EFilterType::eByDisplayName );
     if ( fImpl->bySubjects->isChecked() )
         filterTypes.push_back( EFilterType::eBySubject );
+    if ( fImpl->byOutlookContacts->isChecked() )
+        filterTypes.push_back( EFilterType::eByOutlookContact );
     COutlookAPI::instance()->setEmailFilterTypes( filterTypes );
 }
 
-void CEmailView::initFilterTypes()
+void CFilterFromEmailView::initFilterTypes()
 {
     auto filterTypes = COutlookAPI::instance()->emailFilterTypes();
     for ( auto &&ii : filterTypes )
@@ -268,6 +301,9 @@ void CEmailView::initFilterTypes()
                 break;
             case EFilterType::eBySubject:
                 fImpl->bySubjects->setChecked( true );
+                break;
+            case EFilterType::eByOutlookContact:
+                fImpl->byOutlookContacts->setChecked( true );
                 break;
             default:
                 break;

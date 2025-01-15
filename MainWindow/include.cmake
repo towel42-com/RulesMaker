@@ -2,7 +2,7 @@ set(_PROJECT_NAME MainWindow)
 set(FOLDER_NAME libs)
 
 set(qtproject_UIS
-    EmailView.ui
+    FilterFromEmailView.ui
     FoldersView.ui
     MainWindow.ui
     RulesView.ui
@@ -10,7 +10,7 @@ set(qtproject_UIS
 )
 
 set(project_SRCS
-    EmailView.cpp
+    FilterFromEmailView.cpp
     FoldersView.cpp
     MainWindow.cpp
     RulesView.cpp
@@ -19,7 +19,7 @@ set(project_SRCS
 )
  
 set(qtproject_H
-    EmailView.h
+    FilterFromEmailView.h
     FoldersView.h
     MainWindow.h
     RulesView.h

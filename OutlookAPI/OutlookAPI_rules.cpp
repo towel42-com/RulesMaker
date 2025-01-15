@@ -95,6 +95,12 @@ std::optional< bool > COutlookAPI::addToRule( std::shared_ptr< Outlook::Rule > r
                         return false;
                 }
                 break;
+            case EFilterType::eByOutlookContact:
+                {
+                    if ( !addOutlookContactsToRule( newRule.get(), rules, msgs ) )
+                        return false;
+                }
+                break;
             default:
                 return false;
         }
@@ -118,12 +124,12 @@ std::optional< bool > COutlookAPI::addToRule( std::shared_ptr< Outlook::Rule > r
     }
     saveRules();
 
-    bool retVal = runRule( rule );
+    bool retVal = runRule( newRule );
     if ( !retVal )
     {
         msgs.push_back( "Could not run rule, but it was created" );
     }
-    emit sigRuleChanged( rule );
+    emit sigRuleChanged( newRule );
     return retVal;
 }
 
@@ -236,6 +242,10 @@ std::list< EFilterType > COutlookAPI::filterTypesForRule( const std::shared_ptr<
     auto subject = rule->Conditions()->Subject();
     if ( subject && subject->Enabled() )
         retVal.push_back( EFilterType::eBySubject );
+
+    //auto outlookContact = rule->Conditions()->Subject();
+    //if ( outlookContact && outlookContact->Enabled() )
+    //    retVal.push_back( EFilterType::eByOutlookContact );
     return retVal;
 }
 
@@ -543,6 +553,31 @@ bool COutlookAPI::addDisplayNamesToRule( Outlook::Rule *rule, const QStringList 
     return true;
 }
 
+bool COutlookAPI::addRecipientsToRule( Outlook::Rule *rule, const TEmailAddressList &recipients, QStringList &msgs )
+{
+    if ( recipients.empty() )
+        return true;
+
+    if ( !rule || !rule->Conditions() )
+        return false;
+
+    auto senderAddress = rule->Conditions()->SenderAddress();
+    if ( !senderAddress )
+    {
+        msgs.push_back( QString( "Internal error" ) );
+        return false;
+    }
+
+    auto addresses = mergeRecipients( rule, recipients, &msgs );
+    if ( !addresses.has_value() )
+        return false;
+
+    senderAddress->SetAddress( addresses.value() );
+    senderAddress->SetEnabled( true );
+
+    return true;
+}
+
 bool COutlookAPI::addRecipientsToRule( Outlook::Rule *rule, const QStringList &recipients, QStringList &msgs )
 {
     if ( recipients.isEmpty() )
@@ -591,5 +626,10 @@ bool COutlookAPI::addSubjectsToRule( Outlook::Rule *rule, const QStringList &sub
     header->SetEnabled( true );
     header->SetText( text );
 
+    return true;
+}
+
+bool COutlookAPI::addOutlookContactsToRule( Outlook::Rule *rule, const QStringList &outlookContacts, QStringList &msgs )
+{
     return true;
 }

@@ -1,4 +1,6 @@
 #include "OutlookAPI.h"
+#include "EmailAddress.h"
+
 #include "MSOUTL.h"
 
 void copyAction( Outlook::AssignToCategoryRuleAction *lhsAction, Outlook::AssignToCategoryRuleAction *rhsAction )
@@ -80,10 +82,10 @@ void copyAction( Outlook::SendRuleAction *lhsAction, Outlook::SendRuleAction *rh
     if ( !rhsAction->Enabled() )
         return;
 
-    auto rhsAddresses = rhsAction->Enabled() ? COutlookAPI::getEmailAddresses( rhsAction->Recipients(), {}, false ) : QStringList();
+    auto rhsAddresses = rhsAction->Enabled() ? COutlookAPI::getEmailAddresses( rhsAction->Recipients() ) : TEmailAddressList();
     for ( auto &&ii : rhsAddresses )
     {
-        lhsAction->Recipients()->Add( ii );
+        lhsAction->Recipients()->Add( ii->emailAddress() );
     }
 }
 
@@ -191,10 +193,10 @@ void copyCondition( Outlook::ToOrFromRuleCondition *retVal, Outlook::ToOrFromRul
     if ( !sourceCondition->Enabled() )
         return;
 
-    auto rhsAddresses = sourceCondition->Enabled() ? COutlookAPI::getEmailAddresses( sourceCondition->Recipients(), {}, false ) : QStringList();
+    auto rhsAddresses = sourceCondition->Enabled() ? COutlookAPI::getEmailAddresses( sourceCondition->Recipients() ) : TEmailAddressList();
     for ( auto &&ii : rhsAddresses )
     {
-        retVal->Recipients()->Add( ii );
+        retVal->Recipients()->Add( ii->emailAddress() );
     }
 }
 

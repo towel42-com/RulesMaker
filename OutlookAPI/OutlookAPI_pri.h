@@ -133,7 +133,8 @@ bool conditionEqual( Outlook::TextRuleCondition *lhsCondition, Outlook::TextRule
 bool conditionEqual( Outlook::ToOrFromRuleCondition *lhsCondition, Outlook::ToOrFromRuleCondition *rhsCondition );
 std::optional< int > numConditionsDifferent( Outlook::RuleConditions *lhs, Outlook::RuleConditions *rhs );
 
-void loadAttribute( QStandardItem *parent, const QString &label, QStringList value, const QString &separator );
+void loadAttribute( QStandardItem *parent, const QString &label, const QStringList & value, const QString &separator );
+void loadAttribute( QStandardItem *parent, const QString &label, const TEmailAddressList & value, const QString &separator );
 void loadAttribute( QStandardItem *parent, const QString &label, bool value );
 void loadAttribute( QStandardItem *parent, const QString &label, const QString &value );
 void loadAttribute( QStandardItem *parent, const QString &label, const char *value );

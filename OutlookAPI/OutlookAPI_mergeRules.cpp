@@ -1,5 +1,6 @@
 #include "OutlookAPI.h"
 #include "OutlookAPI_pri.h"
+#include "EmailAddress.h"
 
 #include "MSOUTL.h"
 #include <map>
@@ -78,13 +79,13 @@ void mergeCondition( Outlook::ToOrFromRuleCondition *lhsCondition, Outlook::ToOr
     if ( conditionEqual( lhsCondition, rhsCondition ) )
         return;
 
-    auto lhsAddresses = lhsCondition->Enabled() ? COutlookAPI::getEmailAddresses( lhsCondition->Recipients(), {}, false ) : QStringList();
-    auto rhsAddresses = rhsCondition->Enabled() ? COutlookAPI::getEmailAddresses( rhsCondition->Recipients(), {}, false ) : QStringList();
+    auto lhsAddresses = lhsCondition->Enabled() ? COutlookAPI::getEmailAddresses( lhsCondition->Recipients() ) : TEmailAddressList();
+    auto rhsAddresses = rhsCondition->Enabled() ? COutlookAPI::getEmailAddresses( rhsCondition->Recipients() ) : TEmailAddressList();
     auto newText = mergeStringLists( lhsAddresses, rhsAddresses, false );
 
     for ( auto &&ii : newText )
     {
-        lhsCondition->Recipients()->Add( ii );
+        lhsCondition->Recipients()->Add( ii->displayName() );
     }
     lhsCondition->SetEnabled( rhsCondition->Enabled() );
 }

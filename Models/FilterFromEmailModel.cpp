@@ -1,5 +1,6 @@
-#include "EmailModel.h"
+#include "FilterFromEmailModel.h"
 #include "OutlookAPI/OutlookAPI.h"
+#include "OutlookAPI/EmailAddress.h"
 
 #include <QTimer>
 #include <algorithm>
@@ -115,17 +116,15 @@ void CEmailModel::addMailItem( std::shared_ptr< Outlook::MailItem > mailItem )
     if ( !mailItem )
         return;
 
+    auto subject = COutlookAPI::getSubject( mailItem );
+
     fNumEmailsProcessed++;
 
-    auto emailAddresses = COutlookAPI::getEmailAddresses( mailItem, COutlookAPI::EAddressTypes::eSender | COutlookAPI::EAddressTypes::eSMTPOnly );
+    auto emailAddresses = COutlookAPI::getEmailAddresses( mailItem, COutlookAPI::EAddressTypes::eSender );
     fNumEmailAddressesProcessed++;
-    for ( int ii = 0; ii < emailAddresses.length(); ++ii )
+    for ( auto && emailAddress : emailAddresses )
     {
-        auto emailAddress = emailAddresses[ ii ].first;
-        auto displayName = emailAddresses[ ii ].second;
-        auto subject = COutlookAPI::getSubject( mailItem );
-
-        auto key = emailAddress + " <" + displayName + "> - " + subject;
+        auto key = emailAddress->toString();
         auto pos = fDisplayNameEmailCache.find( key );
         if ( pos != fDisplayNameEmailCache.end() )
         {
@@ -134,7 +133,7 @@ void CEmailModel::addMailItem( std::shared_ptr< Outlook::MailItem > mailItem )
 
         qDebug() << "Processing Email Address: " << key;
 
-        auto split = emailAddress.splitRef( '@', QString::SplitBehavior::SkipEmptyParts );
+        auto split = emailAddress->emailAddress().splitRef( '@', QString::SplitBehavior::SkipEmptyParts );
         if ( split.empty() )
             continue;
 
@@ -147,7 +146,7 @@ void CEmailModel::addMailItem( std::shared_ptr< Outlook::MailItem > mailItem )
         auto list = domain.split( '.', QString::SplitBehavior::SkipEmptyParts );
         std::reverse( std::begin( list ), std::end( list ) );
         list.push_back( user );
-        auto retVal = findOrAddEmailAddressSection( list.front().toString(), list.mid( 1 ), nullptr, displayName, subject );
+        auto retVal = findOrAddEmailAddressSection( list.front().toString(), list.mid( 1 ), nullptr, emailAddress->displayName(), subject );
         if ( retVal )
         {
             fDisplayNameEmailCache[ key ] = retVal;
@@ -276,6 +275,46 @@ QStringList CEmailModel::subjectsForItem( const CEmailAddressSection *item, bool
     return retVal;
 }
 
+QStringList CEmailModel::outlookContactsForIndex( const QModelIndex &idx, bool allChildren /*= false*/ ) const
+{
+    if ( !idx.isValid() )
+        return {};
+    return outlookContactsForItem( itemFromIndex( idx ), allChildren );
+}
+
+QStringList CEmailModel::outlookContactsForItem( QStandardItem *item, bool allChildren /*= false*/ ) const
+{
+    return outlookContactsForItem( dynamic_cast< CEmailAddressSection * >( item ), allChildren );
+}
+
+QStringList CEmailModel::outlookContactsForItem( const CEmailAddressSection *item, bool allChildren /*= false */ ) const
+{
+    std::unordered_set< const CEmailAddressSection * > items;
+    if ( !allChildren )
+        items.insert( item );
+    else
+    {
+        items = item->getLeafChildren();
+    }
+
+    QStringList retVal;
+    for ( auto &&ii : items )
+    {
+        auto mailItem = mailItemFromItem( ii );
+        if ( !mailItem )
+            continue;
+        auto emailAddresses = COutlookAPI::getEmailAddresses( mailItem, COutlookAPI::EAddressTypes::eSender, COutlookAPI::EContactTypes::eOutlookContact );
+        if ( emailAddresses.empty() )
+            continue;
+
+        auto displayNames = CEmailAddress::getDisplayNames( emailAddresses );
+
+        retVal = mergeStringLists( retVal, displayNames, true );
+    }
+
+    return retVal;
+}
+
 QStringList CEmailModel::displayNamesForIndex( const QModelIndex &idx, bool allChildren ) const
 {
     if ( !idx.isValid() )
@@ -304,11 +343,11 @@ QStringList CEmailModel::displayNamesForItem( const CEmailAddressSection *item, 
         auto mailItem = mailItemFromItem( ii );
         if ( !mailItem )
             continue;
-        auto emailAddresses = COutlookAPI::getEmailAddresses( mailItem, COutlookAPI::EAddressTypes::eSender | COutlookAPI::EAddressTypes::eSMTPOnly );
-        if ( emailAddresses.isEmpty() )
+        auto emailAddresses = COutlookAPI::getEmailAddresses( mailItem, COutlookAPI::EAddressTypes::eSender );
+        if ( emailAddresses.empty() )
             continue;
 
-        auto displayNames = COutlookAPI::getDisplayNames( emailAddresses );
+        auto displayNames = CEmailAddress::getDisplayNames( emailAddresses );
 
         retVal = mergeStringLists( retVal, displayNames, true );
     }

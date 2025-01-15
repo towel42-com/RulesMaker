@@ -5,14 +5,14 @@ set(qtproject_UIS
 )
 
 set(project_SRCS
-    EmailModel.cpp
+    FilterFromEmailModel.cpp
     FoldersModel.cpp
     ListFilterModel.cpp
     RulesModel.cpp
 )
  
 set(qtproject_H
-    EmailModel.h
+    FilterFromEmailModel.h
     FoldersModel.h
     ListFilterModel.h
     RulesModel.h

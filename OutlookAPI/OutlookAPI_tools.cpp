@@ -1,4 +1,5 @@
 #include "OutlookAPI.h"
+#include "EmailAddress.h"
 
 #include <QMessageBox>
 
@@ -58,9 +59,14 @@ std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::Rule *lhs, c
 {
     auto lhsRecipients = getRecipients( lhs, msgs );
     if ( !lhsRecipients.has_value() )
-        return {};
+        return rhs;
     lhsRecipients.value() = mergeStringLists( lhsRecipients.value(), rhs, false );
     return lhsRecipients;
+}
+
+std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::Rule *lhs, const TEmailAddressList &rhs, QStringList *msgs )
+{
+    return mergeRecipients( lhs, CEmailAddress::getEmailAddresses( rhs ), msgs );
 }
 
 std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::Rule *lhs, Outlook::Rule *rhs, QStringList *msgs )
@@ -429,7 +435,7 @@ bool COutlookAPI::moveFromToAddress( bool andSave /*= true*/, bool *needsSaving 
 
     auto numRules = fRules->Count();
     emit sigInitStatus( "Transforming From to Address Rules:", numRules );
-    std::list< std::pair< std::shared_ptr< Outlook::Rule >, QStringList > > changes;
+    std::list< std::pair< std::shared_ptr< Outlook::Rule >, TEmailAddressList > > changes;
     for ( int ii = 1; ii <= numRules; ++ii )
     {
         if ( canceled() )
@@ -450,8 +456,8 @@ bool COutlookAPI::moveFromToAddress( bool andSave /*= true*/, bool *needsSaving 
             continue;
 
         emit sigStatusMessage( QString( "Checking from email addresses on rule '%1'" ).arg( getDisplayName( rule ) ) );
-        auto fromEmails = getEmailAddresses( from->Recipients(), {}, true );
-        if ( fromEmails.isEmpty() )
+        auto fromEmails = getEmailAddresses( from->Recipients(), {}, EContactTypes::eSMTPContact );
+        if ( fromEmails.empty() )
             continue;
 
         changes.emplace_back( rule, fromEmails );
@@ -472,7 +478,7 @@ bool COutlookAPI::moveFromToAddress( bool andSave /*= true*/, bool *needsSaving 
         for ( auto &&ii : changes )
         {
             auto curr = QString( "<li style=\"white-space:nowrap\">Rule: %1 will have the following Address(es) now:<br>" ).arg( getDisplayName( ii.first ).toHtmlEscaped() );
-            curr += "From:" + getULForList( ii.second );
+            curr += "From:" + getULForList( toStringList( ii.second ) );
             curr += "</li>";
 
             tmp << curr;
@@ -489,7 +495,7 @@ bool COutlookAPI::moveFromToAddress( bool andSave /*= true*/, bool *needsSaving 
         for ( auto &&ii : changes )
         {
             emit sigStatusMessage( QString( "Rule: %1 will have the following Address(es):\n" ).arg( getDisplayName( ii.first ) ) );
-            emit sigStatusMessage( "    From: \n" + ii.second.join( "    \n" ) );
+            emit sigStatusMessage( "    From: \n" + toStringList( ii.second ).join( "    \n" ) );
         }
     }
 

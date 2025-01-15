@@ -76,14 +76,14 @@ CMainWindow::CMainWindow( QWidget *parent ) :
             slotUpdateActions();
         } );
     connect(
-        fImpl->email, &CEmailView::sigEmailSelected,
+        fImpl->email, &CFilterFromEmailView::sigEmailSelected,
         [ = ]()
         {
             auto path = fImpl->email->getEmailPatternForSelection();
             slotStatusMessage( QString( "Email Selected: %1" ).arg( path ) );
             slotUpdateActions();
         } );
-    connect( fImpl->email, &CEmailView::sigFilterTypeChanged, this, &CMainWindow::slotUpdateActions );
+    connect( fImpl->email, &CFilterFromEmailView::sigFilterTypeChanged, this, &CMainWindow::slotUpdateActions );
     connect(
         fImpl->rules, &CRulesView::sigRuleSelected,
         [ = ]()
@@ -96,7 +96,7 @@ CMainWindow::CMainWindow( QWidget *parent ) :
         } );
 
     connect( this, &CMainWindow::sigRunningStateChanged, fImpl->rules, &CRulesView::slotRunningStateChanged );
-    connect( this, &CMainWindow::sigRunningStateChanged, fImpl->email, &CEmailView::slotRunningStateChanged );
+    connect( this, &CMainWindow::sigRunningStateChanged, fImpl->email, &CFilterFromEmailView::slotRunningStateChanged );
     connect( this, &CMainWindow::sigRunningStateChanged, fImpl->folders, &CFoldersView::slotRunningStateChanged );
 
     connect( fImpl->actionAbout, &QAction::triggered, this, &CMainWindow::slotAbout );

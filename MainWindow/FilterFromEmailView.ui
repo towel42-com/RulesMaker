@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>CFilterFromEmailView</class>
+ <widget class="QWidget" name="CFilterFromEmailView">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1181</width>
+    <height>678</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Filter View</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="4" column="2">
+    <widget class="QLineEdit" name="subjects">
+     <property name="readOnly">
+      <bool>true</bool>
+     </property>
+     <property name="placeholderText">
+      <string>Uses the &quot;With specific words in the subject&quot; rule</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1" colspan="2">
+    <widget class="QLabel" name="summary">
+     <property name="text">
+      <string>Summary:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="1">
+    <widget class="QCheckBox" name="bySubjects">
+     <property name="toolTip">
+      <string>Uses the &quot;With specific words in the subject&quot; rule</string>
+     </property>
+     <property name="text">
+      <string>Subject(s):</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="0" colspan="3">
+    <widget class="QTreeView" name="groupedEmails">
+     <property name="editTriggers">
+      <set>QAbstractItemView::NoEditTriggers</set>
+     </property>
+     <property name="selectionMode">
+      <enum>QAbstractItemView::ExtendedSelection</enum>
+     </property>
+     <property name="uniformRowHeights">
+      <bool>true</bool>
+     </property>
+     <property name="sortingEnabled">
+      <bool>true</bool>
+     </property>
+     <property name="expandsOnDoubleClick">
+      <bool>false</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="2">
+    <widget class="QLineEdit" name="displayNames">
+     <property name="readOnly">
+      <bool>true</bool>
+     </property>
+     <property name="placeholderText">
+      <string>Uses the &quot;With specific words in the message header&quot; rule using the match string &quot;From: + [string]&quot; or &quot;From: &quot;[string]&quot;</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="2">
+    <widget class="QLineEdit" name="emailAddresses">
+     <property name="readOnly">
+      <bool>true</bool>
+     </property>
+     <property name="placeholderText">
+      <string>Uses the &quot;With specific words in the sender's address&quot; rule</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QCheckBox" name="byDisplayNames">
+     <property name="toolTip">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Uses the &amp;quot;With specific words in the message header&amp;quot; rule using the match string &amp;quot;From: + [string]&amp;quot; or &amp;quot;From: &amp;quot;[string]&amp;quot;&amp;quot;&lt;br/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="text">
+      <string>Display Name(s):</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="2">
+    <widget class="QLineEdit" name="outlookContacts">
+     <property name="readOnly">
+      <bool>true</bool>
+     </property>
+     <property name="placeholderText">
+      <string>Uses the &quot;from people or public group&quot; rule</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
+    <widget class="QRadioButton" name="byOutlookContacts">
+     <property name="toolTip">
+      <string>Uses the &quot;from people or public group&quot; rule</string>
+     </property>
+     <property name="text">
+      <string>Outlook Contact Name:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <widget class="QRadioButton" name="byEmailAddress">
+     <property name="toolTip">
+      <string>Uses the &quot;With specific words in the sender's address&quot; rule</string>
+     </property>
+     <property name="text">
+      <string>Email Addresse(s):</string>
+     </property>
+     <property name="checked">
+      <bool>false</bool>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <tabstops>
+  <tabstop>byEmailAddress</tabstop>
+  <tabstop>emailAddresses</tabstop>
+  <tabstop>byOutlookContacts</tabstop>
+  <tabstop>outlookContacts</tabstop>
+  <tabstop>byDisplayNames</tabstop>
+  <tabstop>displayNames</tabstop>
+  <tabstop>bySubjects</tabstop>
+  <tabstop>subjects</tabstop>
+  <tabstop>groupedEmails</tabstop>
+ </tabstops>
+ <resources/>
+ <connections/>
+</ui>

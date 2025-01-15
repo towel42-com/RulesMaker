@@ -7,6 +7,7 @@ set(qtproject_UIS
 )
 
 set(project_SRCS
+    EmailAddress.cpp
     OutlookAPI.cpp
     OutlookAPI_account.cpp
     OutlookAPI_dump.cpp
@@ -32,6 +33,7 @@ set(qtproject_H
 )
 
 set(project_H
+    EmailAddress.h
     OutlookAPI_pri.h
 )
 

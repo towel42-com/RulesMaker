@@ -87,10 +87,14 @@ enum class EFilterType
     eUnknown = 0x00,
     eByEmailAddress = 0x01,
     eByDisplayName = 0x02,
-    eBySubject = 0x04
+    eBySubject = 0x04,
+    eByOutlookContact = 0x08
 };
+bool isFilterType( EFilterType value, EFilterType filter );
 
 QString toString( EFilterType filterType );
+class CEmailAddress;
+using TEmailAddressList = std::list< std::shared_ptr< CEmailAddress > >;
 
 class COutlookAPI : public QObject
 {
@@ -275,7 +279,7 @@ public:
     bool emptyTrash();
 
     // email API in OutlookAPI_email.cpp
-    enum EAddressTypes
+    enum class EAddressTypes
     {
         eNone = 0x00,
         eOriginator = 0x01,
@@ -284,10 +288,48 @@ public:
         eBCC = 0x08,
         eAllRecipients = eOriginator | eTo | eCC | eBCC,
         eSender = 0x10,
-        eAllEmailAddresses = eAllRecipients | eSender,
-        eSMTPOnly = 0x20
+        eAllEmailAddresses = eAllRecipients | eSender
     };
-    using TStringPairList = QList< std::pair< QString, QString > >;
+    static bool isAddressType( EAddressTypes value, EAddressTypes filter );
+    static bool isAddressType( std::optional< EAddressTypes > value, std::optional< EAddressTypes > filter )
+    {
+        if ( !value.has_value() || !filter.has_value() )
+            return false;
+        return isAddressType( value.value(), filter.value() );
+    }
+
+    enum class EContactTypes
+    {
+        eNone = 0x00,
+        eSMTPContact = 0x01,
+        eOutlookContact = 0x02,
+        eAllContacts = eSMTPContact | eOutlookContact
+    };
+    static bool isContactType( EContactTypes value, EContactTypes filter );
+    static bool isContactType( bool isExchangeUser, std::optional< EContactTypes > contactTypes )
+    {
+        if ( !contactTypes.has_value() )
+            return true;
+        switch ( contactTypes.value() )
+        {
+            case EContactTypes::eNone:
+                return false;
+            case EContactTypes::eAllContacts:
+                return true;
+            case EContactTypes::eSMTPContact:
+                return !isExchangeUser;
+            case EContactTypes::eOutlookContact:
+                return isExchangeUser;
+        }
+        return false;
+    }
+
+    static bool isContactType( std::optional< EContactTypes > value, std::optional< EContactTypes > filter )
+    {
+        if ( !value.has_value() || !filter.has_value() )
+            return true;
+        return isContactType( value.value(), filter.value() );
+    }
 
     std::pair< std::shared_ptr< Outlook::Items >, int > getEmailItemsForRootFolder();
 
@@ -299,24 +341,21 @@ public:
     static QString getSubject( std::shared_ptr< Outlook::MailItem > mailItem );
     static QString getSubject( Outlook::MailItem *mailItem );
 
-    static QStringList getDisplayNames( const TStringPairList &emailAddresses );
-    static QStringList getEmailAddresses( const TStringPairList &emailAddresses );
-
-    static TStringPairList getEmailAddresses( std::shared_ptr< Outlook::MailItem > &mailItem, EAddressTypes types );   // returns the list of email addresses, display names
-    static TStringPairList getEmailAddresses( Outlook::MailItem *mailItem, EAddressTypes types );   // returns the list of email addresses, display names
-    static QStringList getEmailAddresses( Outlook::MailItem *mailItem, Outlook::OlMailRecipientType recipientType, bool smtpOnly );
+    static TEmailAddressList getEmailAddresses( std::shared_ptr< Outlook::MailItem > &mailItem, std::optional< EAddressTypes > addressTypes = {}, std::optional< EContactTypes > contactTypes = {} );   // returns the list of email addresses, display names
+    static TEmailAddressList getEmailAddresses( Outlook::MailItem *mailItem, std::optional< EAddressTypes > addressTypes = {}, std::optional< EContactTypes > contactTypes = {} );   // returns the list of email addresses, display names
+    //static QStringList getEmailAddresses( Outlook::MailItem *mailItem, Outlook::OlMailRecipientType recipientType, EContactTypes contactTypes );
     static QStringList getSenderEmailAddresses( Outlook::MailItem *mailItem );
 
-    static TStringPairList getEmailAddresses( Outlook::Recipients *recipients, EAddressTypes types );
-    static QStringList getEmailAddresses( Outlook::Recipients *recipients, std::optional< Outlook::OlMailRecipientType > recipientType, bool smtpOnly );
+    static TEmailAddressList getEmailAddresses( Outlook::Recipients *recipients, std::optional< EAddressTypes > addressTypes = {}, std::optional< EContactTypes > contactTypes = {} );
+    //static QStringList getEmailAddresses( Outlook::Recipients *recipients, std::optional< Outlook::OlMailRecipientType > recipientType, bool smtpOnly );
 
-    static TStringPairList getEmailAddresses( Outlook::Recipient *recipient, EAddressTypes types );
+    static TEmailAddressList getEmailAddresses( Outlook::Recipient *recipient, std::optional< EAddressTypes > addressTypes = {}, std::optional< EContactTypes > contactTypes = {} );
 
-    static TStringPairList getEmailAddresses( Outlook::AddressList *addresses, EAddressTypes types );   // returns the list of email addresses, display names, types is used for SMTP only
-    static QStringList getEmailAddresses( Outlook::AddressList *addresses, bool smtpOnly );
+    static TEmailAddressList getEmailAddresses( Outlook::AddressList *addresses, std::optional< EAddressTypes > addressTypes = {}, std::optional< EContactTypes > contactTypes = {} );   // returns the list of email addresses, display names, types is used for SMTP only
+    //static QStringList getEmailAddresses( Outlook::AddressList *addresses, bool smtpOnly );
 
-    static TStringPairList getEmailAddresses( Outlook::AddressEntries *entries, EAddressTypes types );   // returns the list of email addresses, display names, types is used for SMTP only
-    static QStringList getEmailAddresses( Outlook::AddressEntries *entries, bool smtpOnly );
+    static TEmailAddressList getEmailAddresses( Outlook::AddressEntries *entries, std::optional< EAddressTypes > addressTypes = {}, std::optional< EContactTypes > contactTypes = {} );   // returns the list of email addresses, display names, types is used for SMTP only
+    //static QStringList getEmailAddresses( Outlook::AddressEntries *entries, bool smtpOnly );
 
     static std::list< Outlook::AddressEntry * > getAddressEntries( Outlook::Recipients *recipients );
     static std::list< Outlook::AddressEntry * > getAddressEntries( Outlook::Recipient *recipients );
@@ -412,8 +451,10 @@ private:
     bool runRules( std::vector< std::shared_ptr< Outlook::Rule > > rules, std::shared_ptr< Outlook::Folder > folder = {}, bool recursive = false, const std::optional< QString > &perFolderMsg = {} );
 
     bool addRecipientsToRule( Outlook::Rule *rule, const QStringList &recipients, QStringList &msgs );
+    bool addRecipientsToRule( Outlook::Rule *rule, const TEmailAddressList &recipients, QStringList &msgs );
     bool addDisplayNamesToRule( Outlook::Rule *rule, const QStringList &displayNames, QStringList &msgs );
-    bool addSubjectsToRule( Outlook::Rule *rule, const QStringList &displayNames, QStringList &msgs );
+    bool addSubjectsToRule( Outlook::Rule *rule, const QStringList &subjects, QStringList &msgs );
+    bool addOutlookContactsToRule( Outlook::Rule *rule, const QStringList &outlookContacts, QStringList &msgs );
 
     std::unordered_set< std::shared_ptr< Outlook::Rule > > fRuleBeenLoaded;
 
@@ -426,6 +467,7 @@ private:
     std::optional< QString > mergeKey( const std::shared_ptr< Outlook::Rule > &rule ) const;
     std::optional< QStringList > mergeRecipients( Outlook::Rule *lhs, Outlook::Rule *rhs, QStringList *msgs );
     std::optional< QStringList > mergeRecipients( Outlook::Rule *lhs, const QStringList &rhs, QStringList *msgs );
+    std::optional< QStringList > mergeRecipients( Outlook::Rule *lhs, const TEmailAddressList &rhs, QStringList *msgs );
     std::optional< QStringList > mergeRecipients( const std::list< Outlook::Rule * > &rules, QStringList *msgs );
 
     static QString stripHeaderStringString( const QString &msg );   // can include the "From" portion of the pattern as well as quotes, returns the raw pattern
@@ -459,8 +501,8 @@ private:
     int subFolderCount( const Outlook::Folder *parent, bool recursive );
 
     // email API in OutlookAPI_email.cpp
-    static TStringPairList getEmailAddresses( Outlook::AddressEntry *address, EAddressTypes types );   // returns the list of email addresses, display names, types is used for SMTP only
-    static QStringList getEmailAddresses( Outlook::AddressEntry *address, bool smtpOnly );
+    static TEmailAddressList getEmailAddresses( Outlook::AddressEntry *address, std::optional< EAddressTypes > addressTypes = {}, std::optional< EContactTypes > contactTypes = {} );   // returns the list of email addresses, display names, types is used for SMTP only
+    //static QStringList getEmailAddresses( Outlook::AddressEntry *address, bool smtpOnly );
 
     // dump API in OutlookAPI_dump.cpp
     void dumpFolder( Outlook::Folder *root );
@@ -472,8 +514,10 @@ QStringList toStringList( const QVariant &variant );
 
 // general API in OutlookAPI.cpp
 COutlookAPI::EAddressTypes operator|( const COutlookAPI::EAddressTypes &lhs, const COutlookAPI::EAddressTypes &rhs );
-COutlookAPI::EAddressTypes getAddressTypes( bool smtpOnly );
-COutlookAPI::EAddressTypes getAddressTypes( std::optional< Outlook::OlMailRecipientType > recipientType, bool smtpOnly );
+COutlookAPI::EContactTypes operator|( const COutlookAPI::EContactTypes &lhs, const COutlookAPI::EContactTypes &rhs );
+
+//COutlookAPI::EAddressTypes getAddressTypes( bool smtpOnly );
+//COutlookAPI::EAddressTypes getAddressTypes( std::optional< Outlook::OlMailRecipientType > recipientType, bool smtpOnly );
 
 bool equal( const QStringList &lhs, const QStringList &rhs );
 

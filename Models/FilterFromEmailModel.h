@@ -66,6 +66,10 @@ public:
     QStringList displayNamesForItem( QStandardItem *item, bool allChildren = false ) const;
     QStringList displayNamesForItem( const CEmailAddressSection *item, bool allChildren = false ) const;
 
+    QStringList outlookContactsForIndex( const QModelIndex &idx, bool allChildren = false ) const;
+    QStringList outlookContactsForItem( QStandardItem *item, bool allChildren = false ) const;
+    QStringList outlookContactsForItem( const CEmailAddressSection *item, bool allChildren = false ) const;
+
     QStringList subjectsForIndex( const QModelIndex &idx, bool allChildren = false ) const;
     QStringList subjectsForItem( QStandardItem *item, bool allChildren = false ) const;
     QStringList subjectsForItem( const CEmailAddressSection *item, bool allChildren = false ) const;

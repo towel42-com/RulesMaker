@@ -1,4 +1,6 @@
 #include "OutlookAPI.h"
+#include "EmailAddress.h"
+
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QDebug>
@@ -13,42 +15,41 @@
 #include "MSOUTL.h"
 #include <QDebug>
 
-COutlookAPI::TStringPairList cleanResults( QStringList keys )
+TEmailAddressList cleanResults( QStringList keys )
 {
-    COutlookAPI::TStringPairList retVal;
+    TEmailAddressList retVal;
     keys = mergeStringLists( keys, {}, false );
     for ( auto &&ii : keys )
     {
-        auto split = ii.split( "<<<BREAK>>>" );
-        if ( split.size() != 2 )
-            continue;
-        retVal << std::make_pair( split.first(), split.last() );
+        auto curr = CEmailAddress::fromKey( ii );
+        if ( curr )
+            retVal.push_back( curr );
     }
 
     return retVal;
 }
 
-COutlookAPI::TStringPairList cleanResults( COutlookAPI::TStringPairList values )
+TEmailAddressList cleanResults( TEmailAddressList values )
 {
     QStringList keys;
     for ( auto &&ii : values )
     {
-        keys << ii.first + "<<<BREAK>>>" + ii.second;
+        keys << ii->key();
     }
     return cleanResults( keys );
 }
 
-COutlookAPI::TStringPairList mergeResults( COutlookAPI::TStringPairList lhs, const COutlookAPI::TStringPairList &rhs )
+TEmailAddressList mergeResults( TEmailAddressList lhs, const TEmailAddressList &rhs )
 {
     QStringList keys;
     for ( auto &&ii : lhs )
     {
-        keys << ii.first + "<<<BREAK>>>" + ii.second;
+        keys << ii->key();
     }
 
     for ( auto &&ii : rhs )
     {
-        keys << ii.first + "<<<BREAK>>>" + ii.second;
+        keys << ii->key();
     }
 
     return cleanResults( keys );
@@ -108,47 +109,54 @@ std::shared_ptr< Outlook::MailItem > COutlookAPI::getEmailItem( IDispatch *item 
     return connectToException( std::make_shared< Outlook::MailItem >( item ) );
 }
 
-COutlookAPI::TStringPairList COutlookAPI::getEmailAddresses( std::shared_ptr< Outlook::MailItem > &mailItem, EAddressTypes types )   // returns the list of email addresses, display names
+TEmailAddressList COutlookAPI::getEmailAddresses( std::shared_ptr< Outlook::MailItem > &mailItem, std::optional< EAddressTypes > types, std::optional< EContactTypes > contactTypes )   // returns the list of email addresses, display names
 {
     if ( !mailItem )
         return {};
-    return getEmailAddresses( mailItem.get(), types );
+    return getEmailAddresses( mailItem.get(), types, contactTypes );
 }
 
-COutlookAPI::TStringPairList COutlookAPI::getEmailAddresses( Outlook::MailItem *mailItem, EAddressTypes types )   // returns the list of email addresses, display names
+TEmailAddressList COutlookAPI::getEmailAddresses( Outlook::MailItem *mailItem, std::optional< EAddressTypes > types, std::optional< EContactTypes > contactTypes )   // returns the list of email addresses, display names
 {
     if ( !mailItem )
         return {};
 
-    TStringPairList retVal;
-    if ( ( types & EAddressTypes::eSender ) != 0 )
+    TEmailAddressList retVal;
+    if ( isAddressType( types, EAddressTypes::eSender ) )
     {
-        retVal = getEmailAddresses( mailItem->Sender(), types );
-        bool smtpOnly = ( types & COutlookAPI::EAddressTypes::eSMTPOnly ) != 0;
-        if ( smtpOnly && !isExchangeUser( mailItem->Sender() ) )
-            retVal << std::make_pair( mailItem->SenderEmailAddress(), mailItem->SentOnBehalfOfName() );
+        retVal = getEmailAddresses( mailItem->Sender(), types, contactTypes );
+        bool isExchangeContact = isExchangeUser( mailItem->Sender() );
+        if ( isExchangeContact )
+            int xyz = 0;
+        if ( isContactType( isExchangeContact, contactTypes ) )
+        {
+            auto emailAddress = mailItem->SenderEmailAddress();
+            if ( isExchangeContact && !retVal.empty() )
+                emailAddress = retVal.back()->emailAddress();
+            retVal.push_back( std::make_shared< CEmailAddress >( emailAddress, mailItem->SentOnBehalfOfName(), isExchangeContact ) );
+        }
     }
 
-    auto curr = getEmailAddresses( mailItem->Recipients(), types );
+    auto curr = getEmailAddresses( mailItem->Recipients(), types, contactTypes );
     return mergeResults( retVal, curr );
 }
 
-QStringList COutlookAPI::getEmailAddresses( Outlook::MailItem *mailItem, Outlook::OlMailRecipientType recipientType, bool smtpOnly )
-{
-    return getEmailAddresses( getEmailAddresses( mailItem->Recipients(), getAddressTypes( recipientType, smtpOnly ) ) );
-}
+//QStringList COutlookAPI::getEmailAddresses( Outlook::MailItem *mailItem, Outlook::OlMailRecipientType recipientType, bool smtpOnly )
+//{
+//    return getEmailAddresses( getEmailAddresses( mailItem->Recipients(), getAddressTypes( recipientType, smtpOnly ) ) );
+//}
 
 QStringList COutlookAPI::getSenderEmailAddresses( Outlook::MailItem *mailItem )
 {
-    return getEmailAddresses( getEmailAddresses( mailItem, EAddressTypes::eSender ) );
+    return CEmailAddress::getEmailAddresses( getEmailAddresses( mailItem, EAddressTypes::eSender ) );
 }
 
-COutlookAPI::TStringPairList COutlookAPI::getEmailAddresses( Outlook::Recipients *recipients, EAddressTypes types )
+TEmailAddressList COutlookAPI::getEmailAddresses( Outlook::Recipients *recipients, std::optional< EAddressTypes > types, std::optional< EContactTypes > contactTypes )
 {
     if ( !recipients )
         return {};
 
-    TStringPairList retVal;
+    TEmailAddressList retVal;
 
     auto numRecipients = recipients->Count();
     for ( int ii = 1; ii <= numRecipients; ++ii )
@@ -161,16 +169,16 @@ COutlookAPI::TStringPairList COutlookAPI::getEmailAddresses( Outlook::Recipients
         switch ( recipientType )
         {
             case Outlook::OlMailRecipientType::olOriginator:
-                useRecipient = ( types & EAddressTypes::eOriginator ) != 0;
+                useRecipient = isAddressType( types, EAddressTypes::eOriginator );
                 break;
             case Outlook::OlMailRecipientType::olTo:
-                useRecipient = ( types & EAddressTypes::eTo ) != 0;
+                useRecipient = isAddressType( types, EAddressTypes::eTo );
                 break;
             case Outlook::OlMailRecipientType::olCC:
-                useRecipient = ( types & EAddressTypes::eCC ) != 0;
+                useRecipient = isAddressType( types, EAddressTypes::eCC );
                 break;
             case Outlook::OlMailRecipientType::olBCC:
-                useRecipient = ( types & EAddressTypes::eBCC ) != 0;
+                useRecipient = isAddressType( types, EAddressTypes::eBCC );
                 break;
             default:
                 break;
@@ -179,32 +187,36 @@ COutlookAPI::TStringPairList COutlookAPI::getEmailAddresses( Outlook::Recipients
         if ( !useRecipient )
             continue;
 
-        auto curr = getEmailAddresses( recipient->AddressEntry(), types );
-        retVal << curr;
+        auto curr = getEmailAddresses( recipient->AddressEntry(), types, contactTypes );
+        retVal.insert( retVal.end(), curr.begin(), curr.end() );
     }
     return retVal;
 }
 
-QStringList COutlookAPI::getEmailAddresses( Outlook::Recipients *recipients, std::optional< Outlook::OlMailRecipientType > recipientType, bool smtpOnly )
-{
-    return getEmailAddresses( getEmailAddresses( recipients, getAddressTypes( recipientType, smtpOnly ) ) );
-}
+//QStringList COutlookAPI::getEmailAddresses( Outlook::Recipients *recipients, std::optional< Outlook::OlMailRecipientType > recipientType, bool smtpOnly )
+//{
+//    return getEmailAddresses( getEmailAddresses( recipients, getAddressTypes( recipientType, smtpOnly ) ) );
+//}
 
-COutlookAPI::TStringPairList COutlookAPI::getEmailAddresses( Outlook::Recipient *recipient, EAddressTypes types )
+TEmailAddressList COutlookAPI::getEmailAddresses( Outlook::Recipient *recipient, std::optional< EAddressTypes > types, std::optional< EContactTypes > contactTypes )
 {
     if ( !recipient )
         return {};
 
-    auto retVal = getEmailAddresses( recipient->AddressEntry(), types );
+    auto retVal = getEmailAddresses( recipient->AddressEntry(), types, contactTypes );
     if ( retVal.empty() )
     {
-        retVal << std::make_pair( recipient->Address(), recipient->Name() );
+        bool isExchangeContact = isExchangeUser( recipient->AddressEntry() );
+        if ( isExchangeContact )
+            int xyz = 0;
+        if ( isContactType( isExchangeContact, contactTypes ) )
+            retVal.push_back( std::make_shared< CEmailAddress >( recipient->Address(), recipient->Name(), isExchangeContact ) );
     }
 
     return retVal;
 }
 
-COutlookAPI::TStringPairList COutlookAPI::getEmailAddresses( Outlook::AddressList *addresses, EAddressTypes types )
+TEmailAddressList COutlookAPI::getEmailAddresses( Outlook::AddressList *addresses, std::optional< EAddressTypes > types, std::optional< EContactTypes > contactTypes )
 {
     if ( !addresses )
         return {};
@@ -214,23 +226,23 @@ COutlookAPI::TStringPairList COutlookAPI::getEmailAddresses( Outlook::AddressLis
         return {};
     auto count = entries->Count();
 
-    TStringPairList retVal;
+    TEmailAddressList retVal;
     for ( int ii = 1; ii <= count; ++ii )
     {
         auto entry = entries->Item( ii );
         if ( !entry )
             continue;
-        auto currEmails = getEmailAddresses( entry, types );
-        retVal << currEmails;
+        auto curr = getEmailAddresses( entry, types, contactTypes );
+        retVal.insert( retVal.end(), curr.begin(), curr.end() );
     }
 
     return cleanResults( retVal );
 }
 
-QStringList COutlookAPI::getEmailAddresses( Outlook::AddressList *addresses, bool smtpOnly )
-{
-    return getEmailAddresses( getEmailAddresses( addresses, EAddressTypes::eAllEmailAddresses | getAddressTypes( smtpOnly ) ) );
-}
+//QStringList COutlookAPI::getEmailAddresses( Outlook::AddressList *addresses, bool smtpOnly )
+//{
+//    return getEmailAddresses( getEmailAddresses( addresses, EAddressTypes::eAllEmailAddresses | getAddressTypes( smtpOnly ) ) );
+//}
 
 void COutlookAPI::displayEmail( const std::shared_ptr< Outlook::MailItem > &email ) const
 {
@@ -238,95 +250,76 @@ void COutlookAPI::displayEmail( const std::shared_ptr< Outlook::MailItem > &emai
         email->Display();
 }
 
-QStringList COutlookAPI::getEmailAddresses( const TStringPairList &emailAddresses )
-{
-    QStringList retVal;
-    for ( auto &&ii : emailAddresses )
-    {
-        retVal << ii.first;
-    }
-    return retVal;
-}
-
-QStringList COutlookAPI::getDisplayNames( const TStringPairList &emailAddresses )
-{
-    QStringList retVal;
-    for ( auto &&ii : emailAddresses )
-    {
-        retVal << ii.second;
-    }
-    return retVal;
-}
-
 bool COutlookAPI::isExchangeUser( Outlook::AddressEntry *address )
 {
     return address && ( address->GetExchangeUser() || address->GetExchangeDistributionList() );
 }
 
-COutlookAPI::TStringPairList COutlookAPI::getEmailAddresses( Outlook::AddressEntries *entries, EAddressTypes types )
+TEmailAddressList COutlookAPI::getEmailAddresses( Outlook::AddressEntries *entries, std::optional< EAddressTypes > types, std::optional< EContactTypes > contactTypes )
 {
     if ( !entries )
         return {};
 
-    TStringPairList retVal;
+    TEmailAddressList retVal;
     auto num = entries->Count();
     for ( int ii = 1; ii <= num; ++ii )
     {
         auto currItem = entries->Item( ii );
         if ( !currItem )
             continue;
-        auto currEmails = getEmailAddresses( currItem, types );
-        retVal << currEmails;
+        auto curr = getEmailAddresses( currItem, types, contactTypes );
+        retVal.insert( retVal.end(), curr.begin(), curr.end() );
     }
     return cleanResults( retVal );
 }
 
-QStringList COutlookAPI::getEmailAddresses( Outlook::AddressEntries *entries, bool smtpOnly )
-{
-    return getEmailAddresses( getEmailAddresses( entries, EAddressTypes::eAllEmailAddresses | getAddressTypes( smtpOnly ) ) );
-}
+//QStringList COutlookAPI::getEmailAddresses( Outlook::AddressEntries *entries, bool smtpOnly )
+//{
+//    return getEmailAddresses( getEmailAddresses( entries, EAddressTypes::eAllEmailAddresses | getAddressTypes( smtpOnly ) ) );
+//}
 
-COutlookAPI::TStringPairList COutlookAPI::getEmailAddresses( Outlook::AddressEntry *address, EAddressTypes types )
+TEmailAddressList COutlookAPI::getEmailAddresses( Outlook::AddressEntry *address, std::optional< EAddressTypes > types, std::optional< EContactTypes > contactTypes )
 {
     if ( !address )
         return {};
     auto type = address->AddressEntryUserType();
 
-    bool smtpOnly = ( types & COutlookAPI::EAddressTypes::eSMTPOnly ) != 0;
-
-    TStringPairList retVal;
+    TEmailAddressList retVal;
 
     if ( address->GetExchangeUser() )
     {
-        if ( !smtpOnly )
+        if ( isContactType( contactTypes, EContactTypes::eOutlookContact ) )
         {
-            retVal << std::make_pair( address->GetExchangeUser()->PrimarySmtpAddress(), address->GetExchangeUser()->Name() );
+            retVal.push_back( std::make_shared< CEmailAddress >( address->GetExchangeUser()->PrimarySmtpAddress(), address->GetExchangeUser()->Name(), true ) );
         }
     }
     else if ( address->GetExchangeDistributionList() )
     {
-        if ( smtpOnly )
+        if ( isContactType( contactTypes, EContactTypes::eOutlookContact ) )
         {
-            retVal << std::make_pair( address->GetExchangeDistributionList()->PrimarySmtpAddress(), address->GetExchangeDistributionList()->Name() );
+            retVal.push_back( std::make_shared< CEmailAddress >( address->GetExchangeDistributionList()->PrimarySmtpAddress(), address->GetExchangeDistributionList()->Name(), true ) );
         }
     }
     else if ( address->GetContact() )
     {
-        auto contact = address->GetContact();
-        retVal   //
-            << std::make_pair( contact->Email1Address(), contact->Email1DisplayName() )   //
-            << std::make_pair( contact->Email2Address(), contact->Email2DisplayName() )   //
-            << std::make_pair( contact->Email3Address(), contact->Email3DisplayName() );
+        if ( isContactType( contactTypes, EContactTypes::eSMTPContact ) )
+        {
+            auto contact = address->GetContact();
+            retVal.push_back( std::make_shared< CEmailAddress >( contact->Email1Address(), contact->Email1DisplayName(), false ) );   //
+            retVal.push_back( std::make_shared< CEmailAddress >( contact->Email2Address(), contact->Email2DisplayName(), false ) );   //
+            retVal.push_back( std::make_shared< CEmailAddress >( contact->Email3Address(), contact->Email3DisplayName(), false ) );
+        }
     }
     else
     {
-        retVal << std::make_pair( address->Address(), address->Name() );
+        if ( isContactType( contactTypes, EContactTypes::eSMTPContact ) )
+            retVal.push_back( std::make_shared< CEmailAddress >( address->Address(), address->Name(), false ) );
     }
 
     return cleanResults( retVal );
 }
 
-QStringList COutlookAPI::getEmailAddresses( Outlook::AddressEntry *address, bool smtpOnly /*= false*/ )
-{
-    return getEmailAddresses( getEmailAddresses( address, EAddressTypes::eAllEmailAddresses | getAddressTypes( smtpOnly ) ) );
-}
+//QStringList COutlookAPI::getEmailAddresses( Outlook::AddressEntry *address, bool smtpOnly /*= false*/ )
+//{
+//    return getEmailAddresses( getEmailAddresses( address, EAddressTypes::eAllEmailAddresses | getAddressTypes( smtpOnly ) ) );
+//}

@@ -42,6 +42,8 @@ QString toString( EFilterType filterType )
             return "Display Name";
         case EFilterType::eBySubject:
             return "Subject";
+        case EFilterType::eByOutlookContact:
+            return "Outlook Contact";
         default:
             break;
     }

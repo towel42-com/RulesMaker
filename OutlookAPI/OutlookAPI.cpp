@@ -277,6 +277,22 @@ std::shared_ptr< Outlook::Items > COutlookAPI::getItems( Outlook::_Items *item )
     return connectToException( std::make_shared< Outlook::Items >( item ) );
 }
 
+bool isFilterType( EFilterType value, EFilterType filter )
+{
+    return ( static_cast< int >( filter ) & static_cast< int >( value ) ) != 0;
+}
+
+bool COutlookAPI::isAddressType( EAddressTypes value, EAddressTypes filter )
+{
+    return ( static_cast< int >( filter ) & static_cast< int >( value ) ) != 0;
+}
+
+bool COutlookAPI::isContactType( EContactTypes value, EContactTypes filter )
+{
+    return ( static_cast< int >( filter ) & static_cast< int >( value ) ) != 0;
+}
+
+
 COutlookAPI::EAddressTypes operator|( const COutlookAPI::EAddressTypes &lhs, const COutlookAPI::EAddressTypes &rhs )
 {
     auto lhsA = static_cast< int >( lhs );
@@ -284,30 +300,37 @@ COutlookAPI::EAddressTypes operator|( const COutlookAPI::EAddressTypes &lhs, con
     return static_cast< COutlookAPI::EAddressTypes >( lhsA | rhsA );
 }
 
-COutlookAPI::EAddressTypes getAddressTypes( bool smtpOnly )
+COutlookAPI::EContactTypes operator|( const COutlookAPI::EContactTypes &lhs, const COutlookAPI::EContactTypes &rhs )
 {
-    return smtpOnly ? COutlookAPI::EAddressTypes::eSMTPOnly : COutlookAPI::EAddressTypes::eNone;
+    auto lhsA = static_cast< int >( lhs );
+    auto rhsA = static_cast< int >( rhs );
+    return static_cast< COutlookAPI::EContactTypes >( lhsA | rhsA );
 }
 
-COutlookAPI::EAddressTypes getAddressTypes( std::optional< Outlook::OlMailRecipientType > recipientType, bool smtpOnly )
-{
-    auto types = getAddressTypes( smtpOnly );
-    if ( recipientType.has_value() )
-    {
-        if ( recipientType == Outlook::OlMailRecipientType::olOriginator )
-            types = types | COutlookAPI::EAddressTypes::eOriginator;
-        if ( recipientType == Outlook::OlMailRecipientType::olTo )
-            types = types | COutlookAPI::EAddressTypes::eTo;
-        if ( recipientType == Outlook::OlMailRecipientType::olCC )
-            types = types | COutlookAPI::EAddressTypes::eCC;
-        if ( recipientType == Outlook::OlMailRecipientType::olBCC )
-            types = types | COutlookAPI::EAddressTypes::eBCC;
-    }
-    else
-        types = types | COutlookAPI::EAddressTypes::eAllRecipients;
+//COutlookAPI::EAddressTypes getAddressTypes( bool smtpOnly )
+//{
+//    return smtpOnly ? COutlookAPI::EAddressTypes::eSMTPOnly : COutlookAPI::EAddressTypes::eNone;
+//}
 
-    return types;
-}
+//COutlookAPI::EAddressTypes getAddressTypes( std::optional< Outlook::OlMailRecipientType > recipientType, bool smtpOnly )
+//{
+//    auto types = getAddressTypes( smtpOnly );
+//    if ( recipientType.has_value() )
+//    {
+//        if ( recipientType == Outlook::OlMailRecipientType::olOriginator )
+//            types = types | COutlookAPI::EAddressTypes::eOriginator;
+//        if ( recipientType == Outlook::OlMailRecipientType::olTo )
+//            types = types | COutlookAPI::EAddressTypes::eTo;
+//        if ( recipientType == Outlook::OlMailRecipientType::olCC )
+//            types = types | COutlookAPI::EAddressTypes::eCC;
+//        if ( recipientType == Outlook::OlMailRecipientType::olBCC )
+//            types = types | COutlookAPI::EAddressTypes::eBCC;
+//    }
+//    else
+//        types = types | COutlookAPI::EAddressTypes::eAllRecipients;
+//
+//    return types;
+//}
 
 bool equal( const QStringList &lhs, const QStringList &rhs )
 {

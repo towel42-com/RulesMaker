@@ -1,6 +1,7 @@
 #include "OutlookAPI.h"
 #include "OutlookAPI_pri.h"
 
+#include "EmailAddress.h" 
 #include "MSOUTL.h"
 
 #include <QStandardItem>
@@ -162,7 +163,7 @@ bool loadCondition( QStandardItem *parent, Outlook::ToOrFromRuleCondition *condi
     if ( !condition->Enabled() )
         return false;
 
-    auto recipients = COutlookAPI::getEmailAddresses( condition->Recipients(), {}, false );
+    auto recipients = COutlookAPI::getEmailAddresses( condition->Recipients() );
     loadAttribute( parent, ( from ? "From" : "To" ), recipients, " or " );
     return true;
 }
@@ -247,7 +248,7 @@ bool loadCondition( QStandardItem *parent, Outlook::SenderInAddressListRuleCondi
     if ( !condition->Enabled() )
         return false;
 
-    auto addresses = COutlookAPI::instance()->getEmailAddresses( condition->AddressList(), false );
+    auto addresses = COutlookAPI::instance()->getEmailAddresses( condition->AddressList() );
     loadAttribute( parent, "Sender in Address List", addresses, " or " );
 
     return true;
@@ -376,7 +377,7 @@ bool loadAction( QStandardItem *parent, Outlook::SendRuleAction *action, const Q
     if ( !action->Enabled() )
         return false;
 
-    auto recipients = COutlookAPI::getEmailAddresses( action->Recipients(), {}, false );
+    auto recipients = COutlookAPI::getEmailAddresses( action->Recipients() );
 
     loadAttribute( parent, actionName, recipients, " and " );
     return true;
@@ -397,14 +398,32 @@ void loadAttribute( QStandardItem *parent, const QString &label, const char *val
     return loadAttribute( parent, label, QString( value ) );
 }
 
-void loadAttribute( QStandardItem *parent, const QString &label, QStringList value, const QString &separator )
+void loadAttribute( QStandardItem *parent, const QString &label, const QStringList & value, const QString &separator )
 {
+    QStringList tmp;
     if ( value.size() > 1 )
     {
         for ( auto &&ii : value )
-            ii = '"' + ii + '"';
+            tmp << '"' + ii + '"';
     }
-    auto text = value.join( separator );
+    else
+        tmp = value;
+    auto text = tmp.join( separator );
+    return loadAttribute( parent, label, text );
+}
+
+void loadAttribute( QStandardItem *parent, const QString &label, const TEmailAddressList & value, const QString &separator )
+{
+    QStringList tmp;
+    if ( value.size() > 1 )
+    {
+        for ( auto &&ii : value )
+            tmp << '"' + ii->toString() + '"';
+    }
+    else
+        tmp << value.front()->toString();
+
+    auto text = tmp.join( separator );
     return loadAttribute( parent, label, text );
 }
 

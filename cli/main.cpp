@@ -28,6 +28,11 @@ enum EOperation
     eEmptyTrash = 0x80
 };
 
+bool isOperation( EOperation value, EOperation filter )
+{
+    return ( static_cast< int >( filter ) & static_cast< int >( value ) ) != 0;
+}
+
 std::pair< EParseResult, EOperation > parseCommandLine( QCommandLineParser &parser, QString &errorMsg )
 {
     auto helpOpt = parser.addHelpOption();
@@ -262,35 +267,35 @@ int main( int argc, char *argv[] )
 
     bool aOK = true;
     bool needsSaving = false;
-    if ( aOK && ( operation & EOperation::eRename ) != 0 )
+    if ( aOK && isOperation( operation, EOperation::eRename ) )
     {
         aOK = aOK && api->renameRules( false, &needsSaving );
         if ( !aOK )
             std::cerr << "Failed to rename rule(s)." << std::endl;
     }
 
-    if ( aOK && ( operation & EOperation::eSort ) != 0 )
+    if ( aOK && isOperation( operation, EOperation::eSort ) )
     {
         aOK = aOK && api->sortRules( false, &needsSaving );
         if ( !aOK )
             std::cerr << "Failed to sort rule(s)." << std::endl;
     }
 
-    if ( aOK && ( operation & EOperation::eFixRules ) != 0 )
+    if ( aOK && isOperation( operation, EOperation::eFixRules ) )
     {
         aOK = aOK && api->moveFromToAddress( false, &needsSaving );
         if ( !aOK )
             std::cerr << "Failed to fix rule(s)." << std::endl;
     }
 
-    if ( aOK && ( operation & EOperation::eMerge ) != 0 )
+    if ( aOK && isOperation( operation, EOperation::eMerge ) )
     {
         aOK = aOK && api->mergeRules( false, &needsSaving );
         if ( !aOK )
             std::cerr << "Failed to merge rule(s)." << std::endl;
     }
 
-    if ( aOK && ( operation & EOperation::eEnableAll ) != 0 )
+    if ( aOK && isOperation( operation, EOperation::eEnableAll ) )
     {
         aOK = aOK && api->enableAllRules( false, &needsSaving );
         if ( !aOK )
@@ -300,19 +305,19 @@ int main( int argc, char *argv[] )
     if ( needsSaving )
         api->saveRules();
 
-    if ( aOK && ( operation & EOperation::eRun ) != 0 )
+    if ( aOK && isOperation( operation, EOperation::eRun ) )
     {
         aOK = runRules( parser );
     }
 
-    if ( aOK && ( operation & EOperation::eEmptyJunk ) != 0 )
+    if ( aOK && isOperation( operation, EOperation::eEmptyJunk ) )
     {
         aOK = aOK && api->emptyJunk();
         if ( !aOK )
             std::cerr << "Failed to empty Junk." << std::endl;
     }
 
-    if ( aOK && ( operation & EOperation::eEmptyTrash ) != 0 )
+    if ( aOK && isOperation( operation, EOperation::eEmptyTrash ) )
     {
         aOK = aOK && api->emptyTrash();
         if ( !aOK )

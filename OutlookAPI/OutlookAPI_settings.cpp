@@ -118,12 +118,14 @@ void COutlookAPI::setEmailFilterTypes( const std::list< EFilterType > &value )
 void COutlookAPI::setEmailFilterTypes( EFilterType value )
 {
     fEmailFilterTypes.clear();
-    if ( ( static_cast< int >( value ) & static_cast< int >( EFilterType::eByDisplayName ) ) != 0 )
+    if ( isFilterType( value, EFilterType::eByDisplayName ) ) 
         fEmailFilterTypes.push_back( EFilterType::eByDisplayName );
-    if ( ( static_cast< int >( value ) & static_cast< int >( EFilterType::eByEmailAddress ) ) != 0 )
+    if ( isFilterType( value, EFilterType::eByEmailAddress ) )
         fEmailFilterTypes.push_back( EFilterType::eByEmailAddress );
-    if ( ( static_cast< int >( value ) & static_cast< int >( EFilterType::eBySubject ) ) != 0 )
+    if ( isFilterType( value, EFilterType::eBySubject ) )
         fEmailFilterTypes.push_back( EFilterType::eBySubject );
+    if ( isFilterType( value, EFilterType::eByOutlookContact ) )
+        fEmailFilterTypes.push_back( EFilterType::eByOutlookContact );
     QSettings settings;
     settings.setValue( "EmailFilterTypes", static_cast< int >( value ) );
 }
