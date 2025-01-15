@@ -1,10 +1,13 @@
 #include "OutlookAPI.h"
+#include "EmailAddress.h"
 
 #include <QMessageBox>
 #include <QRegularExpression>
 
+#include <set>
 #include "MSOUTL.h"
 
+#include <QDebug>
 std::pair< std::shared_ptr< Outlook::Rules >, int > COutlookAPI::getRules()
 {
     if ( !fRules )
@@ -56,16 +59,20 @@ std::optional< bool > COutlookAPI::addRule( const std::shared_ptr< Outlook::Fold
 std::optional< bool > COutlookAPI::addToRule( std::shared_ptr< Outlook::Rule > rule, const std::list< std::pair< QStringList, EFilterType > > &patterns, QStringList &msgs, bool copyFirst )
 {
     bool patternsEmpty = patterns.empty();
-    for ( auto &&ii = patterns.begin(); !patternsEmpty && ( ii != patterns.end() ); ++ii )
+    std::set< EFilterType > filterTypes;
+    for ( auto &&[ rules, patternType ] : patterns )
     {
-        patternsEmpty = patternsEmpty || ii->first.empty();
+        patternsEmpty = patternsEmpty || rules.empty();
+        if ( ( patternType == EFilterType::eByEmailAddressContains ) || ( patternType == EFilterType::eBySender ) )
+            filterTypes.insert( patternType );
     }
 
-    if ( !rule || patternsEmpty || !fRules )
+    if ( !fRules || !rule || patternsEmpty || filterTypes.size() > 1 )
     {
-        msgs.push_back( "Parameters not set" );
+        msgs.push_back( "Invalid parameters not set" );
         return false;
     }
+
     auto newRule = copyFirst ? copyRule( rule ) : rule;
     if ( !newRule )
     {
@@ -77,9 +84,15 @@ std::optional< bool > COutlookAPI::addToRule( std::shared_ptr< Outlook::Rule > r
     {
         switch ( patternType )
         {
-            case EFilterType::eByEmailAddress:
+            case EFilterType::eByEmailAddressContains:
                 {
                     if ( !addRecipientsToRule( newRule.get(), rules, msgs ) )
+                        return false;
+                }
+                break;
+            case EFilterType::eBySender:
+                {
+                    if ( !addSenderToRule( newRule.get(), rules, msgs ) )
                         return false;
                 }
                 break;
@@ -92,12 +105,6 @@ std::optional< bool > COutlookAPI::addToRule( std::shared_ptr< Outlook::Rule > r
             case EFilterType::eBySubject:
                 {
                     if ( !addSubjectsToRule( newRule.get(), rules, msgs ) )
-                        return false;
-                }
-                break;
-            case EFilterType::eByOutlookContact:
-                {
-                    if ( !addOutlookContactsToRule( newRule.get(), rules, msgs ) )
                         return false;
                 }
                 break;
@@ -231,9 +238,9 @@ std::list< EFilterType > COutlookAPI::filterTypesForRule( const std::shared_ptr<
     auto conditions = rule->Conditions();
     if ( !conditions )
         return retVal;
-    auto senderAddress = conditions->SenderAddress();
+    auto senderAddress = conditions->From();
     if ( senderAddress && senderAddress->Enabled() )
-        retVal.push_back( EFilterType::eByEmailAddress );
+        retVal.push_back( EFilterType::eByEmailAddressContains );
 
     auto header = rule->Conditions()->MessageHeader();
     if ( header && header->Enabled() )
@@ -243,9 +250,9 @@ std::list< EFilterType > COutlookAPI::filterTypesForRule( const std::shared_ptr<
     if ( subject && subject->Enabled() )
         retVal.push_back( EFilterType::eBySubject );
 
-    //auto outlookContact = rule->Conditions()->Subject();
-    //if ( outlookContact && outlookContact->Enabled() )
-    //    retVal.push_back( EFilterType::eByOutlookContact );
+    auto from = rule->Conditions()->From();
+    if ( from && from->Enabled() )
+        retVal.push_back( EFilterType::eBySender );
     return retVal;
 }
 
@@ -578,6 +585,62 @@ bool COutlookAPI::addRecipientsToRule( Outlook::Rule *rule, const TEmailAddressL
     return true;
 }
 
+bool COutlookAPI::addSenderToRule( Outlook::Rule *rule, const QStringList &senders, QStringList &msgs )
+{
+    return addSenderToRule( rule, toEmailAddressList( senders ), msgs );
+}
+
+bool COutlookAPI::addSenderToRule( Outlook::Rule *rule, const TEmailAddressList &senders, QStringList &msgs )
+{
+    if ( senders.empty() )
+        return true;
+
+    if ( !rule || !rule->Conditions() || !rule->Conditions()->From() || !rule->Conditions()->From()->Recipients() )
+    {
+        msgs.push_back( QString( "Internal error" ) );
+        return false;
+    }
+
+    auto from = rule->Conditions()->From();
+    auto currAddresses = getEmailAddresses( from->Recipients(), {}, EContactTypes::eAllContacts );
+    auto addresses = mergeStringLists( currAddresses, senders, &msgs );
+
+    auto cnt = from->Recipients()->Count();
+    for ( auto ii = cnt; ii >= 1; --ii )
+    {
+        from->Recipients()->Remove( ii );
+    }
+    std::unordered_set< Outlook::Recipient * > recipients;
+    for ( auto &&ii : addresses )
+    {
+        auto curr = from->Recipients()->Add( ii->toString() );
+        if ( curr )
+        {
+
+            qDebug() << curr->Address() << curr->Name();
+            auto entry = curr->AddressEntry();
+            if ( entry )
+                qDebug() << entry->Address();
+            if ( entry->GetExchangeUser() )
+                qDebug() << entry->GetExchangeUser()->PrimarySmtpAddress();
+        }
+        if ( !curr )
+            curr = from->Recipients()->Add( ii->emailAddress() );
+        if ( curr )
+        {
+            qDebug() << curr->Address() << curr->Name();
+            auto entry = curr->AddressEntry();
+            if ( entry )
+                qDebug() << entry->Address();
+            if ( entry->GetExchangeUser() )
+                qDebug() << entry->GetExchangeUser()->PrimarySmtpAddress();
+        }
+    }
+    from->SetEnabled( true );
+
+    return true;
+}
+
 bool COutlookAPI::addRecipientsToRule( Outlook::Rule *rule, const QStringList &recipients, QStringList &msgs )
 {
     if ( recipients.isEmpty() )
@@ -619,6 +682,7 @@ bool COutlookAPI::addSubjectsToRule( Outlook::Rule *rule, const QStringList &sub
     }
 
     QStringList text;
+
     if ( header->Enabled() )
         text = toStringList( header->Text() );
 
@@ -626,10 +690,5 @@ bool COutlookAPI::addSubjectsToRule( Outlook::Rule *rule, const QStringList &sub
     header->SetEnabled( true );
     header->SetText( text );
 
-    return true;
-}
-
-bool COutlookAPI::addOutlookContactsToRule( Outlook::Rule *rule, const QStringList &outlookContacts, QStringList &msgs )
-{
     return true;
 }

@@ -21,8 +21,7 @@ public:
     bool isBlank() const;
 
     static std::shared_ptr< CEmailAddress > fromKey( const QString &key );
-    static QStringList getDisplayNames( const TEmailAddressList &emailAddresses );
-    static QStringList getEmailAddresses( const TEmailAddressList &emailAddresses );
+    static std::shared_ptr< CEmailAddress > fromEmailWithOptDisplay( const QString &string );
 
     bool operator==( const CEmailAddress &rhs ) const { return fEmailAddress == rhs.fEmailAddress && fDisplayName == rhs.fDisplayName && fOutlookContact == rhs.fOutlookContact; }
     bool operator!=( const CEmailAddress &rhs ) const { return !operator==( rhs ); }
@@ -40,5 +39,7 @@ private:
 bool equal( const TEmailAddressList &lhs, const TEmailAddressList &rhs );
 [[nodiscard]] TEmailAddressList mergeStringLists( const TEmailAddressList &lhs, const TEmailAddressList &rhs, bool andSort = false );
 [[nodiscard]] QStringList toStringList( const TEmailAddressList &values );
-
+QStringList getDisplayNames( const TEmailAddressList &emailAddresses );
+QStringList getAddresses( const TEmailAddressList &emailAddresses );
+TEmailAddressList toEmailAddressList( const QStringList &values );
 #endif

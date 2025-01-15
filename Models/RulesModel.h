@@ -41,6 +41,8 @@ public:
     std::shared_ptr< Outlook::Rule > getRule( const QModelIndex &index ) const;
     std::shared_ptr< Outlook::Rule > getRule( const QStandardItem *item ) const;
 
+    QString summary() const;
+
     virtual bool hasChildren( const QModelIndex &parent ) const override;
     virtual void fetchMore( const QModelIndex &parent ) override;
     virtual bool canFetchMore( const QModelIndex &parent ) const override;

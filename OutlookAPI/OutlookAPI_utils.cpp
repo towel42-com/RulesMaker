@@ -36,14 +36,14 @@ QString toString( EFilterType filterType )
 {
     switch ( filterType )
     {
-        case EFilterType::eByEmailAddress:
-            return "Email Address";
+        case EFilterType::eByEmailAddressContains:
+            return "Email Address Contains";
         case EFilterType::eByDisplayName:
             return "Display Name";
         case EFilterType::eBySubject:
             return "Subject";
-        case EFilterType::eByOutlookContact:
-            return "Outlook Contact";
+        case EFilterType::eBySender:
+            return "Sender";
         default:
             break;
     }

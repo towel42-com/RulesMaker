@@ -9,7 +9,7 @@ namespace Ui
     class CFilterFromEmailView;
 }
 
-class CEmailModel;
+class CFilterFromEmailModel;
 enum class EFilterType;
 
 class CFilterFromEmailView : public CWidgetWithStatus
@@ -30,14 +30,14 @@ public:
 
     std::list< std::pair< QStringList, EFilterType > > getPatternsForSelection() const;   // the patterns, by emails or display names
 
-    bool selectionHasOutlookContact() const;
+    bool selectionHasSender() const;
     bool selectionHasDisplayName() const;
 
     QString getDisplayNameForSingleSelection() const;
     QString getDisplayNamePatternForSelection() const;
     QString getEmailPatternForSelection() const;
     QString getSubjectPatternForSelection() const;
-    QString getOutlookContactsPatternForSelection() const;
+    QString getSenderPatternForSelection() const;
 
 Q_SIGNALS:
     void sigFinishedLoading();
@@ -58,11 +58,11 @@ protected:
     QStringList getDisplayNamesForSelection() const;
     QStringList getEmailsForSelection() const;
     QStringList getSubjectsForSelection() const;
-    QStringList getOutlookContactsForSelection() const;
+    QStringList getSendersForSelection() const;
 
     QModelIndexList getSelectedRows() const;
 
-    CEmailModel *fGroupedModel{ nullptr };
+    CFilterFromEmailModel *fGroupedModel{ nullptr };
     std::unique_ptr< Ui::CFilterFromEmailView > fImpl;
     bool fNotifyOnFinish{ true };
 };

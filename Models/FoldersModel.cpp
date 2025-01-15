@@ -331,3 +331,8 @@ QStandardItem *CFoldersModel::loadFolder( const std::shared_ptr< Outlook::Folder
     }
     return child;
 }
+
+QString CFoldersModel::summary() const
+{
+    return QString( "%1 Top Level Folders, %2 Folders" ).arg( rowCount() ).arg( fNumFolders );
+}

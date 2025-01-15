@@ -43,6 +43,7 @@ void CFoldersView::init()
             if ( fNotifyOnFinish )
                 emit sigFinishedLoading();
             fNotifyOnFinish = true;
+            fImpl->summary->setText( fModel->summary() );
         } );
 
     connect( fModel, &CFoldersModel::sigFinishedLoadingChildren, [ = ]( QStandardItem * /*parent*/ ) { fFilterModel->sort( 0, Qt::SortOrder::AscendingOrder ); } );

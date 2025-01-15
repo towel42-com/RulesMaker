@@ -44,13 +44,13 @@ private:
     bool fAllChildrenNeedDisplayName{ false };
 };
 
-class CEmailModel : public QStandardItemModel
+class CFilterFromEmailModel : public QStandardItemModel
 {
     Q_OBJECT;
 
 public:
-    explicit CEmailModel( QObject *parent );
-    virtual ~CEmailModel();
+    explicit CFilterFromEmailModel( QObject *parent );
+    virtual ~CFilterFromEmailModel();
 
     void reload();
     void clear();
@@ -66,9 +66,9 @@ public:
     QStringList displayNamesForItem( QStandardItem *item, bool allChildren = false ) const;
     QStringList displayNamesForItem( const CEmailAddressSection *item, bool allChildren = false ) const;
 
-    QStringList outlookContactsForIndex( const QModelIndex &idx, bool allChildren = false ) const;
-    QStringList outlookContactsForItem( QStandardItem *item, bool allChildren = false ) const;
-    QStringList outlookContactsForItem( const CEmailAddressSection *item, bool allChildren = false ) const;
+    QStringList sendersForIndex( const QModelIndex &idx, bool allChildren = false ) const;
+    QStringList sendersForItem( QStandardItem *item, bool allChildren = false ) const;
+    QStringList sendersForItem( const CEmailAddressSection *item, bool allChildren = false ) const;
 
     QStringList subjectsForIndex( const QModelIndex &idx, bool allChildren = false ) const;
     QStringList subjectsForItem( QStandardItem *item, bool allChildren = false ) const;

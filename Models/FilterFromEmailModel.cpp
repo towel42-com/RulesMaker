@@ -9,18 +9,18 @@
 #ifdef _DEBUG
 // #define LIMIT_EMAIL_READ
 #endif
-CEmailModel::CEmailModel( QObject *parent ) :
+CFilterFromEmailModel::CFilterFromEmailModel( QObject *parent ) :
     QStandardItemModel( parent )
 {
     clear();
-    connect( COutlookAPI::instance().get(), &COutlookAPI::sigOptionChanged, this, &CEmailModel::reload );
+    connect( COutlookAPI::instance().get(), &COutlookAPI::sigOptionChanged, this, &CFilterFromEmailModel::reload );
 }
 
-CEmailModel::~CEmailModel()
+CFilterFromEmailModel::~CFilterFromEmailModel()
 {
 }
 
-void CEmailModel::clear()
+void CFilterFromEmailModel::clear()
 {
     QStandardItemModel::clear();
     setHorizontalHeaderLabels(
@@ -41,7 +41,7 @@ void CEmailModel::clear()
     endResetModel();
 }
 
-void CEmailModel::reload()
+void CFilterFromEmailModel::reload()
 {
     COutlookAPI::instance()->slotClearCanceled();
 
@@ -52,10 +52,10 @@ void CEmailModel::reload()
 
     endResetModel();
     fCurrPos = 1;
-    QTimer::singleShot( 0, this, &CEmailModel::slotGroupNextMailItemBySender );
+    QTimer::singleShot( 0, this, &CFilterFromEmailModel::slotGroupNextMailItemBySender );
 }
 
-void CEmailModel::slotGroupNextMailItemBySender()
+void CFilterFromEmailModel::slotGroupNextMailItemBySender()
 {
     if ( !fItems || !fItemCountCache.has_value() )
         return;
@@ -92,11 +92,11 @@ void CEmailModel::slotGroupNextMailItemBySender()
     else
     {
         fCurrPos++;
-        QTimer::singleShot( 0, this, &CEmailModel::slotGroupNextMailItemBySender );
+        QTimer::singleShot( 0, this, &CFilterFromEmailModel::slotGroupNextMailItemBySender );
     }
 }
 
-void CEmailModel::sortAll( QStandardItem *root )
+void CFilterFromEmailModel::sortAll( QStandardItem *root )
 {
     if ( root )
         root->sortChildren( 0 );
@@ -111,7 +111,7 @@ void CEmailModel::sortAll( QStandardItem *root )
     }
 }
 
-void CEmailModel::addMailItem( std::shared_ptr< Outlook::MailItem > mailItem )
+void CFilterFromEmailModel::addMailItem( std::shared_ptr< Outlook::MailItem > mailItem )
 {
     if ( !mailItem )
         return;
@@ -238,19 +238,19 @@ std::unordered_set< const CEmailAddressSection * > CEmailAddressSection::getLeaf
     return retVal;
 }
 
-QStringList CEmailModel::subjectsForIndex( const QModelIndex &idx, bool allChildren ) const
+QStringList CFilterFromEmailModel::subjectsForIndex( const QModelIndex &idx, bool allChildren ) const
 {
     if ( !idx.isValid() )
         return {};
     return subjectsForItem( itemFromIndex( idx ), allChildren );
 }
 
-QStringList CEmailModel::subjectsForItem( QStandardItem *item, bool allChildren ) const
+QStringList CFilterFromEmailModel::subjectsForItem( QStandardItem *item, bool allChildren ) const
 {
     return subjectsForItem( dynamic_cast< CEmailAddressSection * >( item ), allChildren );
 }
 
-QStringList CEmailModel::subjectsForItem( const CEmailAddressSection *item, bool allChildren ) const
+QStringList CFilterFromEmailModel::subjectsForItem( const CEmailAddressSection *item, bool allChildren ) const
 {
     std::unordered_set< const CEmailAddressSection * > items;
     if ( !allChildren )
@@ -275,19 +275,19 @@ QStringList CEmailModel::subjectsForItem( const CEmailAddressSection *item, bool
     return retVal;
 }
 
-QStringList CEmailModel::outlookContactsForIndex( const QModelIndex &idx, bool allChildren /*= false*/ ) const
+QStringList CFilterFromEmailModel::sendersForIndex( const QModelIndex &idx, bool allChildren /*= false*/ ) const
 {
     if ( !idx.isValid() )
         return {};
-    return outlookContactsForItem( itemFromIndex( idx ), allChildren );
+    return sendersForItem( itemFromIndex( idx ), allChildren );
 }
 
-QStringList CEmailModel::outlookContactsForItem( QStandardItem *item, bool allChildren /*= false*/ ) const
+QStringList CFilterFromEmailModel::sendersForItem( QStandardItem *item, bool allChildren /*= false*/ ) const
 {
-    return outlookContactsForItem( dynamic_cast< CEmailAddressSection * >( item ), allChildren );
+    return sendersForItem( dynamic_cast< CEmailAddressSection * >( item ), allChildren );
 }
 
-QStringList CEmailModel::outlookContactsForItem( const CEmailAddressSection *item, bool allChildren /*= false */ ) const
+QStringList CFilterFromEmailModel::sendersForItem( const CEmailAddressSection *item, bool allChildren /*= false */ ) const
 {
     std::unordered_set< const CEmailAddressSection * > items;
     if ( !allChildren )
@@ -303,31 +303,33 @@ QStringList CEmailModel::outlookContactsForItem( const CEmailAddressSection *ite
         auto mailItem = mailItemFromItem( ii );
         if ( !mailItem )
             continue;
-        auto emailAddresses = COutlookAPI::getEmailAddresses( mailItem, COutlookAPI::EAddressTypes::eSender, COutlookAPI::EContactTypes::eOutlookContact );
+        auto emailAddresses = COutlookAPI::getEmailAddresses( mailItem, COutlookAPI::EAddressTypes::eSender, COutlookAPI::EContactTypes::eAllContacts );
         if ( emailAddresses.empty() )
             continue;
 
-        auto displayNames = CEmailAddress::getDisplayNames( emailAddresses );
+        for ( auto &&ii : emailAddresses )
+            retVal << ii->toString();
 
-        retVal = mergeStringLists( retVal, displayNames, true );
     }
+    retVal.removeDuplicates();
+    retVal.removeAll( QString() );
 
     return retVal;
 }
 
-QStringList CEmailModel::displayNamesForIndex( const QModelIndex &idx, bool allChildren ) const
+QStringList CFilterFromEmailModel::displayNamesForIndex( const QModelIndex &idx, bool allChildren ) const
 {
     if ( !idx.isValid() )
         return {};
     return displayNamesForItem( itemFromIndex( idx ), allChildren );
 }
 
-QStringList CEmailModel::displayNamesForItem( QStandardItem *item, bool allChildren ) const
+QStringList CFilterFromEmailModel::displayNamesForItem( QStandardItem *item, bool allChildren ) const
 {
     return displayNamesForItem( dynamic_cast< CEmailAddressSection * >( item ), allChildren );
 }
 
-QStringList CEmailModel::displayNamesForItem( const CEmailAddressSection *item, bool allChildren ) const
+QStringList CFilterFromEmailModel::displayNamesForItem( const CEmailAddressSection *item, bool allChildren ) const
 {
     std::unordered_set< const CEmailAddressSection * > items;
     if ( !allChildren )
@@ -347,7 +349,7 @@ QStringList CEmailModel::displayNamesForItem( const CEmailAddressSection *item, 
         if ( emailAddresses.empty() )
             continue;
 
-        auto displayNames = CEmailAddress::getDisplayNames( emailAddresses );
+        auto displayNames = getDisplayNames( emailAddresses );
 
         retVal = mergeStringLists( retVal, displayNames, true );
     }
@@ -355,13 +357,13 @@ QStringList CEmailModel::displayNamesForItem( const CEmailAddressSection *item, 
     return retVal;
 }
 
-void CEmailModel::displayEmail( const QModelIndex &idx ) const
+void CFilterFromEmailModel::displayEmail( const QModelIndex &idx ) const
 {
     auto item = itemFromIndex( idx );
     displayEmail( item );
 }
 
-void CEmailModel::displayEmail( QStandardItem *item ) const
+void CFilterFromEmailModel::displayEmail( QStandardItem *item ) const
 {
     if ( !item )
         return;
@@ -372,17 +374,17 @@ void CEmailModel::displayEmail( QStandardItem *item ) const
     COutlookAPI::instance()->displayEmail( emailItem );
 }
 
-CEmailAddressSection *CEmailModel::item( int row, int column /* = 0 */ ) const
+CEmailAddressSection *CFilterFromEmailModel::item( int row, int column /* = 0 */ ) const
 {
     return dynamic_cast< CEmailAddressSection * >( QStandardItemModel::item( row, column ) );
 }
 
-QString CEmailModel::summary() const
+QString CFilterFromEmailModel::summary() const
 {
-    return QString( "%1 emails with %2 email addresses, %3 unique email address" ).arg( fNumEmailsProcessed ).arg( fNumEmailAddressesProcessed ).arg( fUniqueEmails );
+    return QString( "%1 emails with %2 email addresses, %3 unique email addresses" ).arg( fNumEmailsProcessed ).arg( fNumEmailAddressesProcessed ).arg( fUniqueEmails );
 }
 
-QStringList CEmailModel::matchTextForIndex( const QModelIndex &idx ) const
+QStringList CFilterFromEmailModel::matchTextForIndex( const QModelIndex &idx ) const
 {
     if ( !idx.isValid() )
         return {};
@@ -390,12 +392,12 @@ QStringList CEmailModel::matchTextForIndex( const QModelIndex &idx ) const
     return matchTextListForItem( item );
 }
 
-QStringList CEmailModel::matchTextListForItem( QStandardItem *item ) const
+QStringList CFilterFromEmailModel::matchTextListForItem( QStandardItem *item ) const
 {
     return matchTextListForItem( dynamic_cast< CEmailAddressSection * >( item ) );
 }
 
-QStringList CEmailModel::matchTextListForItem( CEmailAddressSection *item ) const
+QStringList CFilterFromEmailModel::matchTextListForItem( CEmailAddressSection *item ) const
 {
     if ( !item )
         return {};
@@ -423,12 +425,12 @@ QStringList CEmailModel::matchTextListForItem( CEmailAddressSection *item ) cons
 
     return retVal;
 }
-QString CEmailModel::matchTextForItem( QStandardItem *item ) const
+QString CFilterFromEmailModel::matchTextForItem( QStandardItem *item ) const
 {
     return matchTextForItem( dynamic_cast< CEmailAddressSection * >( item ) );
 }
 
-QString CEmailModel::matchTextForItem( CEmailAddressSection *item ) const
+QString CFilterFromEmailModel::matchTextForItem( CEmailAddressSection *item ) const
 {
     if ( !item )
         return {};
@@ -454,7 +456,7 @@ QString CEmailModel::matchTextForItem( CEmailAddressSection *item ) const
     return path.join( separator );
 }
 
-std::shared_ptr< Outlook::MailItem > CEmailModel::mailItemFromIndex( const QModelIndex &idx ) const
+std::shared_ptr< Outlook::MailItem > CFilterFromEmailModel::mailItemFromIndex( const QModelIndex &idx ) const
 {
     if ( !idx.isValid() )
         return {};
@@ -462,12 +464,12 @@ std::shared_ptr< Outlook::MailItem > CEmailModel::mailItemFromIndex( const QMode
     return mailItemFromItem( item );
 }
 
-std::shared_ptr< Outlook::MailItem > CEmailModel::mailItemFromItem( const QStandardItem *item ) const
+std::shared_ptr< Outlook::MailItem > CFilterFromEmailModel::mailItemFromItem( const QStandardItem *item ) const
 {
     return mailItemFromItem( dynamic_cast< const CEmailAddressSection * >( item ) );
 }
 
-std::shared_ptr< Outlook::MailItem > CEmailModel::mailItemFromItem( const CEmailAddressSection *item ) const
+std::shared_ptr< Outlook::MailItem > CFilterFromEmailModel::mailItemFromItem( const CEmailAddressSection *item ) const
 {
     item = item->getSibling( 1 );
 
@@ -487,7 +489,7 @@ std::shared_ptr< Outlook::MailItem > CEmailModel::mailItemFromItem( const CEmail
     return ( *pos ).second;
 }
 
-std::pair< CEmailAddressSection *, QList< QStandardItem * > > CEmailModel::makeRow( const QString &section, bool inBack, const QString &displayName, const QString &subject )
+std::pair< CEmailAddressSection *, QList< QStandardItem * > > CFilterFromEmailModel::makeRow( const QString &section, bool inBack, const QString &displayName, const QString &subject )
 {
     auto item = new CEmailAddressSection( section );
 
@@ -517,7 +519,7 @@ std::pair< CEmailAddressSection *, QList< QStandardItem * > > CEmailModel::makeR
     return { item, row };
 }
 
-CEmailAddressSection *CEmailModel::findOrAddEmailAddressSection( const QString &curr, const QVector< QStringRef > &remaining, CEmailAddressSection *parent, const QString &displayName, const QString &subject )
+CEmailAddressSection *CFilterFromEmailModel::findOrAddEmailAddressSection( const QString &curr, const QVector< QStringRef > &remaining, CEmailAddressSection *parent, const QString &displayName, const QString &subject )
 {
     CEmailAddressSection *retVal{ nullptr };
     auto key = curr.toLower();
@@ -570,7 +572,7 @@ CEmailAddressSection *CEmailAddressSection::parent() const
     return dynamic_cast< CEmailAddressSection * >( QStandardItem::parent() );
 }
 
-void CEmailModel::dumpNodes() const
+void CFilterFromEmailModel::dumpNodes() const
 {
     auto count = rowCount();
     for ( int ii = 0; ii < count; ++ii )

@@ -46,6 +46,8 @@ public:
     QModelIndex addFolder( const QModelIndex &parentIndex, const QString &folderName );
 
     QModelIndex inboxIndex() const;
+
+    QString summary() const;
 Q_SIGNALS:
     void sigFinishedLoading();
     void sigFinishedLoadingChildren( QStandardItem *parent );

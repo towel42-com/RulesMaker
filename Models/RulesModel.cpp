@@ -266,3 +266,8 @@ bool CRulesModel::updateRule( std::shared_ptr< Outlook::Rule > rule )
 
     return true;
 }
+
+QString CRulesModel::summary() const
+{
+    return QString( "%1 Rules" ).arg( rowCount() );
+}

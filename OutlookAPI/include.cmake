@@ -12,6 +12,7 @@ set(project_SRCS
     OutlookAPI_account.cpp
     OutlookAPI_dump.cpp
     OutlookAPI_email.cpp
+    OutlookAPI_emailAddresses.cpp
     OutlookAPI_folders.cpp
     OutlookAPI_rules.cpp
     OutlookAPI_copyRules.cpp

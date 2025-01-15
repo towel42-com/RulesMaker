@@ -56,6 +56,7 @@ void CRulesView::init()
             if ( fNotifyOnFinish )
                 emit sigFinishedLoading();
             fNotifyOnFinish = true;
+            fImpl->summary->setText( fModel->summary() );
         } );
 
     connect( fModel, &CRulesModel::sigSetStatus, [ = ]( int curr, int max ) { emit sigSetStatus( statusLabel(), curr, max ); } );

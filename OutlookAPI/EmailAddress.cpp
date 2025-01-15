@@ -10,9 +10,14 @@ CEmailAddress::CEmailAddress( const QString &email, const QString &display, bool
 
 QString CEmailAddress::toString() const
 {
-    auto retVal = fEmailAddress;
+    QString retVal;
+    
     if ( !fDisplayName.isEmpty() )
-        retVal += " <" + fDisplayName + ">";
+        retVal = fDisplayName + " <";
+    retVal += fEmailAddress;
+    if ( !fDisplayName.isEmpty() )
+        retVal += ">";
+    
     return retVal;
 }
 
@@ -37,19 +42,38 @@ std::shared_ptr< CEmailAddress > CEmailAddress::fromKey( const QString &key )
     return std::make_shared< CEmailAddress >( split[ 0 ], split[ 1 ], split[ 2 ] == "Yes" );
 }
 
-QStringList CEmailAddress::getEmailAddresses( const TEmailAddressList &emailAddresses )
+std::shared_ptr< CEmailAddress > CEmailAddress::fromEmailWithOptDisplay( const QString &key )
+{
+    auto pos = key.indexOf( '<' );
+    QString displayName;
+    QString email;
+    if ( pos == -1 )
+        email = key;
+    else
+    {
+        displayName = key.left( pos );
+        email = key.mid( pos + 1, key.indexOf( '>', pos ) - pos - 1 );
+    }
+    displayName = displayName.trimmed();
+    email = email.trimmed();
+    if ( email.isEmpty() )
+        return {};
+
+    return std::make_shared< CEmailAddress >( email, displayName, true );
+}
+
+QStringList getAddresses( const TEmailAddressList &emailAddresses )
 {
     QStringList retVal;
     for ( auto &&ii : emailAddresses )
     {
-        retVal << ii->fEmailAddress;
+        retVal << ii->emailAddress();
     }
     return retVal;
 }
 
 bool CEmailAddress::operator<( const CEmailAddress &rhs ) const
 {
-    return false;
     auto cmp = emailAddress().compare( rhs.emailAddress(), Qt::CaseInsensitive );
     if ( cmp != 0 )
         return cmp < 0;
@@ -61,12 +85,28 @@ bool CEmailAddress::operator<( const CEmailAddress &rhs ) const
     return false;
 }
 
-QStringList CEmailAddress::getDisplayNames( const TEmailAddressList &emailAddresses )
+QStringList getDisplayNames( const TEmailAddressList &emailAddresses )
 {
     QStringList retVal;
     for ( auto &&ii : emailAddresses )
     {
-        retVal << ii->fDisplayName;
+        retVal << ii->displayName();
+    }
+    return retVal;
+}
+
+TEmailAddressList toEmailAddressList( const QStringList &values )
+{
+    TEmailAddressList retVal;
+    for ( auto &&ii : values )
+    {
+        auto curr = CEmailAddress::fromKey( ii );
+        if ( !curr )
+            curr = CEmailAddress::fromEmailWithOptDisplay( ii );
+        if ( !curr )
+            continue;
+
+        retVal.push_back( curr );
     }
     return retVal;
 }

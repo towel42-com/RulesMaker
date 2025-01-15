@@ -66,7 +66,7 @@ std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::Rule *lhs, c
 
 std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::Rule *lhs, const TEmailAddressList &rhs, QStringList *msgs )
 {
-    return mergeRecipients( lhs, CEmailAddress::getEmailAddresses( rhs ), msgs );
+    return mergeRecipients( lhs, getAddresses( rhs ), msgs );
 }
 
 std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::Rule *lhs, Outlook::Rule *rhs, QStringList *msgs )
@@ -132,8 +132,16 @@ struct SMessage
     {
     }
 
-    const QString &toString( bool toHtml ) { return parameterize( toHtml ); }
-    const QString &parameterize( bool toHtml )
+    QString toString( bool toHtml, bool bold=false )
+    {
+        auto retVal = parameterize( toHtml );
+        if ( toHtml && bold )
+            retVal = "<b>" + retVal + "</b>";
+        return retVal;
+    }
+
+private:
+    QString parameterize( bool toHtml )
     {
         for ( auto &&param : fParams )
         {
@@ -146,7 +154,6 @@ struct SMessage
         return fMessage;
     }
 
-private:
     QString fMessage;
     QStringList fParams;
 };
@@ -171,8 +178,8 @@ struct SDisplayMessage
 
         for ( auto &&ii = fTitle.begin(); ii != fTitle.end(); ++ii )
         {
-            ts << indent( level ) << ( *ii ).toString( toHtml );
-            if ( toHtml && ( std::next( ii ) != fTitle.end() ) )
+            ts << indent( level ) << ( *ii ).toString( toHtml, true );
+            if ( toHtml && ( std::next( ii ) == fTitle.end() ) )
                 ts << R"(<br>)";
             ts << "\n";
         }
@@ -199,7 +206,7 @@ struct SDisplayMessage
 
         for ( auto &&ii = fFooter.begin(); ii != fFooter.end(); ++ii )
         {
-            ts << indent( level ) << ( *ii ).toString( toHtml );
+            ts << indent( level ) << ( *ii ).toString( toHtml, true );
             if ( toHtml && ( std::next( ii ) != fFooter.end() ) )
                 ts << R"(<br>)";
             ts << "\n";

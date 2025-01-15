@@ -420,7 +420,7 @@ void loadAttribute( QStandardItem *parent, const QString &label, const TEmailAdd
         for ( auto &&ii : value )
             tmp << '"' + ii->toString() + '"';
     }
-    else
+    else if ( !value.empty() )
         tmp << value.front()->toString();
 
     auto text = tmp.join( separator );

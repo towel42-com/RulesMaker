@@ -287,11 +287,97 @@ bool COutlookAPI::isAddressType( EAddressTypes value, EAddressTypes filter )
     return ( static_cast< int >( filter ) & static_cast< int >( value ) ) != 0;
 }
 
+bool COutlookAPI::isAddressType( std::optional< EAddressTypes > value, std::optional< EAddressTypes > filter )
+{
+    if ( !value.has_value() || !filter.has_value() )
+        return true;
+    return isAddressType( value.value(), filter.value() );
+}
+
+bool COutlookAPI::isAddressType( Outlook::OlMailRecipientType recipientType, std::optional< EAddressTypes > filter )
+{
+    if ( !filter.has_value() )
+        return true;
+
+    bool retVal = false;
+    switch ( recipientType )
+    {
+        case Outlook::OlMailRecipientType::olOriginator:
+            retVal = isAddressType( filter, EAddressTypes::eOriginator );
+            break;
+        case Outlook::OlMailRecipientType::olTo:
+            retVal = isAddressType( filter, EAddressTypes::eTo );
+            break;
+        case Outlook::OlMailRecipientType::olCC:
+            retVal = isAddressType( filter, EAddressTypes::eCC );
+            break;
+        case Outlook::OlMailRecipientType::olBCC:
+            retVal = isAddressType( filter, EAddressTypes::eBCC );
+            break;
+        default:
+            break;
+    }
+    return retVal;
+}
+
 bool COutlookAPI::isContactType( EContactTypes value, EContactTypes filter )
 {
     return ( static_cast< int >( filter ) & static_cast< int >( value ) ) != 0;
 }
 
+bool COutlookAPI::isContactType( bool isExchangeUser, std::optional< EContactTypes > contactTypes )
+{
+    if ( !contactTypes.has_value() )
+        return true;
+    switch ( contactTypes.value() )
+    {
+        case EContactTypes::eNone:
+            return false;
+        case EContactTypes::eAllContacts:
+            return true;
+        case EContactTypes::eSMTPContact:
+            return !isExchangeUser;
+        case EContactTypes::eOutlookContact:
+            return isExchangeUser;
+    }
+    return false;
+}
+
+bool COutlookAPI::isContactType( Outlook::OlAddressEntryUserType contactType, std::optional< EContactTypes > filter )
+{
+    if ( !filter.has_value() )
+        return true;
+
+    bool retVal = false;
+    switch ( contactType )
+    {
+        case Outlook::OlAddressEntryUserType::olExchangeUserAddressEntry:
+        case Outlook::OlAddressEntryUserType::olExchangeDistributionListAddressEntry:
+        case Outlook::OlAddressEntryUserType::olExchangePublicFolderAddressEntry:
+        case Outlook::OlAddressEntryUserType::olExchangeAgentAddressEntry:
+        case Outlook::OlAddressEntryUserType::olExchangeOrganizationAddressEntry:
+        case Outlook::OlAddressEntryUserType::olExchangeRemoteUserAddressEntry:
+        case Outlook::OlAddressEntryUserType::olOutlookContactAddressEntry:
+        case Outlook::OlAddressEntryUserType::olOutlookDistributionListAddressEntry:
+            retVal = isContactType( true, filter );
+            break;
+        case Outlook::OlAddressEntryUserType::olLdapAddressEntry:
+        case Outlook::OlAddressEntryUserType::olSmtpAddressEntry:
+            retVal = isContactType( false, filter );
+            break;
+        case Outlook::OlAddressEntryUserType::olOtherAddressEntry:
+        default:
+            break;
+    }
+    return retVal;
+}
+
+bool COutlookAPI::isContactType( std::optional< EContactTypes > value, std::optional< EContactTypes > filter )
+{
+    if ( !value.has_value() || !filter.has_value() )
+        return true;
+    return isContactType( value.value(), filter.value() );
+}
 
 COutlookAPI::EAddressTypes operator|( const COutlookAPI::EAddressTypes &lhs, const COutlookAPI::EAddressTypes &rhs )
 {

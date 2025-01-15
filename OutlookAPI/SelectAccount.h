@@ -17,8 +17,6 @@ namespace Ui
     class CSelectAccount;
 }
 
-class CEmailModel;
-
 class CSelectAccount : public QDialog
 {
     Q_OBJECT

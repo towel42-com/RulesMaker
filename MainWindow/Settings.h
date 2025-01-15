@@ -8,8 +8,6 @@ namespace Ui
     class CSettings;
 }
 
-class CEmailModel;
-
 class CSettings : public QDialog
 {
     Q_OBJECT
