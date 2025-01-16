@@ -552,8 +552,7 @@ void generateClassDecl( QTextStream &out, const QString &controlID, const QMetaO
                 setter = "set" + setter;
             }
 
-            out << indent << "inline "
-                << "void ";
+            out << indent << "inline " << "void ";
             if ( category & OnlyInlines )
                 out << className << "::";
             out << setter << '(' << constRefify( propertyType ) << " value)";
@@ -1433,8 +1432,8 @@ bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &n
         implOut << endl;
     }
 
-    if ( !generateToString( implOut, typelib, category ) )
-        return false;
+    //if ( !generateToString( implOut, typelib, category ) )
+    //    return false;
 
     QFile declFile( outname + QLatin1String( ".h" ) );
     //qDebug() << "Generating decl file " << QFileInfo( declFile.fileName() ).absoluteFilePath();
@@ -1488,7 +1487,6 @@ bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &n
 
                 QMetaObject *metaObject = 0;
 
-                QByteArray className = classNameFromTypeInfo( typeinfo );
                 // trigger meta object to collect references to other type libraries
                 switch ( typekind )
                 {
@@ -1681,6 +1679,7 @@ bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &n
             default:
                 break;
         }
+
         if ( metaObject )
         {
             currentTypeInfo = typeinfo;
@@ -1710,7 +1709,7 @@ bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &n
                     inlinesOut << endl;
                 }
                 if ( implFile.isOpen() )
-                    generateClassImpl( declOut, metaObject, className, libName.toLatin1(), object_category );
+                    generateClassImpl( classImplOut, metaObject, className, libName.toLatin1(), object_category );
             }
             currentTypeInfo = 0;
         }
@@ -1887,6 +1886,8 @@ bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &n
         declOut << "} // namespace QtMetaTypePrivate" << endl;
         declOut << "QT_END_NAMESPACE" << endl << endl;
         declOut << "#endif" << endl;
+        declOut << "// clang-format on\n";
+
         declOut << endl;
     }
 
