@@ -53,7 +53,7 @@
 
 QT_BEGIN_NAMESPACE
 
-QString sVersionString = QLatin1String( QT_VERSION_STR ) + QLatin1String( ".SAB." ) + NVersion::PATCH_VERSION;
+QString sVersionString = QLatin1String( QT_VERSION_STR ) + QLatin1String( ".SAB." ) + NVersion::PATCH_VERSION + QDateTime::currentDateTime().toString();
 static ITypeInfo *currentTypeInfo = 0;
 
 enum ProgramMode
