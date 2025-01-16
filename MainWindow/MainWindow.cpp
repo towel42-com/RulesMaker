@@ -1,20 +1,19 @@
 #include "MainWindow.h"
 #include "OutlookAPI/OutlookAPI.h"
-#include "OutlookAPI/ShowRule.h"
 #include "StatusProgress.h"
 #include "Version.h"
 #include "Settings.h"
 
 #include "ui_MainWindow.h"
 
+#include <QCursor>
+#include <QApplication>
+#include <QToolButton>
 #include <QTimer>
 #include <QMessageBox>
 #include <QPushButton>
-#include <QCursor>
-#include <QApplication>
-#include <QLineEdit>
-#include <QToolButton>
 #include <QAbstractItemView>
+#include <QLineEdit>
 
 CMainWindow::CMainWindow( QWidget *parent ) :
     QMainWindow( parent ),
