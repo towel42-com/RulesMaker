@@ -11,3 +11,4 @@ source_group("CMake Files" FILES ${_CMAKE_SUPPORT_FILES} )
 
 add_library( CMakeSupport INTERFACE ${_CMAKE_SUPPORT_FILES} )
     
+set_target_properties( ${PROJECT_NAME} PROPERTIES FOLDER CMakePredefinedTargets/CMakeSupport )
