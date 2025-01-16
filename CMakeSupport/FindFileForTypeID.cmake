@@ -101,9 +101,9 @@ MACRO( GenerateCPPFromFileID fileID prefix enumPrefix )
     ADD_CUSTOM_COMMAND( 
         OUTPUT 
             ${${prefix}_CPP} ${${prefix}_H}
-        COMMENT "[DUMPCPP] Generating ${prefix}.cpp and ${prefix}.h from '${${prefix}_OLBPATH}' using \"${DUMPCPP_EXECUTABLE} - ${DUMPCPP_VERSION}\" ${fileID} -o ${prefix} -e ${enumPrefix}"
-        COMMAND echo "${DUMPCPP_EXECUTABLE}" ${fileID} -o ${prefix} -e ${enumPrefix}
-        COMMAND "${DUMPCPP_EXECUTABLE}" ${fileID} -o ${prefix} -e ${enumPrefix}
+        COMMENT "[DUMPCPP] Generating ${prefix}.cpp and ${prefix}.h from '${${prefix}_OLBPATH}' using \"${DUMPCPP_EXECUTABLE} - ${DUMPCPP_VERSION}\" ${fileID} -o ${prefix} --enum_class --gen_tofrom_enum --prefix ${enumPrefix} --disable_clang_format"
+        COMMAND echo "${DUMPCPP_EXECUTABLE}" ${fileID} -o ${prefix} --enum_class --gen_tofrom_enum --prefix ${enumPrefix} --disable_clang_format
+        COMMAND "${DUMPCPP_EXECUTABLE}" ${fileID} -o ${prefix} --enum_class --gen_tofrom_enum --prefix ${enumPrefix} --disable_clang_format
         VERBATIM
         DEPENDS
            ${${prefix}_OLBPATH}

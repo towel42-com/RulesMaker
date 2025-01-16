@@ -53,7 +53,7 @@
 
 QT_BEGIN_NAMESPACE
 
-QString sVersionString = QLatin1String( QT_VERSION_STR ) + QLatin1String( ".SAB." ) + NVersion::PATCH_VERSION + QDateTime::currentDateTime().toString();
+QString sVersionString = QLatin1String( QT_VERSION_STR ) + QLatin1String( ".SAB." ) + NVersion::PATCH_VERSION;
 static ITypeInfo *currentTypeInfo = 0;
 
 enum ProgramMode
@@ -78,6 +78,24 @@ enum ObjectCategory
 Q_DECLARE_FLAGS( ObjectCategories, ObjectCategory )
 Q_DECLARE_OPERATORS_FOR_FLAGS( ObjectCategories )
 
+struct Options
+{
+    Options() = default;
+
+    ProgramMode mode = GenerateMode;
+    ObjectCategories category = DefaultObject;
+    bool dispatchEqualsIDispatch = false;
+
+    QString outname;
+    QString typeLib;
+    QString nameSpace;
+    QString enumPrefix;
+    bool enumClass{ false };
+    QByteArray enumToken() const { return enumClass ? "enum class" : "enum"; }
+    bool disableClangFormat{ false };
+    bool generateToFromEnum{ false };
+};
+
 extern QMetaObject *qax_readEnumInfo( ITypeLib *typeLib, const QMetaObject *parentObject );
 extern QMetaObject *qax_readClassInfo( ITypeLib *typeLib, ITypeInfo *typeInfo, const QMetaObject *parentObject );
 extern QMetaObject *qax_readInterfaceInfo( ITypeLib *typeLib, ITypeInfo *typeInfo, const QMetaObject *parentObject );
@@ -94,10 +112,12 @@ std::map< QString, QString > sEnumMap;
 QHash< QString, bool > sToStringDeclMap;
 QHash< QString, bool > sToStringImplMap;
 QList< std::pair< QString, QString > > sToStringImplList;
-QString sEnumPrefix;
+Options sOptions;
 
 bool writeToFromStringImpl( QTextStream &implOut )
 {
+    if ( !sOptions.generateToFromEnum )
+        return true;
     for ( auto &&ii : sToStringImplList )
     {
         implOut << ii.first << endl;
@@ -110,8 +130,8 @@ QString stripPrefix( QString enumName )
 {
     if ( enumName.isEmpty() )
         return {};
-    if ( !sEnumPrefix.isEmpty() && enumName.startsWith( sEnumPrefix, Qt::CaseInsensitive ) )
-        enumName = enumName.mid( sEnumPrefix.length() );
+    if ( !sOptions.enumPrefix.isEmpty() && enumName.startsWith( sOptions.enumPrefix, Qt::CaseInsensitive ) )
+        enumName = enumName.mid( sOptions.enumPrefix.length() );
     return enumName;
 };
 
@@ -250,12 +270,13 @@ std::optional< QString > generateToString( const QMetaEnum &metaEnum, const QStr
 void writeEnums( QTextStream &out, const QMetaObject *mo, const QString &nameSpace )
 {
     // enums
-    out << "    template< typename T > std::optional< T > fromString( const QString & valueStr );" << endl << endl;
+    if ( sOptions.generateToFromEnum )
+        out << "    template< typename T > std::optional< T > fromString( const QString & valueStr );" << endl << endl;
 
     for ( int ienum = mo->enumeratorOffset(); ienum < mo->enumeratorCount(); ++ienum )
     {
         QMetaEnum metaEnum = mo->enumerator( ienum );
-        out << "    enum class " << metaEnum.name() << " {" << endl;
+        out << "    " << sOptions.enumToken() << " " << metaEnum.name() << " {" << endl;
         for ( int k = 0; k < metaEnum.keyCount(); ++k )
         {
             QByteArray key( metaEnum.key( k ) );
@@ -263,24 +284,27 @@ void writeEnums( QTextStream &out, const QMetaObject *mo, const QString &nameSpa
             if ( k < metaEnum.keyCount() - 1 )
                 out << ',';
             out << endl;
-            sEnumMap[ nameSpace + "::" + key ] = nameSpace + "::" + metaEnum.name() + "::" + key;
+            sEnumMap[ nameSpace + "::" + key ] = nameSpace + ( sOptions.enumClass ? ( "::" + QString( metaEnum.name() ) ) : "" ) + "::" + key;
         }
         out << "    };" << endl;
-        if ( !sToStringDeclMap.contains( metaEnum.name() ) )
+        if ( sOptions.generateToFromEnum )
         {
-            sToStringDeclMap[ metaEnum.name() ] = true;
-            out << "    " << getToStringDecl( metaEnum.name() ) << ";" << endl;
-            out << "    " << getFromStringDecl( metaEnum.name() ) << ";" << endl;
-        }
-
-        if ( !sToStringImplMap.contains( metaEnum.name() ) )
-        {
-            auto toStringStr = generateToString( metaEnum, nameSpace );
-            auto fromStringStr = generateFromString( metaEnum, nameSpace );
-            if ( toStringStr.has_value() && fromStringStr.has_value() )
+            if ( !sToStringDeclMap.contains( metaEnum.name() ) )
             {
-                sToStringImplMap[ metaEnum.name() ] = true;
-                sToStringImplList << std::make_pair( toStringStr.value(), fromStringStr.value() );
+                sToStringDeclMap[ metaEnum.name() ] = true;
+                out << "    " << getToStringDecl( metaEnum.name() ) << ";" << endl;
+                out << "    " << getFromStringDecl( metaEnum.name() ) << ";" << endl;
+            }
+
+            if ( !sToStringImplMap.contains( metaEnum.name() ) )
+            {
+                auto toStringStr = generateToString( metaEnum, nameSpace );
+                auto fromStringStr = generateFromString( metaEnum, nameSpace );
+                if ( toStringStr.has_value() && fromStringStr.has_value() )
+                {
+                    sToStringImplMap[ metaEnum.name() ] = true;
+                    sToStringImplList << std::make_pair( toStringStr.value(), fromStringStr.value() );
+                }
             }
         }
         out << endl;
@@ -301,7 +325,8 @@ void writeHeader( QTextStream &out, const QString &nameSpace, const QString &out
     out << "#include <qaxwidget.h>" << endl;
     out << "#include <qdatetime.h>" << endl;
     out << "#include <qpixmap.h>" << endl;
-    out << "#include <optional>" << endl;
+    if ( sOptions.generateToFromEnum )
+        out << "#include <optional>" << endl;
     out << endl;
     out << "struct IDispatch;" << endl;
     out << endl;
@@ -424,7 +449,7 @@ void generateClassDecl( QTextStream &out, const QString &controlID, const QMetaO
         for ( int ienum = mo->enumeratorOffset(); ienum < mo->enumeratorCount(); ++ienum )
         {
             QMetaEnum metaEnum = mo->enumerator( ienum );
-            out << "    enum class " << metaEnum.name() << " {" << endl;
+            out << "    " << sOptions.enumToken() << " " << metaEnum.name() << " {" << endl;
             for ( int k = 0; k < metaEnum.keyCount(); ++k )
             {
                 QByteArray key( metaEnum.key( k ) );
@@ -485,7 +510,7 @@ void generateClassDecl( QTextStream &out, const QString &controlID, const QMetaO
 
         out << indent << "inline ";
         bool foreignNamespace = true;
-        if ( !propertyType.contains( "::" ) && ( qax_qualified_usertypes.contains( simplePropType ) || qax_qualified_usertypes.contains( "enum class " + simplePropType ) ) )
+        if ( !propertyType.contains( "::" ) && ( qax_qualified_usertypes.contains( simplePropType ) || qax_qualified_usertypes.contains( ( sOptions.enumToken() + " " ) + simplePropType ) ) )
         {
             propertyType.prepend( nameSpace + "::" );
             foreignNamespace = false;
@@ -569,7 +594,7 @@ void generateClassDecl( QTextStream &out, const QString &controlID, const QMetaO
                 else
                 {
                     QString variantString = "QVariant(value)";
-                    if ( propertyType.startsWith( "Outlook::Ol" ) )
+                    if ( sOptions.enumClass && property.isEnumType() )
                     {
                         variantString = "QVariant( static_cast< int >( value ) ) ";
                     }
@@ -760,8 +785,8 @@ void generateClassDecl( QTextStream &out, const QString &controlID, const QMetaO
         {
             out << "// meta object functions" << endl;
             out << "    static const QMetaObject staticMetaObject;" << endl;
-            out << "    virtual const QMetaObject *metaObject() const { return &staticMetaObject; }" << endl;
-            out << "    virtual void *qt_metacast(const char *);" << endl;
+            out << "    const QMetaObject *metaObject() const override { return &staticMetaObject; }" << endl;
+            out << "    void *qt_metacast(const char *) override;" << endl;
         }
 
         out << "};" << endl;
@@ -804,7 +829,7 @@ const char *metaTypeEnumValueString( int type )
         QT_FOR_EACH_STATIC_TYPE( RETURN_METATYPENAME_STRING )
     }
 #undef RETURN_METATYPENAME_STRING
-    return 0;
+    return nullptr;
 }
 
 int nameToBuiltinType( const QByteArray &name )
@@ -930,7 +955,7 @@ void generateMethodParameters( QTextStream &out, const QMetaObject *mo, const QM
         out << ',';
 
         // Parameter types
-        const QList< QByteArray > parameterTypes = method.parameterTypes();
+        const auto parameterTypes = method.parameterTypes();
         for ( int j = 0; j < argsCount; ++j )
         {
             out << ' ';
@@ -939,7 +964,7 @@ void generateMethodParameters( QTextStream &out, const QMetaObject *mo, const QM
         }
 
         // Parameter names
-        const QList< QByteArray > parameterNames = method.parameterNames();
+        const auto parameterNames = method.parameterNames();
         for ( int j = 0; j < argsCount; ++j )
             out << ' ' << stridx( parameterNames.at( j ) ) << ',';
 
@@ -999,8 +1024,8 @@ void generateClassImpl( QTextStream &out, const QMetaObject *mo, const QByteArra
             strreg( typeName );
         strreg( method.tag() );
 
-        const QList< QByteArray > parameterNames = method.parameterNames();
-        const QList< QByteArray > parameterTypes = method.parameterTypes();
+        const auto parameterNames = method.parameterNames();
+        const auto parameterTypes = method.parameterTypes();
         for ( int j = 0; j < argsCount; ++j )
         {
             if ( !QtPrivate::isBuiltinType( parameterTypes.at( j ) ) )
@@ -1084,9 +1109,9 @@ void generateClassImpl( QTextStream &out, const QMetaObject *mo, const QByteArra
             out << ", ";
 
             uint flags = 0;
-            uint vartype = property.type();
+            const auto vartype = property.type();
             if ( vartype != QVariant::Invalid && vartype != QVariant::UserType )
-                flags = vartype << 24;
+                flags = uint( vartype ) << 24;
 
             if ( property.isReadable() )
                 flags |= Readable;
@@ -1110,7 +1135,6 @@ void generateClassImpl( QTextStream &out, const QMetaObject *mo, const QByteArra
 
     if ( thisEnumCount )
     {
-        //QTextStream out( stdout );
         out << " // enums: name, flags, count, data" << endl;
         enumStart += thisEnumCount * 4;
         for ( int i = mo->enumeratorOffset(); i < allEnumCount; ++i )
@@ -1152,13 +1176,13 @@ void generateClassImpl( QTextStream &out, const QMetaObject *mo, const QByteArra
     else
         out << "{ &QObject::staticMetaObject," << endl;
     out << "qt_meta_stringdata_all.data," << endl;
-    out << "qt_meta_data_" << qualifiedClassNameIdentifier << ", 0, 0, 0 }" << endl;
+    out << "qt_meta_data_" << qualifiedClassNameIdentifier << ", nullptr, nullptr, nullptr }" << endl;
     out << "};" << endl;
     out << endl;
 
     out << "void *" << className << "::qt_metacast(const char *_clname)" << endl;
     out << '{' << endl;
-    out << "    if (!_clname) return 0;" << endl;
+    out << "    if (!_clname) return nullptr;" << endl;
     out << "    if (!strcmp(_clname, \"" << qualifiedClassName << "\"))" << endl;
     out << "        return static_cast<void*>(const_cast<" << className << "*>(this));" << endl;
     if ( category & ActiveX )
@@ -1171,19 +1195,21 @@ void generateClassImpl( QTextStream &out, const QMetaObject *mo, const QByteArra
 static void formatCommentBlockFooter( const QString &typeLibFile, QTextStream &str )
 {
     str << " generated by dumpcpp v" << sVersionString << " using\n**";
+    str << " Generated on " << QDateTime::currentDateTime().toString() << "\n**";
     const QStringList arguments = QCoreApplication::arguments();
     for ( const QString &arg : arguments )
         str << ' ' << arg;
     str << "\n** from the type library " << typeLibFile << "\n**\n"
         << "****************************************************************************/\n\n";
-    str << "// clang-format off\n\n";
+    if ( sOptions.disableClangFormat )
+        str << "// clang-format off\n\n";
 }
 
 static QByteArray classNameFromTypeInfo( ITypeInfo *typeinfo )
 {
     BSTR bstr;
     QByteArray result;
-    if ( SUCCEEDED( typeinfo->GetDocumentation( -1, &bstr, 0, 0, 0 ) ) )
+    if ( SUCCEEDED( typeinfo->GetDocumentation( -1, &bstr, nullptr, nullptr, nullptr ) ) )
     {
         result = QString::fromWCharArray( bstr ).toLatin1();
         SysFreeString( bstr );
@@ -1356,8 +1382,12 @@ bool generateToString( QTextStream &out, ITypeLib *typelib, ObjectCategories cat
     return metaObjectFound;
 }
 
-bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &nameSpace, ObjectCategories category )
+bool generateTypeLibrary( QString typeLibFile )
 {
+    auto outname = sOptions.outname;
+    auto nameSpace = sOptions.nameSpace;
+    auto category = sOptions.category;
+
     typeLibFile.replace( QLatin1Char( '/' ), QLatin1Char( '\\' ) );
 
     ITypeLib *typelib;
@@ -1372,7 +1402,7 @@ bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &n
     if ( libName.isEmpty() )
     {
         BSTR nameString = nullptr;
-        if ( SUCCEEDED( typelib->GetDocumentation( -1, &nameString, 0, 0, 0 ) ) )
+        if ( SUCCEEDED( typelib->GetDocumentation( -1, &nameString, nullptr, nullptr, nullptr ) ) )
         {
             libName = QString::fromWCharArray( nameString );
             SysFreeString( nameString );
@@ -1382,7 +1412,7 @@ bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &n
 
     QString libVersion( QLatin1String( "1.0" ) );
 
-    TLIBATTR *tlibattr = 0;
+    TLIBATTR *tlibattr = nullptr;
     typelib->GetLibAttr( &tlibattr );
     if ( tlibattr )
     {
@@ -1399,7 +1429,7 @@ bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &n
         return false;
     }
 
-    QMetaObject *namespaceObject = qax_readEnumInfo( typelib, 0 );
+    QMetaObject *namespaceObject = qax_readEnumInfo( typelib, nullptr );
 
     QTemporaryFile classImplFile;
     if ( !classImplFile.open() )
@@ -1431,9 +1461,6 @@ bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &n
         implOut << "using namespace " << libName << ';' << endl;
         implOut << endl;
     }
-
-    //if ( !generateToString( implOut, typelib, category ) )
-    //    return false;
 
     QFile declFile( outname + QLatin1String( ".h" ) );
     //qDebug() << "Generating decl file " << QFileInfo( declFile.fileName() ).absoluteFilePath();
@@ -1469,7 +1496,7 @@ bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &n
             declOut << "// Referenced namespace" << endl;
             for ( UINT index = 0; index < typeCount; ++index )
             {
-                ITypeInfo *typeinfo = 0;
+                ITypeInfo *typeinfo = nullptr;
                 typelib->GetTypeInfo( index, &typeinfo );
                 if ( !typeinfo )
                     continue;
@@ -1485,7 +1512,7 @@ bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &n
                 TYPEKIND typekind;
                 typelib->GetTypeInfoType( index, &typekind );
 
-                QMetaObject *metaObject = 0;
+                QMetaObject *metaObject = nullptr;
 
                 // trigger meta object to collect references to other type libraries
                 switch ( typekind )
@@ -1513,7 +1540,7 @@ bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &n
                                     className.prepend( "struct " );
                                     break;
                                 case TKIND_ENUM:
-                                    className.prepend( "enum class " );
+                                    className.prepend( sOptions.enumToken() + " " );
                                     break;
                                 default:
                                     break;
@@ -1619,7 +1646,7 @@ bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &n
     UINT typeCount = typelib->GetTypeInfoCount();
     for ( UINT index = 0; index < typeCount; ++index )
     {
-        ITypeInfo *typeinfo = 0;
+        ITypeInfo *typeinfo = nullptr;
         typelib->GetTypeInfo( index, &typeinfo );
         if ( !typeinfo )
             continue;
@@ -1641,7 +1668,7 @@ bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &n
         else if ( typeattr->wTypeFlags & TYPEFLAG_FCONTROL )
             object_category |= ActiveX;
 
-        QMetaObject *metaObject = 0;
+        QMetaObject *metaObject = nullptr;
         QUuid guid( typeattr->guid );
 
         if ( !( object_category & ActiveX ) )
@@ -1711,7 +1738,7 @@ bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &n
                 if ( implFile.isOpen() )
                     generateClassImpl( classImplOut, metaObject, className, libName.toLatin1(), object_category );
             }
-            currentTypeInfo = 0;
+            currentTypeInfo = nullptr;
         }
 
         qax_deleteMetaObject( metaObject );
@@ -1734,10 +1761,10 @@ bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &n
         QList< QByteArray > currentList;
 
         int currentTableLen = 0;
-        for ( int i = 0; i < strings.size(); ++i )
+        for ( const auto &s : strings )
         {
-            currentTableLen += strings.at( i ).length() + 1;
-            currentList.append( strings.at( i ) );
+            currentTableLen += s.length() + 1;
+            currentList.append( s );
             // Split strings into chunks less than 64k to work around compiler limits.
             if ( currentTableLen > 60000 )
             {
@@ -1779,15 +1806,14 @@ bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &n
         //
         // Build stringdata arrays
         //
-        for ( int i = 0; i < listVector.size(); ++i )
+        for ( const auto &l : listVector )
         {
             int col = 0;
             int len = 0;
             implOut << ',' << endl;
             implOut << "    \"";
-            for ( int j = 0; j < listVector[ i ].size(); ++j )
+            for ( const auto &s : l )
             {
-                QByteArray s = listVector[ i ].at( j );
                 len = s.length();
                 if ( col && col + len >= 150 )
                 {
@@ -1827,6 +1853,9 @@ bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &n
         copyFileToStream( &classImplFile, &implOut );
         implOut << endl;
     }
+
+    if ( sOptions.disableClangFormat )
+        implOut << "// clang-format on\n" << endl;
 
     qax_deleteMetaObject( namespaceObject );
 
@@ -1886,7 +1915,8 @@ bool generateTypeLibrary( QString typeLibFile, QString outname, const QString &n
         declOut << "} // namespace QtMetaTypePrivate" << endl;
         declOut << "QT_END_NAMESPACE" << endl << endl;
         declOut << "#endif" << endl;
-        declOut << "// clang-format on\n";
+        if ( sOptions.disableClangFormat )
+            declOut << "// clang-format on\n";
 
         declOut << endl;
     }
@@ -1899,25 +1929,7 @@ QT_END_NAMESPACE
 
 QT_USE_NAMESPACE
 
-struct Options
-{
-    Options() :
-        mode( GenerateMode ),
-        category( DefaultObject ),
-        dispatchEqualsIDispatch( false )
-    {
-    }
-
-    ProgramMode mode;
-    ObjectCategories category;
-    bool dispatchEqualsIDispatch;
-
-    QString outname;
-    QString typeLib;
-    QString nameSpace;
-};
-
-static void parseOptions( Options *options )
+static void parseOptions()
 {
     const char helpText[] = "\nGenerate a C++ namespace from a type library.\n\n"
                             "Examples:\n"
@@ -1928,7 +1940,7 @@ static void parseOptions( Options *options )
 
     const char outputOptionC[] = "-o";
     const char nameSpaceOptionC[] = "-n";
-    const char enumPrefixOptionC[] = "-e";
+    const char enumPrefixOptionC[] = "-prefix";
     const char getfileOptionC[] = "-getfile";
 
     QStringList args = QCoreApplication::arguments();
@@ -1953,8 +1965,14 @@ static void parseOptions( Options *options )
     parser.addOption( outputOption );
     QCommandLineOption nameSpaceOption( QLatin1String( nameSpaceOptionC + 1 ), QStringLiteral( "The name of the generated C++ namespace." ), QStringLiteral( "namespace" ) );
     parser.addOption( nameSpaceOption );
-    QCommandLineOption enumPrefixOption( QLatin1String( enumPrefixOptionC + 1 ), QStringLiteral( "String to strip off the beginning of an enum for description (case insensitive)." ), QStringLiteral( "enum_prefix" ) );
+    QCommandLineOption enumClassOption( QStringLiteral( "enum_class" ), QStringLiteral( "Generate enums using modern c++ enum class." ) );
+    parser.addOption( enumClassOption );
+    QCommandLineOption toFromEnumOption( QStringLiteral( "gen_tofrom_enum" ), QStringLiteral( "Generate toString and fromString functionality for enums." ) );
+    parser.addOption( toFromEnumOption );
+    QCommandLineOption enumPrefixOption( QLatin1String( enumPrefixOptionC + 1 ), QStringLiteral( "String to strip off the beginning of an enum for enum toString/fromString generation (case insensitive)." ), QStringLiteral( "enum_prefix" ) );
     parser.addOption( enumPrefixOption );
+    QCommandLineOption disableClangFormatOption( QLatin1String( "disable_clang_format" ), QStringLiteral( "Disable clang format via pragmas in generated code." ) );
+    parser.addOption( disableClangFormatOption );
     QCommandLineOption noMetaObjectOption( QStringLiteral( "nometaobject" ), QStringLiteral( "Don't generate meta object information (no .cpp file). The meta object is then generated in runtime." ) );
     parser.addOption( noMetaObjectOption );
     QCommandLineOption noDeclarationOption( QStringLiteral( "impl" ), QStringLiteral( "Only generate the .cpp file." ) );
@@ -1969,27 +1987,30 @@ static void parseOptions( Options *options )
     parser.process( args );
 
     if ( parser.isSet( outputOption ) )
-        options->outname = parser.value( outputOption );
+        sOptions.outname = parser.value( outputOption );
     if ( parser.isSet( nameSpaceOption ) )
-        options->nameSpace = parser.value( nameSpaceOption );
+        sOptions.nameSpace = parser.value( nameSpaceOption );
     if ( parser.isSet( enumPrefixOption ) )
-        sEnumPrefix = parser.value( enumPrefixOption );
+        sOptions.enumPrefix = parser.value( enumPrefixOption );
     if ( parser.isSet( noMetaObjectOption ) )
-        options->category |= NoMetaObject;
+        sOptions.category |= NoMetaObject;
     if ( parser.isSet( noDeclarationOption ) )
-        options->category |= NoDeclaration;
+        sOptions.category |= NoDeclaration;
     if ( parser.isSet( noImplementationOption ) )
-        options->category |= NoImplementation;
-    options->dispatchEqualsIDispatch = parser.isSet( compatOption );
+        sOptions.category |= NoImplementation;
+    sOptions.disableClangFormat = parser.isSet( disableClangFormatOption );
+    sOptions.enumClass = parser.isSet( enumClassOption );
+    sOptions.generateToFromEnum = parser.isSet( toFromEnumOption );
+    sOptions.dispatchEqualsIDispatch = parser.isSet( compatOption );
     if ( parser.isSet( getFileOption ) )
     {
-        options->typeLib = parser.value( getFileOption );
-        options->mode = TypeLibID;
+        sOptions.typeLib = parser.value( getFileOption );
+        sOptions.mode = TypeLibID;
     }
     if ( !parser.positionalArguments().isEmpty() )
-        options->typeLib = parser.positionalArguments().first();
+        sOptions.typeLib = parser.positionalArguments().first();
 
-    if ( options->mode == GenerateMode && options->typeLib.isEmpty() )
+    if ( sOptions.mode == GenerateMode && sOptions.typeLib.isEmpty() )
     {
         qWarning( "dumpcpp: No object class or type library name provided.\n" );
         parser.showHelp( 1 );
@@ -1998,26 +2019,32 @@ static void parseOptions( Options *options )
 
 int main( int argc, char **argv )
 {
-    if ( FAILED( CoInitializeEx( 0, COINIT_APARTMENTTHREADED ) ) )
+    if ( FAILED( CoInitializeEx( nullptr, COINIT_APARTMENTTHREADED ) ) )
     {
         qErrnoWarning( "CoInitializeEx() failed." );
         return -1;
     }
     QCoreApplication app( argc, argv );
 
-    Options options;
-    parseOptions( &options );
-    qax_dispatchEqualsIDispatch = options.dispatchEqualsIDispatch;
-    QString typeLib = options.typeLib;
+    parseOptions();
+    qax_dispatchEqualsIDispatch = sOptions.dispatchEqualsIDispatch;
+    QString typeLib = sOptions.typeLib;
 
-    if ( options.mode == TypeLibID )
+    if ( sOptions.mode == TypeLibID )
     {
         QSettings settings( QLatin1String( "HKEY_LOCAL_MACHINE\\Software\\Classes\\TypeLib\\" ) + typeLib, QSettings::NativeFormat );
         typeLib.clear();
         QStringList codes = settings.childGroups();
         for ( int c = 0; c < codes.count(); ++c )
         {
-            typeLib = settings.value( QLatin1Char( '/' ) + codes.at( c ) + QLatin1String( "/0/win32/." ) ).toString();
+            const QString keyPrefix = QLatin1Char( '/' ) + codes.at( c ) + QLatin1String( "/0/" );
+            if ( QT_POINTER_SIZE == 8 )
+            {
+                typeLib = settings.value( keyPrefix + QLatin1String( "win64/." ) ).toString();
+                if ( QFile::exists( typeLib ) )
+                    break;
+            }
+            typeLib = settings.value( keyPrefix + QLatin1String( "win32/." ) ).toString();
             if ( QFile::exists( typeLib ) )
                 break;
         }
@@ -2078,18 +2105,18 @@ int main( int argc, char **argv )
         }
         settings.endGroup();
 
-        for ( int c = 0; !QFile::exists( typeLib ) && ( c < codes.count() ); ++c )
+        for ( int c = 0; c < codes.count(); ++c )
         {
-            auto codeKey = key + QLatin1Char( '/' ) + codes.at( c );
-            settings.beginGroup( codeKey );
-            auto oses = settings.childGroups();
-            settings.endGroup();
-            for ( auto &&os : oses )
+            const QString keyPrefix = key + QLatin1Char( '/' ) + codes.at( c ) + QLatin1Char( '/' );
+            if ( QT_POINTER_SIZE == 8 )
             {
-                typeLib = settings.value( codeKey + QString( "/%1/." ).arg( os ) ).toString();
+                typeLib = settings.value( keyPrefix + QLatin1String( "win64/." ) ).toString();
                 if ( QFile::exists( typeLib ) )
                     break;
             }
+            typeLib = settings.value( keyPrefix + QLatin1String( "win32/." ) ).toString();
+            if ( QFile::exists( typeLib ) )
+                break;
         }
     }
 
@@ -2099,7 +2126,7 @@ int main( int argc, char **argv )
         return -2;
     }
 
-    if ( !generateTypeLibrary( typeLib, options.outname, options.nameSpace, options.category ) )
+    if ( !generateTypeLibrary( typeLib ) )
     {
         qWarning( "dumpcpp: error processing type library '%s'", qPrintable( typeLib ) );
         return -1;
