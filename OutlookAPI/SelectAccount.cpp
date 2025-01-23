@@ -62,7 +62,7 @@ CSelectAccount::~CSelectAccount()
 {
 }
 
-std::pair< QString, std::shared_ptr< Outlook::Account > > CSelectAccount::account() const
+std::pair< QString, COutlookObj< Outlook::_Account > > CSelectAccount::account() const
 {
     return fAccount;
 }

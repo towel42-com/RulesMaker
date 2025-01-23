@@ -1,6 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "OutlookAPI/OutlookObj.h"
 #include <QMainWindow>
 #include <QLabel>
 
@@ -89,8 +90,8 @@ protected Q_SLOTS:
     void slotSettings();
 
 protected:
-    bool showRule( std::shared_ptr< Outlook::Rule > rule );
-    bool editRule( std::shared_ptr< Outlook::Rule > rule );
+    bool showRule( const COutlookObj< Outlook::_Rule > & rule );
+    bool editRule( const COutlookObj< Outlook::_Rule > & rule );
     void updateActions();
     void reloadAll( bool andLoadServerInfo );
 

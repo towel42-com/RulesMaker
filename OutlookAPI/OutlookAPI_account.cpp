@@ -2,11 +2,14 @@
 
 #include "SelectAccount.h"
 #include <QSettings>
+#include <QDebug>
 
 #include "MSOUTL.h"
 
 QString COutlookAPI::defaultProfileName() const
 {
+    if ( !fOutlookApp )
+        return {};
     if ( fOutlookApp->isNull() )
         return {};
     return fOutlookApp->DefaultProfileName();
@@ -24,20 +27,20 @@ bool COutlookAPI::accountSelected() const
     return fAccount.operator bool() && !fAccount->isNull();
 }
 
-std::shared_ptr< Outlook::Account > COutlookAPI::closeAndSelectAccount( bool notifyOnChange )
+COutlookObj< Outlook::_Account > COutlookAPI::closeAndSelectAccount( bool notifyOnChange )
 {
     logout( notifyOnChange );
     return selectAccount( notifyOnChange );
 }
 
-std::shared_ptr< Outlook::NameSpace > COutlookAPI::getNamespace( Outlook::_NameSpace *ns )
+COutlookObj< Outlook::_NameSpace > COutlookAPI::getNamespace( Outlook::_NameSpace *ns )
 {
     if ( !ns )
         return {};
-    return connectToException( std::make_shared< Outlook::NameSpace >( ns ) );
+    return COutlookObj< Outlook::_NameSpace >( ns );
 }
 
-std::optional< std::map< QString, std::shared_ptr< Outlook::Account > > > COutlookAPI::getAllAccounts( const QString &profileName )
+std::optional< std::map< QString, COutlookObj< Outlook::_Account > > > COutlookAPI::getAllAccounts( const QString &profileName )
 {
     if ( !connected() )
     {
@@ -58,7 +61,7 @@ std::optional< std::map< QString, std::shared_ptr< Outlook::Account > > > COutlo
         return {};
     }
 
-    std::map< QString, std::shared_ptr< Outlook::Account > > retVal;
+    std::map< QString, COutlookObj< Outlook::_Account > > retVal;
     auto numAccounts = accounts->Count();
 
     for ( auto ii = 1; ii <= numAccounts; ++ii )
@@ -138,7 +141,7 @@ bool COutlookAPI::selectAccount( const QString &accountName, bool notifyOnChange
     return accountSelected();
 }
 
-std::shared_ptr< Outlook::Account > COutlookAPI::selectAccount( bool notifyOnChange )
+COutlookObj< Outlook::_Account > COutlookAPI::selectAccount( bool notifyOnChange )
 {
     if ( accountSelected() )
         return fAccount;
@@ -180,10 +183,10 @@ std::shared_ptr< Outlook::Account > COutlookAPI::selectAccount( bool notifyOnCha
     return fAccount;
 }
 
-std::shared_ptr< Outlook::Account > COutlookAPI::getAccount( Outlook::_Account *item )
+COutlookObj< Outlook::_Account > COutlookAPI::getAccount( Outlook::_Account *item )
 {
     if ( !item )
         return {};
 
-    return connectToException( std::make_shared< Outlook::Account >( item ) );
+    return COutlookObj< Outlook::_Account >( item );
 }

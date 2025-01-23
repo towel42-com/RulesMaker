@@ -64,7 +64,9 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     connect( fImpl->actionIncludeJunkFolderWhenRunningOnAllFolders, &QAction::triggered, [ = ]() { api->setIncludeJunkFolderWhenRunningOnAllFolders( fImpl->actionIncludeJunkFolderWhenRunningOnAllFolders->isChecked() ); } );
     connect( fImpl->actionIncludeDeletedFolderWhenRunningOnAllFolders, &QAction::triggered, [ = ]() { api->setIncludeDeletedFolderWhenRunningOnAllFolders( fImpl->actionIncludeDeletedFolderWhenRunningOnAllFolders->isChecked() ); } );
     connect( fImpl->actionDisableRatherThanDeleteRules, &QAction::triggered, [ = ]() { api->setDisableRatherThanDeleteRules( fImpl->actionDisableRatherThanDeleteRules->isChecked() ); } );
+    connect( fImpl->actionRunRuleOnRootFolderWhenModified, &QAction::triggered, [ = ]() { api->setRunRuleOnRootFolderWhenModified( fImpl->actionRunRuleOnRootFolderWhenModified->isChecked() ); } );
 
+    
     connect( COutlookAPI::instance().get(), &COutlookAPI::sigOptionChanged, this, &CMainWindow::slotOptionsChanged );
 
     connect(
@@ -151,7 +153,7 @@ void CMainWindow::updateActions()
 {
     TReason accountSelected( COutlookAPI::instance()->accountSelected(), "Rule not selected" );
     TReason emailSelected( !fImpl->email->getEmailPatternForSelection().isEmpty(), "Email not selected" );
-    TReason emailHasDisplayName( !fImpl->email->selectionHasDisplayName(), "Selected email does not have a display name" );
+    TReason emailHasDisplayName( fImpl->email->selectionHasDisplayName(), "Selected email does not have a display name" );
     TReason ruleSelected( fImpl->rules->ruleSelected(), "Rule not selected" );
     TReason disableRatherThanDeleteRules( !COutlookAPI::instance()->disableRatherThanDeleteRules(), "Disable rather than delete rules is enabled" );
 
@@ -243,7 +245,8 @@ void CMainWindow::slotAddRule()
         setWaitCursor( false );
     }
     clearSelection();
-    slotReloadEmail();
+    if ( COutlookAPI::instance()->runRuleOnRootFolderWhenModified() )
+        slotReloadEmail();
     slotReloadRules();
     setWaitCursor( false );
 }
@@ -267,7 +270,8 @@ void CMainWindow::slotAddToSelectedRule()
         QMessageBox::critical( this, "Error", "Could not modify rule\n" + msgs.join( "\n" ) );
     }
     clearSelection();
-    slotReloadEmail();
+    if ( COutlookAPI::instance()->runRuleOnRootFolderWhenModified() )
+        slotReloadEmail();
     slotReloadRules();
     setWaitCursor( false );
 }
@@ -701,7 +705,7 @@ void CMainWindow::setWaitCursor( bool wait )
         qApp->restoreOverrideCursor();
 }
 
-bool CMainWindow::showRule( std::shared_ptr< Outlook::Rule > rule )
+bool CMainWindow::showRule( const COutlookObj< Outlook::_Rule > & rule )
 {
     bool restoreOverride = qApp->overrideCursor() != nullptr;
     if ( restoreOverride )
@@ -712,7 +716,7 @@ bool CMainWindow::showRule( std::shared_ptr< Outlook::Rule > rule )
     return retVal;
 }
 
-bool CMainWindow::editRule( std::shared_ptr< Outlook::Rule > rule )
+bool CMainWindow::editRule( const COutlookObj< Outlook::_Rule > & rule )
 {
     bool restoreOverride = qApp->overrideCursor() != nullptr;
     if ( restoreOverride )

@@ -55,7 +55,7 @@ bool COutlookAPI::enableAllRules( bool andSave /*= true*/, bool *needsSaving /*=
     return true;
 }
 
-std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::Rule *lhs, const QStringList &rhs, QStringList *msgs )
+std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::_Rule *lhs, const QStringList &rhs, QStringList *msgs )
 {
     auto lhsRecipients = getRecipients( lhs, msgs );
     if ( !lhsRecipients.has_value() )
@@ -64,12 +64,12 @@ std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::Rule *lhs, c
     return lhsRecipients;
 }
 
-std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::Rule *lhs, const TEmailAddressList &rhs, QStringList *msgs )
+std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::_Rule *lhs, const TEmailAddressList &rhs, QStringList *msgs )
 {
     return mergeRecipients( lhs, getAddresses( rhs ), msgs );
 }
 
-std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::Rule *lhs, Outlook::Rule *rhs, QStringList *msgs )
+std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::_Rule *lhs, Outlook::_Rule *rhs, QStringList *msgs )
 {
     auto tmpRhsRecipients = getRecipients( rhs, msgs );
     QStringList rhsRecipients;
@@ -335,7 +335,7 @@ bool COutlookAPI::fixFromMessageHeaderRules( bool andSave /*= true*/, bool *need
 
     auto numRules = fRules->Count();
     emit sigInitStatus( "Fixing From Message Header Rules:", numRules );
-    std::list< std::pair< std::shared_ptr< Outlook::Rule >, std::pair< QStringList, QStringList > > > changes;
+    std::list< std::pair< COutlookObj< Outlook::_Rule >, std::pair< QStringList, QStringList > > > changes;
     for ( int ii = 1; ii <= numRules; ++ii )
     {
         if ( canceled() )
@@ -442,7 +442,7 @@ bool COutlookAPI::moveFromToAddress( bool andSave /*= true*/, bool *needsSaving 
 
     auto numRules = fRules->Count();
     emit sigInitStatus( "Transforming From to Address Rules:", numRules );
-    std::list< std::pair< std::shared_ptr< Outlook::Rule >, TEmailAddressList > > changes;
+    std::list< std::pair< COutlookObj< Outlook::_Rule >, TEmailAddressList > > changes;
     for ( int ii = 1; ii <= numRules; ++ii )
     {
         if ( canceled() )
@@ -552,7 +552,7 @@ bool COutlookAPI::renameRules( bool andSave /*= true*/, bool *needsSaving /*= nu
 
     emit sigInitStatus( "Analyzing Rule Names:", numRules );
 
-    std::list< std::pair< std::shared_ptr< Outlook::Rule >, QString > > changes;
+    std::list< std::pair< COutlookObj< Outlook::_Rule >, QString > > changes;
     for ( int ii = 1; ii <= numRules; ++ii )
     {
         if ( canceled() )

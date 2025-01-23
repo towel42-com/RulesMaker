@@ -1,6 +1,7 @@
 #ifndef RULESVIEW_H
 #define RULESVIEW_H
 
+#include "OutlookAPI/OutlookObj.h"
 #include "WidgetWithStatus.h"
 #include <memory>
 #include <optional>
@@ -37,7 +38,7 @@ public:
 
     bool ruleSelected() const;
     QString folderForSelectedRule() const;
-    std::shared_ptr< Outlook::Rule > selectedRule() const;
+    COutlookObj< Outlook::_Rule > selectedRule() const;
 
     std::list< EFilterType > filterTypesForSelectedRule() const;
 
@@ -58,7 +59,7 @@ protected Q_SLOTS:
 
 protected:
     void updateButtons( const QModelIndex &index );
-    void updateButtons( const std::shared_ptr< Outlook::Rule > &rule );
+    void updateButtons( const COutlookObj< Outlook::_Rule > &rule );
     QModelIndex selectedIndex() const;
     QModelIndex sourceIndex( const QModelIndex &idx ) const;
 

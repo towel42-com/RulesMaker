@@ -6,7 +6,7 @@
 #include <QInputDialog>
 #include <QSpinBox>
 
-CShowRule::CShowRule( std::shared_ptr< Outlook::Rule > rule, bool readOnly, QWidget *parent ) :
+CShowRule::CShowRule( const COutlookObj< Outlook::_Rule > & rule, bool readOnly, QWidget *parent ) :
     QDialog( parent ),
     fImpl( new Ui::CShowRule ),
     fRule( rule ),

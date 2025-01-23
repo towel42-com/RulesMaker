@@ -7,7 +7,7 @@
 #include <QStandardItem>
 #include <QRegularExpression>
 
-void COutlookAPI::loadRuleData( QStandardItem *ruleItem, std::shared_ptr< Outlook::Rule > rule, bool force )
+void COutlookAPI::loadRuleData( QStandardItem *ruleItem, COutlookObj< Outlook::_Rule > rule, bool force )
 {
     if ( ruleBeenLoaded( rule ) )
     {
@@ -73,17 +73,17 @@ static QStringList conditionRuleNameBase( T *condition, const QString &condition
     return conditionRuleNameBase( condition, conditionStr, QStringList() << value, wrapperMode );
 }
 
-void loadConditions( QStandardItem *parent, std::shared_ptr< Outlook::Rule > rule )
+void loadConditions( QStandardItem *parent, const COutlookObj< Outlook::_Rule > & rule )
 {
     return loadConditions( parent, rule, false );
 }
 
-void loadExceptions( QStandardItem *parent, std::shared_ptr< Outlook::Rule > rule )
+void loadExceptions( QStandardItem *parent, const COutlookObj< Outlook::_Rule > & rule )
 {
     return loadConditions( parent, rule, true );
 }
 
-void loadConditions( QStandardItem *parent, std::shared_ptr< Outlook::Rule > rule, bool exceptions )
+void loadConditions( QStandardItem *parent, const COutlookObj< Outlook::_Rule > & rule, bool exceptions )
 {
     if ( !rule )
         return;
@@ -266,7 +266,7 @@ bool loadCondition( QStandardItem *parent, Outlook::SensitivityRuleCondition *co
     return true;
 }
 
-void loadActions( QStandardItem *parent, std::shared_ptr< Outlook::Rule > rule )
+void loadActions( QStandardItem *parent, const COutlookObj< Outlook::_Rule > & rule )
 {
     if ( !rule )
         return;

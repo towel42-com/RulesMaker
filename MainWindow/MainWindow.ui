@@ -88,6 +88,8 @@
     <addaction name="actionIncludeJunkFolderWhenRunningOnAllFolders"/>
     <addaction name="actionIncludeDeletedFolderWhenRunningOnAllFolders"/>
     <addaction name="separator"/>
+    <addaction name="actionRunRuleOnRootFolderWhenModified"/>
+    <addaction name="separator"/>
     <addaction name="actionDisableRatherThanDeleteRules"/>
    </widget>
    <widget class="QMenu" name="menuFolders">
@@ -442,6 +444,14 @@
   <action name="actionRunAllRulesOnTrashFolder">
    <property name="text">
     <string>Run All Rules on Trash Folder</string>
+   </property>
+  </action>
+  <action name="actionRunRuleOnRootFolderWhenModified">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Run rule on root folder when created or modified?</string>
    </property>
   </action>
  </widget>

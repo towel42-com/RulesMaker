@@ -1,6 +1,8 @@
 #ifndef SelectAccount_H
 #define SelectAccount_H
 
+#include "OutlookObj.h"
+
 #include <memory>
 #include <optional>
 
@@ -37,7 +39,7 @@ public:
 
     ~CSelectAccount();
 
-    std::pair< QString, std::shared_ptr< Outlook::Account > > account() const;
+    std::pair< QString, COutlookObj< Outlook::_Account > > account() const;
     bool loadAccountInfo() const;
 
 Q_SIGNALS:
@@ -48,8 +50,8 @@ protected:
     void init();
     std::unique_ptr< Ui::CSelectAccount > fImpl;
     EInitResult fInitResult;
-    std::pair< QString, std::shared_ptr< Outlook::Account > > fAccount;
-    std::optional< std::map< QString, std::shared_ptr< Outlook::Account > > > fAllAccounts;
+    std::pair< QString, COutlookObj< Outlook::_Account > > fAccount;
+    std::optional< std::map< QString, COutlookObj< Outlook::_Account > > > fAllAccounts;
 };
 
 #endif   // CONTACTSVIEW_H

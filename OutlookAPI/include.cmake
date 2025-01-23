@@ -8,8 +8,12 @@ set(qtproject_UIS
 
 set(project_SRCS
     EmailAddress.cpp
+    ExceptionHandler.cpp
     OutlookAPI.cpp
+    OutlookObj.cpp
     OutlookAPI_account.cpp
+    OutlookAPI_description.cpp
+    OutlookAPI_deleteItem.cpp
     OutlookAPI_dump.cpp
     OutlookAPI_email.cpp
     OutlookAPI_emailAddresses.cpp
@@ -29,11 +33,13 @@ set(project_SRCS
  
 set(qtproject_H
     OutlookAPI.h
+    ExceptionHandler.h
     SelectAccount.h
     ShowRule.h
 )
 
 set(project_H
+    OutlookObj.h
     EmailAddress.h
     OutlookAPI_pri.h
 )

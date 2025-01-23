@@ -4,7 +4,7 @@
 #include <QTimer>
 #include <QFont>
 
-Q_DECLARE_METATYPE( std::shared_ptr< Outlook::Rule > );
+Q_DECLARE_METATYPE( COutlookObj< Outlook::_Rule > );
 
 CRulesModel::CRulesModel( QObject *parent ) :
     QStandardItemModel( parent )
@@ -12,8 +12,8 @@ CRulesModel::CRulesModel( QObject *parent ) :
     connect( COutlookAPI::instance().get(), &COutlookAPI::sigRuleAdded, this, &CRulesModel::slotRuleAdded );
     connect( COutlookAPI::instance().get(), &COutlookAPI::sigRuleChanged, this, &CRulesModel::slotRuleChanged );
     connect( COutlookAPI::instance().get(), &COutlookAPI::sigRuleDeleted, this, &CRulesModel::slotRuleDeleted );
-    qRegisterMetaType< std::shared_ptr< Outlook::Rule > >();
-    qRegisterMetaType< std::shared_ptr< Outlook::Rule > >( "std::shared_ptr<Outlook::Rule>const&" );
+    qRegisterMetaType< COutlookObj< Outlook::_Rule > >();
+    qRegisterMetaType< COutlookObj< Outlook::_Rule > >( "COutlookObj< Outlook::_Rule >const&" );
 }
 
 void CRulesModel::reload()
@@ -74,7 +74,7 @@ void CRulesModel::slotLoadNextRule()
         emit sigFinishedLoading();
 }
 
-bool CRulesModel::loadRule( std::shared_ptr< Outlook::Rule > rule, QStandardItem *ruleItem )
+bool CRulesModel::loadRule( const COutlookObj< Outlook::_Rule > &rule, QStandardItem *ruleItem )
 {
     if ( !rule )
         return false;
@@ -177,13 +177,13 @@ QStandardItem *CRulesModel::getRuleItem( const QStandardItem *item ) const
     return const_cast< QStandardItem * >( item );
 }
 
-std::shared_ptr< Outlook::Rule > CRulesModel::getRule( const QModelIndex &index ) const
+COutlookObj< Outlook::_Rule > CRulesModel::getRule( const QModelIndex &index ) const
 {
     auto item = itemFromIndex( index );
     return getRule( item );
 }
 
-std::shared_ptr< Outlook::Rule > CRulesModel::getRule( const QStandardItem *item ) const
+COutlookObj< Outlook::_Rule > CRulesModel::getRule( const QStandardItem *item ) const
 {
     auto ruleItem = getRuleItem( item );
     if ( !ruleItem )
@@ -205,7 +205,7 @@ void CRulesModel::updateAllRules()
     }
 }
 
-void CRulesModel::slotRuleAdded( const std::shared_ptr< Outlook::Rule > rule )
+void CRulesModel::slotRuleAdded( const COutlookObj< Outlook::_Rule > &rule )
 {
     if ( !rule )
         return;
@@ -213,7 +213,7 @@ void CRulesModel::slotRuleAdded( const std::shared_ptr< Outlook::Rule > rule )
     updateAllRules();
 }
 
-void CRulesModel::slotRuleChanged( const std::shared_ptr< Outlook::Rule > rule )
+void CRulesModel::slotRuleChanged( const COutlookObj< Outlook::_Rule > &rule )
 {
     if ( !rule )
         return;
@@ -221,7 +221,7 @@ void CRulesModel::slotRuleChanged( const std::shared_ptr< Outlook::Rule > rule )
     updateAllRules();
 }
 
-void CRulesModel::slotRuleDeleted( const std::shared_ptr< Outlook::Rule > rule )
+void CRulesModel::slotRuleDeleted( const COutlookObj< Outlook::_Rule > &rule )
 {
     if ( !rule )
         return;
@@ -245,7 +245,7 @@ void CRulesModel::slotRuleDeleted( const std::shared_ptr< Outlook::Rule > rule )
     updateAllRules();
 }
 
-bool CRulesModel::updateRule( std::shared_ptr< Outlook::Rule > rule )
+bool CRulesModel::updateRule( const COutlookObj< Outlook::_Rule > &rule )
 {
     QStandardItem *ruleItem = nullptr;
     auto pos = fReverseRuleMap.find( rule );

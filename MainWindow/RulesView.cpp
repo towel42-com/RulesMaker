@@ -137,7 +137,7 @@ QString CRulesView::folderForSelectedRule() const
     return COutlookAPI::instance()->moveTargetFolderForRule( rule );
 }
 
-std::shared_ptr< Outlook::Rule > CRulesView::selectedRule() const
+COutlookObj< Outlook::_Rule > CRulesView::selectedRule() const
 {
     return fModel->getRule( selectedIndex() );
 }
@@ -204,10 +204,10 @@ void CRulesView::updateButtons( const QModelIndex &index )
     updateButtons( rule );
 }
 
-void CRulesView::updateButtons( const std::shared_ptr< Outlook::Rule > &rule )
+void CRulesView::updateButtons( const COutlookObj< Outlook::_Rule > &rule )
 {
     fImpl->deleteRule->setEnabled( rule && !COutlookAPI::instance()->disableRatherThanDeleteRules() );
-    fImpl->ruleEnabled->setEnabled( rule != nullptr );
+    fImpl->ruleEnabled->setEnabled( rule.isValid() );
     fImpl->ruleEnabled->setChecked( rule && COutlookAPI::instance()->ruleEnabled( rule ) );
 }
 

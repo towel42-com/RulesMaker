@@ -6,6 +6,7 @@
 
 #include "Version.h"
 #include <iostream>
+#include <objbase.h>
 
 enum class EParseResult
 {
@@ -142,7 +143,7 @@ std::pair< EParseResult, EOperation > parseCommandLine( QCommandLineParser &pars
 bool runRules( QCommandLineParser &parser )
 {
     auto api = COutlookAPI::instance();
-    std::shared_ptr< Outlook::Rule > rule;
+    COutlookObj< Outlook::_Rule > rule;
     if ( parser.isSet( "rule" ) )
     {
         auto ruleName = parser.value( "rule" );
@@ -154,7 +155,7 @@ bool runRules( QCommandLineParser &parser )
         }
     }
 
-    std::shared_ptr< Outlook::Folder > folder;
+    COutlookObj< Outlook::MAPIFolder > folder;
     auto allFolders = parser.isSet( "all_folders" );
     if ( parser.isSet( "folder" ) )
     {
@@ -187,6 +188,9 @@ void msgHandler( QtMsgType /*type*/, const QMessageLogContext & /*context*/, con
 
 int main( int argc, char *argv[] )
 {
+    auto init = CoInitialize( nullptr );
+    Q_ASSERT( init == S_OK );
+
     QCoreApplication appl( argc, argv );
     NVersion::setupApplication( appl, true );
     qInstallMessageHandler( msgHandler );

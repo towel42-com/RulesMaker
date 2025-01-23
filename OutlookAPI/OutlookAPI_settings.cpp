@@ -11,6 +11,7 @@ void COutlookAPI::initSettings()
     setIncludeJunkFolderWhenRunningOnAllFolders( settings.value( "IncludeJunkFolderWhenRunningOnAllFolders", false ).toBool(), false );
     setIncludeDeletedFolderWhenRunningOnAllFolders( settings.value( "IncludeJunkDeletedWhenRunningOnAllFolders", false ).toBool(), false );
     setDisableRatherThanDeleteRules( settings.value( "DisableRatherThanDeleteRules", true ).toBool(), false );
+    setRunRuleOnRootFolderWhenModified( settings.value( "RunRuleOnRootFolderWhenModified", true ).toBool(), false );
     setLoadAccountInfo( settings.value( "LoadAccountInfo", true ).toBool(), false );
     setLastAccountName( settings.value( "Account", QString() ).toString(), false );
     setEmailFilterTypes( static_cast< EFilterType >( settings.value( "EmailFilterTypes", 1 ).toInt() ) );
@@ -81,6 +82,17 @@ void COutlookAPI::setDisableRatherThanDeleteRules( bool value, bool update )
     fDisableRatherThanDeleteRules = value;
     QSettings settings;
     settings.setValue( "DisableRatherThanDeleteRules", value );
+    if ( update )
+        emit sigOptionChanged();
+}
+
+void COutlookAPI::setRunRuleOnRootFolderWhenModified( bool value, bool update )
+{
+    update = update && ( fRunRuleOnRootFolderWhenModified != value );
+
+    fRunRuleOnRootFolderWhenModified = value;
+    QSettings settings;
+    settings.setValue( "RunRuleOnRootFolderWhenModified", value );
     if ( update )
         emit sigOptionChanged();
 }

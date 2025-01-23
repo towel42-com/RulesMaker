@@ -1,6 +1,8 @@
 #ifndef CFoldersVIEW_H
 #define CFoldersVIEW_H
 
+#include "OutlookAPI/OutlookObj.h"
+
 #include "WidgetWithStatus.h"
 #include <memory>
 namespace Ui
@@ -37,7 +39,7 @@ public:
 
     QString selectedPath() const;
     QString selectedFullPath() const;
-    std::shared_ptr< Outlook::Folder > selectedFolder() const;
+    COutlookObj< Outlook::MAPIFolder > selectedFolder() const;
 
 Q_SIGNALS:
     void sigFinishedLoading();

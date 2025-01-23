@@ -6,12 +6,12 @@
 #include <map>
 #include <QDebug>
 
-std::optional< QString > COutlookAPI::mergeKey( const std::shared_ptr< Outlook::Rule > &rule ) const
+std::optional< QString > COutlookAPI::mergeKey( const COutlookObj< Outlook::_Rule > &rule ) const
 {
     return getDestFolderNameForRule( rule, true );
 }
 
-bool COutlookAPI::canMergeRules( std::shared_ptr< Outlook::Rule > lhs, std::shared_ptr< Outlook::Rule > rhs )
+bool COutlookAPI::canMergeRules( const COutlookObj< Outlook::_Rule > &lhs, const COutlookObj< Outlook::_Rule > &rhs )
 {
     if ( !lhs || !rhs )
         return false;
@@ -134,26 +134,26 @@ void mergeConditions( Outlook::RuleConditions *lhs, Outlook::RuleConditions *rhs
     mergeCondition( lhs->Subject(), rhs->Subject() );
 }
 
-std::shared_ptr< Outlook::Rule > COutlookAPI::mergeRule( std::shared_ptr< Outlook::Rule > &lhs, std::shared_ptr< Outlook::Rule > &rhs )
+bool COutlookAPI::mergeRule( COutlookObj< Outlook::_Rule > &lhs, const COutlookObj< Outlook::_Rule > &rhs )
 {
     if ( !canMergeRules( lhs, rhs ) )
-        return {};
+        return false;
 
     if ( !lhs || !rhs )
-        return {};
+        return false;
 
     qDebug() << "Merging: " << getDebugName( rhs ) << " to " << getDebugName( lhs );
 
     mergeConditions( lhs->Conditions(), rhs->Conditions() );
     mergeConditions( lhs->Exceptions(), rhs->Exceptions() );
 
-    return lhs;
+    return true;
 }
 
-void COutlookAPI::mergeRules( COutlookAPI::TRulePair &rules )
+bool COutlookAPI::mergeRules( COutlookAPI::TRulePair &rules )
 {
     if ( !rules.first || rules.second.empty() )
-        return;
+        return false;
 
     auto &&primaryRule = rules.first;
     qDebug() << "Primary Rule: " << getDebugName( primaryRule );
@@ -169,13 +169,14 @@ void COutlookAPI::mergeRules( COutlookAPI::TRulePair &rules )
         if ( !mergeRule( primaryRule, *ii ) )
         {
             ii = toRemove.erase( ii );
-            return;
+            return false;
         }
         deleteRule( *ii, true, false );
         ++ii;
     }
     auto ruleName = ruleNameForRule( primaryRule );
     primaryRule->SetName( ruleName );
+    return true;
 }
 
 COutlookAPI::TMergeRuleMap COutlookAPI::findMergableRules()
@@ -241,7 +242,7 @@ COutlookAPI::TMergeRuleMap COutlookAPI::findMergableRules()
 
     for ( auto &&ii : retVal )
     {
-        ii.second.second.sort( []( const std::shared_ptr< Outlook::Rule > &lhs, const std::shared_ptr< Outlook::Rule > &rhs ) { return lhs->ExecutionOrder() > rhs->ExecutionOrder(); } );
+        ii.second.second.sort( []( const COutlookObj< Outlook::_Rule > &lhs, const COutlookObj< Outlook::_Rule > &rhs ) { return lhs->ExecutionOrder() > rhs->ExecutionOrder(); } );
     }
 
     return retVal;

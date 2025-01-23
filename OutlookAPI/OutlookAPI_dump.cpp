@@ -15,7 +15,7 @@ void COutlookAPI::dumpSession( Outlook::NameSpace &session )
             continue;
         auto root = store->GetRootFolder();
         //qDebug() << root->FullFolderPath();
-        dumpFolder( reinterpret_cast< Outlook::Folder * >( root ) );
+        dumpFolder( reinterpret_cast< Outlook::MAPIFolder * >( root ) );
     }
 }
 
@@ -68,7 +68,7 @@ void dumpMetaMethods( QObject *object )
         qDebug() << ii;
 }
 
-void COutlookAPI::dumpFolder( Outlook::Folder *parent )
+void COutlookAPI::dumpFolder( Outlook::MAPIFolder *parent )
 {
     if ( !parent )
         return;
@@ -77,7 +77,7 @@ void COutlookAPI::dumpFolder( Outlook::Folder *parent )
     auto folderCount = folders->Count();
     for ( auto jj = 1; jj <= folderCount; ++jj )
     {
-        auto folder = reinterpret_cast< Outlook::Folder * >( folders->Item( jj ) );
+        auto folder = reinterpret_cast< Outlook::MAPIFolder * >( folders->Item( jj ) );
         qDebug() << folder->FullFolderPath() << toString( folder->DefaultItemType() );
         dumpFolder( folder );
     }

@@ -1,6 +1,8 @@
 #ifndef RULESMODEL_H
 #define RULESMODEL_H
 
+#include "OutlookAPI/OutlookObj.h"
+
 #include <QString>
 #include <QStandardItemModel>
 
@@ -38,8 +40,8 @@ public:
     QStandardItem *getRuleItem( const QModelIndex &index ) const;
     QStandardItem *getRuleItem( const QStandardItem *item ) const;
 
-    std::shared_ptr< Outlook::Rule > getRule( const QModelIndex &index ) const;
-    std::shared_ptr< Outlook::Rule > getRule( const QStandardItem *item ) const;
+    COutlookObj< Outlook::_Rule > getRule( const QModelIndex &index ) const;
+    COutlookObj< Outlook::_Rule > getRule( const QStandardItem *item ) const;
 
     QString summary() const;
 
@@ -53,9 +55,9 @@ Q_SIGNALS:
 
 private Q_SLOTS:
     void slotLoadNextRule();
-    void slotRuleAdded( std::shared_ptr< Outlook::Rule > rule );
-    void slotRuleChanged( std::shared_ptr< Outlook::Rule > rule );
-    void slotRuleDeleted( std::shared_ptr< Outlook::Rule > rule );
+    void slotRuleAdded( const COutlookObj< Outlook::_Rule > & rule );
+    void slotRuleChanged( const COutlookObj< Outlook::_Rule > & rule );
+    void slotRuleDeleted( const COutlookObj< Outlook::_Rule > & rule );
 
 private:
     void updateAllRules();
@@ -63,12 +65,12 @@ private:
 
     void loadRules();
 
-    bool loadRule( std::shared_ptr< Outlook::Rule > rule, QStandardItem *ruleItem = nullptr );
-    bool updateRule( std::shared_ptr< Outlook::Rule > rule );
+    bool loadRule( const COutlookObj< Outlook::_Rule > & rule, QStandardItem *ruleItem = nullptr );
+    bool updateRule( const COutlookObj< Outlook::_Rule > & rule );
 
-    std::pair< std::shared_ptr< Outlook::Rules >, int > fRules{ nullptr, 0 };
-    std::unordered_map< QStandardItem *, std::shared_ptr< Outlook::Rule > > fRuleMap;
-    std::unordered_map< std::shared_ptr< Outlook::Rule >, QStandardItem * > fReverseRuleMap;
+    std::pair< COutlookObj< Outlook::Rules >, int > fRules{ COutlookObj< Outlook::Rules >{}, 0 };
+    std::unordered_map< QStandardItem *, COutlookObj< Outlook::_Rule > > fRuleMap;
+    std::unordered_map< COutlookObj< Outlook::_Rule >, QStandardItem * > fReverseRuleMap;
     int fCurrPos{ 1 };
 };
 

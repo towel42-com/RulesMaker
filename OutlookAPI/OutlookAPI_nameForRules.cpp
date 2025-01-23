@@ -6,7 +6,7 @@
 
 #include <QRegularExpression>
 
-std::list< QStringList > COutlookAPI::getConditionalStringList( std::shared_ptr< Outlook::Rule > rule, bool exceptions, EWrapperMode wrapperMode, bool includeSender )
+std::list< QStringList > COutlookAPI::getConditionalStringList( const COutlookObj< Outlook::_Rule > &rule, bool exceptions, EWrapperMode wrapperMode, bool includeSender )
 {
     if ( !rule )
         return {};
@@ -48,7 +48,7 @@ std::list< QStringList > COutlookAPI::getConditionalStringList( std::shared_ptr<
     return retVal;
 }
 
-QString COutlookAPI::rawRuleNameForRule( std::shared_ptr< Outlook::Rule > rule )
+QString COutlookAPI::rawRuleNameForRule( const COutlookObj< Outlook::_Rule > &rule )
 {
     QStringList addOns;
     if ( !rule )
@@ -56,7 +56,7 @@ QString COutlookAPI::rawRuleNameForRule( std::shared_ptr< Outlook::Rule > rule )
     return rule->Name();
 }
 
-std::optional< QString > COutlookAPI::getDestFolderNameForRule( std::shared_ptr< Outlook::Rule > rule, bool moveOnly )
+std::optional< QString > COutlookAPI::getDestFolderNameForRule( const COutlookObj< Outlook::_Rule > &rule, bool moveOnly )
 {
     if ( !rule )
         return {};
@@ -79,10 +79,10 @@ std::optional< QString > COutlookAPI::getDestFolderNameForRule( std::shared_ptr<
     if ( !destFolder )
         return {};
 
-    return ruleNameForFolder( reinterpret_cast< Outlook::Folder * >( destFolder ) );
+    return ruleNameForFolder( reinterpret_cast< Outlook::MAPIFolder * >( destFolder ) );
 }
 
-QString COutlookAPI::ruleNameForRule( std::shared_ptr< Outlook::Rule > rule, bool forDisplay )
+QString COutlookAPI::ruleNameForRule( const COutlookObj< Outlook::_Rule > &rule, bool forDisplay )
 {
     QStringList addOns;
     if ( !rule )
@@ -306,7 +306,7 @@ QStringList conditionNames( Outlook::AccountRuleCondition *condition, const QStr
     return conditionRuleNameBase( condition, conditionStr, toString( condition->ConditionType() ), wrapperMode );
 }
 
-QStringList COutlookAPI::getActionStrings( std::shared_ptr< Outlook::Rule > rule )
+QStringList COutlookAPI::getActionStrings( const COutlookObj< Outlook::_Rule > &rule )
 {
     if ( !rule )
         return {};

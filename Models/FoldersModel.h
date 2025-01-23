@@ -1,6 +1,8 @@
 #ifndef FOLDERSMODEL_H
 #define FOLDERSMODEL_H
 
+#include "OutlookAPI/OutlookObj.h"
+
 #include <QString>
 #include <QStandardItemModel>
 
@@ -31,11 +33,11 @@ public:
     QString fullPathForIndex( const QModelIndex &index ) const;
     QString fullPathForItem( QStandardItem *item ) const;
 
-    std::shared_ptr< Outlook::Folder > folderForIndex( const QModelIndex &index ) const;
-    std::shared_ptr< Outlook::Folder > folderForItem( QStandardItem *item ) const;
+    COutlookObj< Outlook::MAPIFolder > folderForIndex( const QModelIndex &index ) const;
+    COutlookObj< Outlook::MAPIFolder > folderForItem( QStandardItem *item ) const;
 
-    QStandardItem *itemForFolder( const std::shared_ptr< Outlook::Folder > &folder ) const;
-    QModelIndex indexForFolder( const std::shared_ptr< Outlook::Folder > &folder ) const;
+    QStandardItem *itemForFolder( const COutlookObj< Outlook::MAPIFolder > &folder ) const;
+    QModelIndex indexForFolder( const COutlookObj< Outlook::MAPIFolder > &folder ) const;
 
     QString pathForIndex( const QModelIndex &index ) const;
     QString pathForItem( QStandardItem *item ) const;
@@ -58,18 +60,19 @@ private Q_SLOTS:
     void slotLoadNextFolder( QStandardItem *parent );
 
 private:
-    void loadRootFolders( const std::list< std::shared_ptr< Outlook::Folder > > &rootFolder );
-    void loadSubFolders( QStandardItem *item, const std::shared_ptr< Outlook::Folder > &parentFolder );
+    void loadRootFolders( const std::list< COutlookObj< Outlook::MAPIFolder > > &rootFolder, bool setRootFolders );
+    void loadSubFolders( QStandardItem *item, const COutlookObj< Outlook::MAPIFolder > &parentFolder );
 
-    void removeFolder( const std::shared_ptr< Outlook::Folder > &ii );
+    void removeFolder( const COutlookObj< Outlook::MAPIFolder > &ii, bool removeFromRootList = true );
 
-    void updateMaps( QStandardItem *child, const std::shared_ptr< Outlook::Folder > &folder );
+    void updateMaps( QStandardItem *child, const COutlookObj< Outlook::MAPIFolder > &folder );
 
-    [[nodiscard]] QStandardItem *loadFolder( const std::shared_ptr< Outlook::Folder > &folder, QStandardItem *parentItem );
+    [[nodiscard]] QStandardItem *loadFolder( const COutlookObj< Outlook::MAPIFolder > &folder, QStandardItem *parentItem );
 
     std::unordered_map< QStandardItem *, std::unique_ptr< SCurrFolderInfo > > fFolders;
-    std::unordered_map< QStandardItem *, std::shared_ptr< Outlook::Folder > > fItemToFolderMap;
+    std::unordered_map< QStandardItem *, COutlookObj< Outlook::MAPIFolder > > fItemToFolderMap;
     std::map< QString, QStandardItem * > fFolderToItemMap;
+    std::list< COutlookObj< Outlook::MAPIFolder > > fRootFolders;
 
     int fCurrFolderNum{ 0 };
     int fNumFolders{ 0 };

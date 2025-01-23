@@ -111,7 +111,7 @@ void CFilterFromEmailModel::sortAll( QStandardItem *root )
     }
 }
 
-void CFilterFromEmailModel::addMailItem( std::shared_ptr< Outlook::MailItem > mailItem )
+void CFilterFromEmailModel::addMailItem( const COutlookObj< Outlook::MailItem > & mailItem )
 {
     if ( !mailItem )
         return;
@@ -381,7 +381,7 @@ CEmailAddressSection *CFilterFromEmailModel::item( int row, int column /* = 0 */
 
 QString CFilterFromEmailModel::summary() const
 {
-    return QString( "%1 emails with %2 email addresses, %3 unique email addresses" ).arg( fNumEmailsProcessed ).arg( fNumEmailAddressesProcessed ).arg( fUniqueEmails );
+    return QString( "%1 emails with %3 unique email addresses" ).arg( fNumEmailsProcessed ).arg( fUniqueEmails );
 }
 
 QStringList CFilterFromEmailModel::matchTextForIndex( const QModelIndex &idx ) const
@@ -456,7 +456,7 @@ QString CFilterFromEmailModel::matchTextForItem( CEmailAddressSection *item ) co
     return path.join( separator );
 }
 
-std::shared_ptr< Outlook::MailItem > CFilterFromEmailModel::mailItemFromIndex( const QModelIndex &idx ) const
+COutlookObj< Outlook::MailItem > CFilterFromEmailModel::mailItemFromIndex( const QModelIndex &idx ) const
 {
     if ( !idx.isValid() )
         return {};
@@ -464,12 +464,12 @@ std::shared_ptr< Outlook::MailItem > CFilterFromEmailModel::mailItemFromIndex( c
     return mailItemFromItem( item );
 }
 
-std::shared_ptr< Outlook::MailItem > CFilterFromEmailModel::mailItemFromItem( const QStandardItem *item ) const
+COutlookObj< Outlook::MailItem > CFilterFromEmailModel::mailItemFromItem( const QStandardItem *item ) const
 {
     return mailItemFromItem( dynamic_cast< const CEmailAddressSection * >( item ) );
 }
 
-std::shared_ptr< Outlook::MailItem > CFilterFromEmailModel::mailItemFromItem( const CEmailAddressSection *item ) const
+COutlookObj< Outlook::MailItem > CFilterFromEmailModel::mailItemFromItem( const CEmailAddressSection *item ) const
 {
     item = item->getSibling( 1 );
 

@@ -3,14 +3,14 @@
 
 #include "MSOUTL.h"
 
-std::pair< std::shared_ptr< Outlook::Items >, int > COutlookAPI::getEmailItemsForRootFolder()
+std::pair< COutlookObj< Outlook::_Items >, int > COutlookAPI::getEmailItemsForRootFolder()
 {
     auto folder = COutlookAPI::instance()->rootFolder();
     if ( !folder )
         return {};
     auto fn = folder->FullFolderPath();
 
-    std::shared_ptr< Outlook::Items > retVal;
+    COutlookObj< Outlook::_Items > retVal;
 
     auto items = folder->Items();
     if ( items )
@@ -34,7 +34,7 @@ std::pair< std::shared_ptr< Outlook::Items >, int > COutlookAPI::getEmailItemsFo
     return { retVal, retVal->Count() };
 }
 
-std::shared_ptr< Outlook::MailItem > COutlookAPI::getEmailItem( const std::shared_ptr< Outlook::Items > &items, int num )
+COutlookObj< Outlook::MailItem > COutlookAPI::getEmailItem( const COutlookObj< Outlook::_Items > &items, int num )
 {
     if ( !items || !num || ( num > items->Count() ) )
         return {};
@@ -43,21 +43,20 @@ std::shared_ptr< Outlook::MailItem > COutlookAPI::getEmailItem( const std::share
     if ( !item )
         return {};
 
-    if ( getObjectClass( item ) == Outlook::OlObjectClass::olMail )
-    {
-        return getEmailItem( item );
-    }
+    COutlookObj< Outlook::MailItem > mailItem( item );
+    if ( mailItem )
+        return mailItem;
     return {};
 }
 
-std::shared_ptr< Outlook::MailItem > COutlookAPI::getEmailItem( IDispatch *item )
+COutlookObj< Outlook::MailItem > COutlookAPI::getEmailItem( IDispatch *item )
 {
     if ( !item )
         return {};
-    return connectToException( std::make_shared< Outlook::MailItem >( item ) );
+    return COutlookObj< Outlook::MailItem >( item );
 }
 
-void COutlookAPI::displayEmail( const std::shared_ptr< Outlook::MailItem > &email ) const
+void COutlookAPI::displayEmail( const COutlookObj< Outlook::MailItem > &email ) const
 {
     if ( email )
         email->Display();

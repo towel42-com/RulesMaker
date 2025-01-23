@@ -1,6 +1,8 @@
 #ifndef EMAILMODEL_H
 #define EMAILMODEL_H
 
+#include "OutlookAPI/OutlookObj.h"
+
 #include <QString>
 #include <QStandardItemModel>
 #include <QVector>
@@ -55,9 +57,9 @@ public:
     void reload();
     void clear();
 
-    std::shared_ptr< Outlook::MailItem > mailItemFromIndex( const QModelIndex &idx ) const;
-    std::shared_ptr< Outlook::MailItem > mailItemFromItem( const QStandardItem *item ) const;
-    std::shared_ptr< Outlook::MailItem > mailItemFromItem( const CEmailAddressSection *item ) const;
+    COutlookObj< Outlook::MailItem > mailItemFromIndex( const QModelIndex &idx ) const;
+    COutlookObj< Outlook::MailItem > mailItemFromItem( const QStandardItem *item ) const;
+    COutlookObj< Outlook::MailItem > mailItemFromItem( const CEmailAddressSection *item ) const;
 
     QStringList matchTextForIndex( const QModelIndex &idx ) const;
     QStringList matchTextListForItem( QStandardItem *item ) const;
@@ -95,11 +97,11 @@ private:
     QStringList matchTextListForItem( CEmailAddressSection *item ) const;
 
     void sortAll( QStandardItem *root );
-    void addMailItem( std::shared_ptr< Outlook::MailItem > mailItem );
+    void addMailItem( const COutlookObj< Outlook::MailItem > & mailItem );
     CEmailAddressSection *findOrAddEmailAddressSection( const QString &curr, const QVector< QStringRef > &remaining, CEmailAddressSection *parent, const QString &displayName, const QString &subject );
     std::pair< CEmailAddressSection *, QList< QStandardItem * > > makeRow( const QString &section, bool inBack, const QString &displayName, const QString &subject );
 
-    std::shared_ptr< Outlook::Items > fItems{ nullptr };
+    COutlookObj< Outlook::_Items > fItems;
     mutable std::optional< int > fItemCountCache;
 
     int fNumEmailsProcessed{ 0 };
@@ -108,7 +110,7 @@ private:
     std::map< QString, CEmailAddressSection * > fRootItems;
     std::map< QString, CEmailAddressSection * > fDisplayNameEmailCache;
     std::map< QString, CEmailAddressSection * > fDomainCache;
-    std::map< const QStandardItem *, std::shared_ptr< Outlook::MailItem > > fEmailCache;
+    std::map< const QStandardItem *, COutlookObj< Outlook::MailItem > > fEmailCache;
     int fCurrPos{ 1 };
 };
 

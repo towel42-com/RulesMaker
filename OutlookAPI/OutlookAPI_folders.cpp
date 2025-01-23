@@ -1,4 +1,5 @@
 #include "OutlookAPI.h"
+#include "ExceptionHandler.h"
 
 #include <QInputDialog>
 #include <QMessageBox>
@@ -7,7 +8,7 @@
 
 #include "MSOUTL.h"
 
-std::shared_ptr< Outlook::Folder > COutlookAPI::rootFolder()
+COutlookObj< Outlook::MAPIFolder > COutlookAPI::rootFolder()
 {
     if ( !accountSelected() )
         return fInbox;
@@ -23,7 +24,7 @@ QString COutlookAPI::rootFolderName()
     return folderDisplayPath( rootFolder() );
 }
 
-void COutlookAPI::setRootFolder( const std::shared_ptr< Outlook::Folder > &folder, bool update )
+void COutlookAPI::setRootFolder( const COutlookObj< Outlook::MAPIFolder > &folder, bool update )
 {
     fRootFolder = folder;
 
@@ -36,7 +37,7 @@ void COutlookAPI::setRootFolder( const std::shared_ptr< Outlook::Folder > &folde
         emit sigOptionChanged();
 }
 
-std::shared_ptr< Outlook::Folder > COutlookAPI::findFolder( const QString &folderName, std::shared_ptr< Outlook::Folder > parentFolder )
+COutlookObj< Outlook::MAPIFolder > COutlookAPI::findFolder( const QString &folderName, COutlookObj< Outlook::MAPIFolder > parentFolder )
 {
     if ( !accountSelected() )
         return {};
@@ -64,19 +65,19 @@ std::shared_ptr< Outlook::Folder > COutlookAPI::findFolder( const QString &folde
     return {};
 }
 
-std::shared_ptr< Outlook::Folder > COutlookAPI::getFolder( const Outlook::Folder *item )
+COutlookObj< Outlook::MAPIFolder > COutlookAPI::getFolder( const Outlook::MAPIFolder *item )
 {
     if ( !item )
         return {};
-    return connectToException( std::shared_ptr< Outlook::Folder >( const_cast< Outlook::Folder * >( item ) ) );
+    return COutlookObj< Outlook::MAPIFolder >( const_cast< Outlook::MAPIFolder * >( item ) );
 }
 
-std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( const std::shared_ptr< Outlook::Folder > &parent, bool recursive, const TFolderFunc &acceptFolder, const TFolderFunc &checkChildFolders )
+std::list< COutlookObj< Outlook::MAPIFolder > > COutlookAPI::getFolders( const COutlookObj< Outlook::MAPIFolder > &parent, bool recursive, const TFolderFunc &acceptFolder, const TFolderFunc &checkChildFolders )
 {
     if ( !parent )
         return {};
 
-    std::list< std::shared_ptr< Outlook::Folder > > retVal;
+    std::list< COutlookObj< Outlook::MAPIFolder > > retVal;
 
     auto folders = parent->Folders();
     auto folderCount = folders->Count();
@@ -97,7 +98,7 @@ std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( const s
     }
 
     retVal.sort(
-        []( const std::shared_ptr< Outlook::Folder > &lhs, const std::shared_ptr< Outlook::Folder > &rhs )
+        []( const COutlookObj< Outlook::MAPIFolder > &lhs, const COutlookObj< Outlook::MAPIFolder > &rhs )
         {
             if ( !lhs )
                 return false;
@@ -108,7 +109,7 @@ std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( const s
     return retVal;
 }
 
-std::shared_ptr< Outlook::Folder > COutlookAPI::addFolder( const std::shared_ptr< Outlook::Folder > &parent, const QString &folderName )
+COutlookObj< Outlook::MAPIFolder > COutlookAPI::addFolder( const COutlookObj< Outlook::MAPIFolder > &parent, const QString &folderName )
 {
     if ( !parent )
         return {};
@@ -118,7 +119,7 @@ std::shared_ptr< Outlook::Folder > COutlookAPI::addFolder( const std::shared_ptr
     return getFolder( folder );
 }
 
-std::shared_ptr< Outlook::Folder > COutlookAPI::parentFolder( const std::shared_ptr< Outlook::Folder > &folder )
+COutlookObj< Outlook::MAPIFolder > COutlookAPI::parentFolder( const COutlookObj< Outlook::MAPIFolder > &folder )
 {
     if ( !folder )
         return {};
@@ -127,7 +128,7 @@ std::shared_ptr< Outlook::Folder > COutlookAPI::parentFolder( const std::shared_
     if ( !parentObj )
         return {};
 
-    auto parentFolder = new Outlook::Folder( parentObj );
+    auto parentFolder = new Outlook::MAPIFolder( parentObj );
     if ( parentFolder->Class() != Outlook::OlObjectClass::olFolder )
     {
         delete parentFolder;
@@ -137,35 +138,28 @@ std::shared_ptr< Outlook::Folder > COutlookAPI::parentFolder( const std::shared_
     return getFolder( parentFolder );
 }
 
-QString COutlookAPI::nameForFolder( const std::shared_ptr< Outlook::Folder > &folder ) const
+QString COutlookAPI::nameForFolder( const COutlookObj< Outlook::MAPIFolder > &folder ) const
 {
     if ( !folder )
         return {};
     return folder->Name();
 }
 
-QString COutlookAPI::rawPathForFolder( const std::shared_ptr< Outlook::Folder > &folder ) const
+QString COutlookAPI::rawPathForFolder( const COutlookObj< Outlook::MAPIFolder > &folder ) const
 {
     if ( !folder )
         return {};
     return folder->FullFolderPath();
 }
 
-QString COutlookAPI::folderDisplayName( const std::shared_ptr< Outlook::Folder > &folder )
+QString COutlookAPI::folderDisplayName( const COutlookObj< Outlook::MAPIFolder > &folder )
 {
     return folderDisplayName( folder.get() );
 }
 
-bool COutlookAPI::isFolder( const std::shared_ptr< Outlook::Folder > &folder, const QString &path ) const
+bool COutlookAPI::isFolder( const COutlookObj< Outlook::MAPIFolder > &folder, const QString &path ) const
 {
     return ( folderDisplayPath( folder, true ) == path ) || ( folderDisplayPath( folder, false ) == path );
-}
-
-std::shared_ptr< Outlook::Folder > COutlookAPI::getFolder( const Outlook::MAPIFolder *item )
-{
-    if ( !item )
-        return {};
-    return getFolder( reinterpret_cast< const Outlook::Folder * >( item ) );
 }
 
 void COutlookAPI::setRootFolder( const QString &folderPath, bool update )
@@ -177,7 +171,7 @@ void COutlookAPI::setRootFolder( const QString &folderPath, bool update )
     setRootFolder( folder, update );
 }
 
-QString COutlookAPI::folderDisplayPath( const std::shared_ptr< Outlook::Folder > &folder, bool removeLeadingSlashes ) const
+QString COutlookAPI::folderDisplayPath( const COutlookObj< Outlook::MAPIFolder > &folder, bool removeLeadingSlashes ) const
 {
     if ( !folder )
         return {};
@@ -195,7 +189,7 @@ QString COutlookAPI::folderDisplayPath( const std::shared_ptr< Outlook::Folder >
     return retVal;
 }
 
-QString COutlookAPI::folderDisplayName( const Outlook::Folder *folder )
+QString COutlookAPI::folderDisplayName( const Outlook::MAPIFolder *folder )
 {
     if ( !folder )
         return {};
@@ -204,7 +198,7 @@ QString COutlookAPI::folderDisplayName( const Outlook::Folder *folder )
     return retVal;
 }
 
-std::shared_ptr< Outlook::Folder > COutlookAPI::getDefaultFolder( Outlook::OlDefaultFolders folderType )
+COutlookObj< Outlook::MAPIFolder > COutlookAPI::getDefaultFolder( Outlook::OlDefaultFolders folderType )
 {
     if ( !accountSelected() )
         return {};
@@ -216,14 +210,14 @@ std::shared_ptr< Outlook::Folder > COutlookAPI::getDefaultFolder( Outlook::OlDef
     return getFolder( store->GetDefaultFolder( folderType ) );
 }
 
-std::pair< std::shared_ptr< Outlook::Folder >, bool > COutlookAPI::getMailFolder( const QString &folderLabel, const QString &path, bool singleOnly )
+std::pair< COutlookObj< Outlook::MAPIFolder >, bool > COutlookAPI::getMailFolder( const QString &folderLabel, const QString &path, bool singleOnly )
 {
     if ( !accountSelected() )
         return {};
 
     auto retVal = selectFolder(
         folderLabel,
-        [ this, path ]( const std::shared_ptr< Outlook::Folder > &folder )
+        [ this, path ]( const COutlookObj< Outlook::MAPIFolder > &folder )
         {
             if ( !folder )
                 return false;
@@ -236,13 +230,13 @@ std::pair< std::shared_ptr< Outlook::Folder >, bool > COutlookAPI::getMailFolder
     return retVal;
 }
 
-std::pair< std::shared_ptr< Outlook::Folder >, bool > COutlookAPI::selectFolder( const QString &folderName, const TFolderFunc &acceptFolder, const TFolderFunc &checkChildFolders, bool singleOnly )
+std::pair< COutlookObj< Outlook::MAPIFolder >, bool > COutlookAPI::selectFolder( const QString &folderName, const TFolderFunc &acceptFolder, const TFolderFunc &checkChildFolders, bool singleOnly )
 {
     auto &&folders = getFolders( false, acceptFolder, checkChildFolders );
     return selectFolder( folderName, folders, singleOnly );
 }
 
-std::pair< std::shared_ptr< Outlook::Folder >, bool > COutlookAPI::selectFolder( const QString &folderName, const std::list< std::shared_ptr< Outlook::Folder > > &folders, bool singleOnly )
+std::pair< COutlookObj< Outlook::MAPIFolder >, bool > COutlookAPI::selectFolder( const QString &folderName, const std::list< COutlookObj< Outlook::MAPIFolder > > &folders, bool singleOnly )
 {
     if ( folders.empty() )
     {
@@ -255,7 +249,7 @@ std::pair< std::shared_ptr< Outlook::Folder >, bool > COutlookAPI::selectFolder(
         return { {}, false };
 
     QStringList folderNames;
-    std::map< QString, std::shared_ptr< Outlook::Folder > > folderMap;
+    std::map< QString, COutlookObj< Outlook::MAPIFolder > > folderMap;
 
     for ( auto &&ii : folders )
     {
@@ -273,7 +267,7 @@ std::pair< std::shared_ptr< Outlook::Folder >, bool > COutlookAPI::selectFolder(
     return { ( *pos ).second, true };
 }
 
-std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( bool recursive, const TFolderFunc &acceptFolder, const TFolderFunc &checkChildFolders )
+std::list< COutlookObj< Outlook::MAPIFolder > > COutlookAPI::getFolders( bool recursive, const TFolderFunc &acceptFolder, const TFolderFunc &checkChildFolders )
 {
     if ( !selectAccount( true ) )
         return {};
@@ -288,12 +282,12 @@ std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( bool re
     return retVal;
 }
 
-QString COutlookAPI::ruleNameForFolder( const std::shared_ptr< Outlook::Folder > &folder )
+QString COutlookAPI::ruleNameForFolder( const COutlookObj< Outlook::MAPIFolder > &folder )
 {
     return ruleNameForFolder( folder.get() );
 }
 
-QString COutlookAPI::ruleNameForFolder( Outlook::Folder *folder )
+QString COutlookAPI::ruleNameForFolder( Outlook::MAPIFolder *folder )
 {
     if ( !folder )
         return {};
@@ -321,7 +315,7 @@ QString COutlookAPI::ruleNameForFolder( Outlook::Folder *folder )
     return ruleName;
 }
 
-int COutlookAPI::recursiveSubFolderCount( const Outlook::Folder *parent )
+int COutlookAPI::recursiveSubFolderCount( const Outlook::MAPIFolder *parent )
 {
     if ( !parent )
         return 0;
@@ -332,7 +326,7 @@ int COutlookAPI::recursiveSubFolderCount( const Outlook::Folder *parent )
     return retVal;
 }
 
-int COutlookAPI::subFolderCount( const Outlook::Folder *parent, bool recursive )
+int COutlookAPI::subFolderCount( const Outlook::MAPIFolder *parent, bool recursive )
 {
     if ( !parent )
         return 0;
@@ -340,12 +334,15 @@ int COutlookAPI::subFolderCount( const Outlook::Folder *parent, bool recursive )
     emit sigInitStatus( "Counting Folders:", 0 );
 
     auto folders = parent->Folders();
+    if ( !folders )
+        return 0;
+
     auto folderCount = folders->Count();
 
     int retVal = folderCount;
     for ( auto jj = 1; recursive && ( jj <= folderCount ); ++jj )
     {
-        auto folder = reinterpret_cast< Outlook::Folder * >( folders->Item( jj ) );
+        auto folder = reinterpret_cast< Outlook::MAPIFolder * >( folders->Item( jj ) );
         if ( !folder )
             continue;
         retVal += subFolderCount( folder, recursive );
@@ -360,24 +357,24 @@ int COutlookAPI::subFolderCount( const Outlook::Folder *parent, bool recursive )
 bool COutlookAPI::emptyTrash()
 {
     slotClearCanceled();
-    fIgnoreExceptions = true;
+    CExceptionHandler::instance()->setIgnoreExceptions( true );
     auto trash = getTrashFolder();
     auto retVal = emptyFolder( trash );
-    fIgnoreExceptions = false;
+    CExceptionHandler::instance()->setIgnoreExceptions( false );
     return retVal;
 }
 
 bool COutlookAPI::emptyJunk()
 {
     slotClearCanceled();
-    //fIgnoreExceptions = true;
+    CExceptionHandler::instance()->setIgnoreExceptions( true );
     auto junk = getJunkFolder();
     auto retVal = emptyFolder( junk );
-    fIgnoreExceptions = false;
+    CExceptionHandler::instance()->setIgnoreExceptions( false );
     return retVal;
 }
 
-bool COutlookAPI::emptyFolder( std::shared_ptr< Outlook::Folder > &folder )
+bool COutlookAPI::emptyFolder( const COutlookObj< Outlook::MAPIFolder > &folder )
 {
     if ( !folder )
         return false;
@@ -389,43 +386,50 @@ bool COutlookAPI::emptyFolder( std::shared_ptr< Outlook::Folder > &folder )
     if ( subFolders && subFolders->Count() )
     {
         auto msg = tr( "Emptying Folder - %1 - Deleting Sub-Folders:" ).arg( folder->Name() );
-        auto count = subFolders->Count();
-        emit sigInitStatus( msg, count );
-        for ( int ii = count; ii > 0; --ii )
+        emit sigInitStatus( msg, subFolders->Count() );
+        int itemNum = 1;
+        while ( !canceled() && ( itemNum <= subFolders->Count() ) )
         {
-            if ( canceled() )
-                break;
-            auto subFolder = subFolders->Item( ii );
+            auto subFolder = subFolders->Item( itemNum );
             if ( !subFolder )
+            {
+                emit sigIncStatusValue( msg );
+                itemNum++;
                 continue;
+            }
             auto subFolderName = subFolder->Name();
             emit sigStatusMessage( tr( "Deleting Folder - %1" ).arg( subFolderName ) );
-            emit sigSetStatus( msg, count - ii, count );
+            emit sigIncStatusValue( msg );
             subFolder->Delete();
             numFoldersDeleted++;
         }
+        emit sigStatusFinished( msg );
     }
+
     emit sigStatusMessage( QString( "%1 folders deleted" ).arg( numFoldersDeleted ) );
     auto items = getItems( folder->Items() );
     int numEmailsDeleted = 0;
     if ( items && items->Count() )
     {
-        auto count = items->Count();
-        auto msg = tr( "Emptying Folder - %1 - Deleting emails:" ).arg( folder->Name() );
-        emit sigInitStatus( msg, count );
-        for ( int ii = count; ii > 0; --ii )
+        auto msg = tr( "Emptying Folder - %1 - Deleting Items:" ).arg( folder->Name() );
+        emit sigInitStatus( msg, items->Count() );
+        int itemNum = 1;
+        while ( !canceled() && ( itemNum <= items->Count() ) )
         {
-            if ( canceled() )
-                break;
-            auto email = getEmailItem( items, ii );
-            if ( !email )
+            auto item = items->Item( itemNum );
+            if ( !item )
+            {
+                emit sigIncStatusValue( msg );
+                itemNum++;
                 continue;
-            auto emailName = email->Subject();
-            emit sigStatusMessage( tr( "Deleting email - %1" ).arg( emailName ) );
-            emit sigSetStatus( msg, count - ii, count );
-            email->Delete();
-            numEmailsDeleted++;
+            }
+            COutlookObj< Outlook::MailItem > mailItem( item );
+            if ( mailItem.deleteItem( [ msg, this ]() { emit sigIncStatusValue( msg ); } ) )
+                numEmailsDeleted++;
+            else
+                itemNum++;
         }
+        emit sigStatusFinished( msg );
     }
     emit sigStatusMessage( QString( "%1 emails deleted" ).arg( numEmailsDeleted ) );
     emit sigStatusFinished( msg );

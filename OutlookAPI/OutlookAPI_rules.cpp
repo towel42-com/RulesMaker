@@ -8,14 +8,14 @@
 #include "MSOUTL.h"
 
 #include <QDebug>
-std::pair< std::shared_ptr< Outlook::Rules >, int > COutlookAPI::getRules()
+std::pair< COutlookObj< Outlook::Rules >, int > COutlookAPI::getRules()
 {
     if ( !fRules )
         fRules = selectRules();
     return { fRules, fRules->Count() };
 }
 
-std::shared_ptr< Outlook::Rule > COutlookAPI::getRule( const std::shared_ptr< Outlook::Rules > &rules, int num )
+COutlookObj< Outlook::_Rule > COutlookAPI::getRule( const COutlookObj< Outlook::Rules > &rules, int num )
 {
     if ( !rules || !num || ( num > rules->Count() ) )
         return {};
@@ -25,7 +25,7 @@ std::shared_ptr< Outlook::Rule > COutlookAPI::getRule( const std::shared_ptr< Ou
     return getRule( rule );
 }
 
-std::optional< bool > COutlookAPI::addRule( const std::shared_ptr< Outlook::Folder > &folder, const std::list< std::pair< QStringList, EFilterType > > &patterns, QStringList &msgs )
+std::optional< bool > COutlookAPI::addRule( const COutlookObj< Outlook::MAPIFolder > &folder, const std::list< std::pair< QStringList, EFilterType > > &patterns, QStringList &msgs )
 {
     if ( !folder )
     {
@@ -35,7 +35,7 @@ std::optional< bool > COutlookAPI::addRule( const std::shared_ptr< Outlook::Fold
 
     auto ruleName = ruleNameForFolder( folder );
 
-    auto rule = std::shared_ptr< Outlook::Rule >( fRules->Create( ruleName, Outlook::OlRuleType::olRuleReceive ) );
+    auto rule = COutlookObj< Outlook::_Rule >( fRules->Create( ruleName, Outlook::OlRuleType::olRuleReceive ) );
     if ( !rule )
     {
         msgs.push_back( QString( "Could not create rule '%1'" ).arg( ruleName ) );
@@ -56,7 +56,7 @@ std::optional< bool > COutlookAPI::addRule( const std::shared_ptr< Outlook::Fold
     return addToRule( rule, patterns, msgs, false );
 }
 
-std::optional< bool > COutlookAPI::addToRule( std::shared_ptr< Outlook::Rule > rule, const std::list< std::pair< QStringList, EFilterType > > &patterns, QStringList &msgs, bool copyFirst )
+std::optional< bool > COutlookAPI::addToRule( const COutlookObj< Outlook::_Rule > &rule, const std::list< std::pair< QStringList, EFilterType > > &patterns, QStringList &msgs, bool copyFirst )
 {
     bool patternsEmpty = patterns.empty();
     std::set< EFilterType > filterTypes;
@@ -131,23 +131,27 @@ std::optional< bool > COutlookAPI::addToRule( std::shared_ptr< Outlook::Rule > r
     }
     saveRules();
 
-    bool retVal = runRule( newRule );
-    if ( !retVal )
+    bool retVal = true;
+    if ( runRuleOnRootFolderWhenModified() )
     {
-        msgs.push_back( "Could not run rule, but it was created" );
+        retVal = runRule( newRule );
+        if ( !retVal )
+        {
+            msgs.push_back( "Could not run rule, but it was created" );
+        }
     }
     emit sigRuleChanged( newRule );
     return retVal;
 }
 
-bool COutlookAPI::ruleEnabled( const std::shared_ptr< Outlook::Rule > &rule )
+bool COutlookAPI::ruleEnabled( const COutlookObj< Outlook::_Rule > &rule )
 {
     if ( !rule )
         return false;
     return rule->Enabled();
 }
 
-bool COutlookAPI::deleteRule( std::shared_ptr< Outlook::Rule > rule, bool forceDisable, bool andSave )
+bool COutlookAPI::deleteRule( const COutlookObj< Outlook::_Rule > &rule, bool forceDisable, bool andSave )
 {
     if ( !rule || !fRules )
         return false;
@@ -184,7 +188,7 @@ bool COutlookAPI::deleteRule( std::shared_ptr< Outlook::Rule > rule, bool forceD
     return true;
 }
 
-bool COutlookAPI::disableRule( const std::shared_ptr< Outlook::Rule > &rule, bool andSave )
+bool COutlookAPI::disableRule( const COutlookObj< Outlook::_Rule > &rule, bool andSave )
 {
     auto ruleName = getDisplayName( rule );
 
@@ -200,7 +204,7 @@ bool COutlookAPI::disableRule( const std::shared_ptr< Outlook::Rule > &rule, boo
     return true;
 }
 
-bool COutlookAPI::enableRule( const std::shared_ptr< Outlook::Rule > &rule, bool andSave )
+bool COutlookAPI::enableRule( const COutlookObj< Outlook::_Rule > &rule, bool andSave )
 {
     auto ruleName = getDisplayName( rule );
 
@@ -217,7 +221,7 @@ bool COutlookAPI::enableRule( const std::shared_ptr< Outlook::Rule > &rule, bool
     return true;
 }
 
-QString COutlookAPI::moveTargetFolderForRule( const std::shared_ptr< Outlook::Rule > &rule ) const
+QString COutlookAPI::moveTargetFolderForRule( const COutlookObj< Outlook::_Rule > &rule ) const
 {
     if ( !rule )
         return {};
@@ -229,7 +233,7 @@ QString COutlookAPI::moveTargetFolderForRule( const std::shared_ptr< Outlook::Ru
     return folderName;
 }
 
-std::list< EFilterType > COutlookAPI::filterTypesForRule( const std::shared_ptr< Outlook::Rule > &rule ) const
+std::list< EFilterType > COutlookAPI::filterTypesForRule( const COutlookObj< Outlook::_Rule > &rule ) const
 {
     if ( !rule )
         return {};
@@ -256,20 +260,20 @@ std::list< EFilterType > COutlookAPI::filterTypesForRule( const std::shared_ptr<
     return retVal;
 }
 
-bool COutlookAPI::isEnabled( const std::shared_ptr< Outlook::Rule > &rule )
+bool COutlookAPI::isEnabled( const COutlookObj< Outlook::_Rule > &rule )
 {
     if ( !rule )
         return false;
     return rule->Enabled();
 }
 
-bool COutlookAPI::ruleBeenLoaded( std::shared_ptr< Outlook::Rule > &rule ) const
+bool COutlookAPI::ruleBeenLoaded( const COutlookObj< Outlook::_Rule > &rule ) const
 {
     auto pos = fRuleBeenLoaded.find( rule );
     return pos != fRuleBeenLoaded.end();
 }
 
-bool COutlookAPI::ruleLessThan( const std::shared_ptr< Outlook::Rule > &lhsRule, const std::shared_ptr< Outlook::Rule > &rhsRule ) const
+bool COutlookAPI::ruleLessThan( const COutlookObj< Outlook::_Rule > &lhsRule, const COutlookObj< Outlook::_Rule > &rhsRule ) const
 {
     if ( !lhsRule )
         return false;
@@ -278,7 +282,7 @@ bool COutlookAPI::ruleLessThan( const std::shared_ptr< Outlook::Rule > &lhsRule,
     return lhsRule->ExecutionOrder() < rhsRule->ExecutionOrder();
 }
 
-bool COutlookAPI::runAllRules( std::shared_ptr< Outlook::Folder > folder, bool allFolders, bool junk )
+bool COutlookAPI::runAllRules( COutlookObj< Outlook::MAPIFolder > folder, bool allFolders, bool junk )
 {
     auto rules = getAllRules();
     bool recursive = allFolders;
@@ -294,7 +298,7 @@ bool COutlookAPI::runAllRules( std::shared_ptr< Outlook::Folder > folder, bool a
     return aOK;
 }
 
-bool COutlookAPI::runRule( const std::shared_ptr< Outlook::Rule > &rule, std::shared_ptr< Outlook::Folder > folder, bool allFolders, bool junk )
+bool COutlookAPI::runRule( const COutlookObj< Outlook::_Rule > &rule, COutlookObj< Outlook::MAPIFolder > folder, bool allFolders, bool junk )
 {
     if ( !rule )
         return false;
@@ -309,7 +313,7 @@ bool COutlookAPI::runRule( const std::shared_ptr< Outlook::Rule > &rule, std::sh
     return runRules( { rule }, folder, recursive );
 }
 
-bool COutlookAPI::runAllRules( const std::shared_ptr< Outlook::Folder > &folder )
+bool COutlookAPI::runAllRules( const COutlookObj< Outlook::MAPIFolder > &folder )
 {
     return runRules( {}, folder );
 }
@@ -370,17 +374,17 @@ bool COutlookAPI::runAllRulesOnJunkFolder()
     return retVal;
 }
 
-bool COutlookAPI::runRule( std::shared_ptr< Outlook::Rule > rule, const std::shared_ptr< Outlook::Folder > &folder )
+bool COutlookAPI::runRule( const COutlookObj< Outlook::_Rule > & rule, const COutlookObj< Outlook::MAPIFolder > &folder )
 {
-    return runRules( std::vector< std::shared_ptr< Outlook::Rule > >( { rule } ), folder );
+    return runRules( std::vector< COutlookObj< Outlook::_Rule > >( { rule } ), folder );
 }
 
-std::shared_ptr< Outlook::Rules > COutlookAPI::selectRules()
+COutlookObj< Outlook::Rules > COutlookAPI::selectRules()
 {
     if ( !selectAccount( true ) )
         return {};
 
-    auto store = connectToException( fAccount->DeliveryStore() );
+    auto store = COutlookObj< Outlook::Store >( fAccount->DeliveryStore() );
     if ( !store )
         return {};
 
@@ -388,14 +392,14 @@ std::shared_ptr< Outlook::Rules > COutlookAPI::selectRules()
     return getRules( rules );
 }
 
-std::shared_ptr< Outlook::Rules > COutlookAPI::getRules( Outlook::Rules *item )
+COutlookObj< Outlook::Rules > COutlookAPI::getRules( Outlook::Rules *item )
 {
     if ( !item )
         return {};
-    return connectToException( std::shared_ptr< Outlook::Rules >( item ) );
+    return COutlookObj< Outlook::Rules >( item );
 }
 
-std::shared_ptr< Outlook::Rule > COutlookAPI::findRule( const QString &rule )
+COutlookObj< Outlook::_Rule > COutlookAPI::findRule( const QString &rule )
 {
     getRules();
 
@@ -417,14 +421,14 @@ std::shared_ptr< Outlook::Rule > COutlookAPI::findRule( const QString &rule )
     return {};
 }
 
-std::shared_ptr< Outlook::Rule > COutlookAPI::getRule( Outlook::_Rule *item )
+COutlookObj< Outlook::_Rule > COutlookAPI::getRule( Outlook::_Rule *item )
 {
     if ( !item )
         return {};
-    return connectToException( std::make_shared< Outlook::Rule >( item ) );
+    return COutlookObj< Outlook::_Rule >( item );
 }
 
-std::optional< QStringList > COutlookAPI::getRecipients( Outlook::Rule *rule, QStringList *msgs )
+std::optional< QStringList > COutlookAPI::getRecipients( Outlook::_Rule *rule, QStringList *msgs )
 {
     if ( !rule || !rule->Conditions() )
         return {};
@@ -445,7 +449,7 @@ std::optional< QStringList > COutlookAPI::getRecipients( Outlook::Rule *rule, QS
     return addresses;
 }
 
-bool COutlookAPI::skipRule( const std::shared_ptr< Outlook::Rule > &rule ) const
+bool COutlookAPI::skipRule( const COutlookObj< Outlook::_Rule > &rule ) const
 {
     for ( auto &&ii : fRulesToSkip )
     {
@@ -462,13 +466,13 @@ bool COutlookAPI::skipRule( const std::shared_ptr< Outlook::Rule > &rule ) const
     return false;
 }
 
-std::vector< std::shared_ptr< Outlook::Rule > > COutlookAPI::getAllRules()
+std::vector< COutlookObj< Outlook::_Rule > > COutlookAPI::getAllRules()
 {
     getRules();
     if ( !fRules )
         return {};
 
-    std::vector< std::shared_ptr< Outlook::Rule > > rules;
+    std::vector< COutlookObj< Outlook::_Rule > > rules;
     rules.reserve( fRules->Count() );
     auto numRules = fRules->Count();
     for ( int ii = 1; ii <= numRules; ++ii )
@@ -482,7 +486,7 @@ std::vector< std::shared_ptr< Outlook::Rule > > COutlookAPI::getAllRules()
     return rules;
 }
 
-bool COutlookAPI::runRules( std::vector< std::shared_ptr< Outlook::Rule > > rules, std::shared_ptr< Outlook::Folder > folder, bool recursive, const std::optional< QString > &perFolderMsg /*={}*/ )
+bool COutlookAPI::runRules( std::vector< COutlookObj< Outlook::_Rule > > rules, COutlookObj< Outlook::MAPIFolder > folder, bool recursive, const std::optional< QString > &perFolderMsg /*={}*/ )
 {
     if ( !folder )
         folder = rootFolder();
@@ -534,7 +538,7 @@ bool COutlookAPI::runRules( std::vector< std::shared_ptr< Outlook::Rule > > rule
     return retVal;
 }
 
-bool COutlookAPI::addDisplayNamesToRule( Outlook::Rule *rule, const QStringList &displayNames, QStringList &msgs )
+bool COutlookAPI::addDisplayNamesToRule( Outlook::_Rule *rule, const QStringList &displayNames, QStringList &msgs )
 {
     if ( displayNames.isEmpty() )
         return true;
@@ -560,7 +564,7 @@ bool COutlookAPI::addDisplayNamesToRule( Outlook::Rule *rule, const QStringList 
     return true;
 }
 
-bool COutlookAPI::addRecipientsToRule( Outlook::Rule *rule, const TEmailAddressList &recipients, QStringList &msgs )
+bool COutlookAPI::addRecipientsToRule( Outlook::_Rule *rule, const TEmailAddressList &recipients, QStringList &msgs )
 {
     if ( recipients.empty() )
         return true;
@@ -585,12 +589,12 @@ bool COutlookAPI::addRecipientsToRule( Outlook::Rule *rule, const TEmailAddressL
     return true;
 }
 
-bool COutlookAPI::addSenderToRule( Outlook::Rule *rule, const QStringList &senders, QStringList &msgs )
+bool COutlookAPI::addSenderToRule( Outlook::_Rule *rule, const QStringList &senders, QStringList &msgs )
 {
     return addSenderToRule( rule, toEmailAddressList( senders ), msgs );
 }
 
-bool COutlookAPI::addSenderToRule( Outlook::Rule *rule, const TEmailAddressList &senders, QStringList &msgs )
+bool COutlookAPI::addSenderToRule( Outlook::_Rule *rule, const TEmailAddressList &senders, QStringList &msgs )
 {
     if ( senders.empty() )
         return true;
@@ -616,7 +620,6 @@ bool COutlookAPI::addSenderToRule( Outlook::Rule *rule, const TEmailAddressList 
         auto curr = from->Recipients()->Add( ii->toString() );
         if ( curr )
         {
-
             qDebug() << curr->Address() << curr->Name();
             auto entry = curr->AddressEntry();
             if ( entry )
@@ -641,7 +644,7 @@ bool COutlookAPI::addSenderToRule( Outlook::Rule *rule, const TEmailAddressList 
     return true;
 }
 
-bool COutlookAPI::addRecipientsToRule( Outlook::Rule *rule, const QStringList &recipients, QStringList &msgs )
+bool COutlookAPI::addRecipientsToRule( Outlook::_Rule *rule, const QStringList &recipients, QStringList &msgs )
 {
     if ( recipients.isEmpty() )
         return true;
@@ -666,7 +669,7 @@ bool COutlookAPI::addRecipientsToRule( Outlook::Rule *rule, const QStringList &r
     return true;
 }
 
-bool COutlookAPI::addSubjectsToRule( Outlook::Rule *rule, const QStringList &subjects, QStringList &msgs )
+bool COutlookAPI::addSubjectsToRule( Outlook::_Rule *rule, const QStringList &subjects, QStringList &msgs )
 {
     if ( subjects.isEmpty() )
         return true;

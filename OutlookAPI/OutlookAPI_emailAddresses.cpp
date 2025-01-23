@@ -1,5 +1,6 @@
 #include "OutlookAPI.h"
 #include "EmailAddress.h"
+#include "OutlookObj.h"
 
 #include "MSOUTL.h"
 
@@ -43,8 +44,7 @@ TEmailAddressList mergeResults( TEmailAddressList lhs, const TEmailAddressList &
     return cleanResults( keys );
 }
 
-
-TEmailAddressList COutlookAPI::getEmailAddresses( std::shared_ptr< Outlook::MailItem > &mailItem, std::optional< EAddressTypes > types, std::optional< EContactTypes > contactTypes )   // returns the list of email addresses, display names
+TEmailAddressList COutlookAPI::getEmailAddresses( const COutlookObj< Outlook::MailItem > &mailItem, std::optional< EAddressTypes > types, std::optional< EContactTypes > contactTypes )   // returns the list of email addresses, display names
 {
     if ( !mailItem )
         return {};
@@ -184,4 +184,3 @@ TEmailAddressList COutlookAPI::getEmailAddresses( Outlook::AddressEntry *address
 
     return cleanResults( retVal );
 }
-

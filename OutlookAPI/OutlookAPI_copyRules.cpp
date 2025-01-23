@@ -89,7 +89,7 @@ void copyAction( Outlook::SendRuleAction *lhsAction, Outlook::SendRuleAction *rh
     }
 }
 
-void copyActions( std::shared_ptr< Outlook::Rule > retValRule, std::shared_ptr< Outlook::Rule > source )
+void copyActions( COutlookObj< Outlook::_Rule > retValRule, COutlookObj< Outlook::_Rule > source )
 {
     if ( !retValRule || !source )
         return;
@@ -259,7 +259,7 @@ void copyCondition( Outlook::SensitivityRuleCondition *retVal, Outlook::Sensitiv
     retVal->SetSensitivity( sourceCondition->Sensitivity() );
 }
 
-void copyConditions( std::shared_ptr< Outlook::Rule > retValRule, std::shared_ptr< Outlook::Rule > source, bool exceptions )
+void copyConditions( COutlookObj< Outlook::_Rule > retValRule, COutlookObj< Outlook::_Rule > source, bool exceptions )
 {
     if ( !retValRule || !source )
         return;
@@ -295,15 +295,16 @@ void copyConditions( std::shared_ptr< Outlook::Rule > retValRule, std::shared_pt
     copyCondition( retVal->ToOrCc(), sourceConditions->ToOrCc() );
 }
 
-std::shared_ptr< Outlook::Rule > COutlookAPI::copyRule( std::shared_ptr< Outlook::Rule > rule )
+COutlookObj< Outlook::_Rule > COutlookAPI::copyRule( const COutlookObj< Outlook::_Rule > &rule )
 {
-    if ( !rule )
+    if ( !rule || !fRules )
         return {};
 
-    auto retVal = std::shared_ptr< Outlook::Rule >( fRules->Create( rule->Name(), rule->RuleType() ) );
+    auto retVal = COutlookObj< Outlook::_Rule >( fRules->Create( rule->Name(), rule->RuleType() ) );
     if ( !retVal )
         return {};
 
+    retVal->SetExecutionOrder( fRules->Count() );
     retVal->SetEnabled( rule->Enabled() );
 
     copyActions( retVal, rule );

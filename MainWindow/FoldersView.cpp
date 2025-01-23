@@ -194,7 +194,7 @@ QString CFoldersView::selectedFullPath() const
     return fModel->fullPathForIndex( idx );
 }
 
-std::shared_ptr< Outlook::Folder > CFoldersView::selectedFolder() const
+COutlookObj< Outlook::MAPIFolder > CFoldersView::selectedFolder() const
 {
     auto idx = selectedIndex();
     if ( !idx.isValid() )

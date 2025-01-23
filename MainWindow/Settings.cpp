@@ -23,6 +23,7 @@ void CSettings::init()
     fImpl->includeJunkFolderWhenRunningOnAllFolders->setChecked( api->includeJunkFolderWhenRunningOnAllFolders() );
     fImpl->includeDeletedFolderWhenRunningOnAllFolders->setChecked( api->includeDeletedFolderWhenRunningOnAllFolders() );
     fImpl->disableRatherThanDeleteRules->setChecked( api->disableRatherThanDeleteRules() );
+    fImpl->runRuleOnRootFolderWhenModified->setChecked( api->runRuleOnRootFolderWhenModified() );
     fImpl->rulesToSkip->addItems( api->rulesToSkip() );
     fImpl->loadAccountInfo->setChecked( api->loadAccountInfo() );
 
@@ -48,6 +49,8 @@ void CSettings::accept()
     api->setLoadAccountInfo( fImpl->loadAccountInfo->isChecked() );
 
     api->setDisableRatherThanDeleteRules( fImpl->disableRatherThanDeleteRules->isChecked() );
+    api->setRunRuleOnRootFolderWhenModified( fImpl->runRuleOnRootFolderWhenModified->isChecked() );
+
     auto regexes = QStringList();
     for ( auto &&ii = 0; ii < fImpl->rulesToSkip->count(); ++ii )
     {
@@ -68,6 +71,8 @@ bool CSettings::changed() const
     retVal = retVal || ( fImpl->loadAccountInfo->isChecked() != api->loadAccountInfo() );
 
     retVal = retVal || ( fImpl->disableRatherThanDeleteRules->isChecked() != api->disableRatherThanDeleteRules() );
+    retVal = retVal || ( fImpl->runRuleOnRootFolderWhenModified->isChecked() != api->runRuleOnRootFolderWhenModified() );
+
 
     auto prevRegexes = api->rulesToSkip();
     retVal = retVal || ( prevRegexes.size() != fImpl->rulesToSkip->count() );

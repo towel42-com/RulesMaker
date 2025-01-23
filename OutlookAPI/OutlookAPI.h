@@ -1,5 +1,7 @@
-#ifndef OUTLOOKHELPERS_H
-#define OUTLOOKHELPERS_H
+#ifndef OUTLOOKAPI_H
+#define OUTLOOKAPI_H
+
+#include "OutlookObj.h"
 
 #include <QObject>
 #include <memory>
@@ -117,10 +119,10 @@ public:
 
     void logout( bool andNotify );
 
-    std::shared_ptr< Outlook::Folder > getContacts();
-    std::shared_ptr< Outlook::Folder > getInbox();
-    std::shared_ptr< Outlook::Folder > getJunkFolder();
-    std::shared_ptr< Outlook::Folder > getTrashFolder();
+    COutlookObj< Outlook::MAPIFolder > getContacts();
+    COutlookObj< Outlook::MAPIFolder > getInbox();
+    COutlookObj< Outlook::MAPIFolder > getJunkFolder();
+    COutlookObj< Outlook::MAPIFolder > getTrashFolder();
 
     void setOnlyProcessUnread( bool value, bool update = true );
     bool onlyProcessUnread() const { return fOnlyProcessUnread; }
@@ -140,6 +142,9 @@ public:
     void setDisableRatherThanDeleteRules( bool value, bool update = true );
     bool disableRatherThanDeleteRules() { return fDisableRatherThanDeleteRules; }
 
+    void setRunRuleOnRootFolderWhenModified( bool value, bool update = true );
+    bool runRuleOnRootFolderWhenModified() { return fRunRuleOnRootFolderWhenModified; }
+
     void setLoadAccountInfo( bool value, bool update = true );
     bool loadAccountInfo() const { return fLoadAccountInfo; }
 
@@ -153,8 +158,10 @@ public:
     std::list< EFilterType > emailFilterTypes() { return fEmailFilterTypes; }
 
     QWidget *getParentWidget() const;
-    bool showRule( std::shared_ptr< Outlook::Rule > rule );
-    bool editRule( std::shared_ptr< Outlook::Rule > rule );
+    bool showRule( const COutlookObj< Outlook::_Rule > & rule );
+    bool editRule( const COutlookObj< Outlook::_Rule > &rule );
+
+    void sendStatusMesage( const QString &msg ){ emit sigStatusMessage( msg ); }
 Q_SIGNALS:
     void sigAccountChanged();
     void sigStatusMessage( const QString &msg );
@@ -164,81 +171,78 @@ Q_SIGNALS:
     void sigStatusFinished( const QString &label );
     void sigOptionChanged();
 
-    void sigRuleChanged( std::shared_ptr< Outlook::Rule > rule );
-    void sigRuleAdded( std::shared_ptr< Outlook::Rule > rule );
-    void sigRuleDeleted( std::shared_ptr< Outlook::Rule > rule );
+    void sigRuleChanged( const COutlookObj< Outlook::_Rule > &rule );
+    void sigRuleAdded( const COutlookObj< Outlook::_Rule > &rule );
+    void sigRuleDeleted( const COutlookObj< Outlook::_Rule > &rule );
 public Q_SLOTS:
     void slotCanceled() { fCanceled = true; }
     void slotClearCanceled() { fCanceled = false; }
-    void slotHandleException( int code, const QString &source, const QString &desc, const QString &help );
     void slotHandleRulesSaveException( int, const QString &, const QString &, const QString & );
 
 public:
     // account API in OutlookAPI_account.cpp
     QString defaultProfileName() const;
-    std::optional< std::map< QString, std::shared_ptr< Outlook::Account > > > getAllAccounts( const QString &profile );
+    std::optional< std::map< QString, COutlookObj< Outlook::_Account > > > getAllAccounts( const QString &profile );
 
     QString defaultAccountName();
     QString accountName() const;
     bool accountSelected() const;
 
-    std::shared_ptr< Outlook::Account > closeAndSelectAccount( bool notifyOnChange );
+    COutlookObj< Outlook::_Account > closeAndSelectAccount( bool notifyOnChange );
     bool selectAccount( const QString &accountName, bool notifyOnChange );
-    std::shared_ptr< Outlook::Account > selectAccount( bool notifyOnChange );
+    COutlookObj< Outlook::_Account > selectAccount( bool notifyOnChange );
 
     bool connected();
 
     // rules API in OutlookAPI_rules.cpp
-    std::pair< std::shared_ptr< Outlook::Rules >, int > getRules();
-    std::shared_ptr< Outlook::Rule > getRule( const std::shared_ptr< Outlook::Rules > &rules, int num );
-    std::shared_ptr< Outlook::Rule > findRule( const QString &ruleName );
+    std::pair< COutlookObj< Outlook::Rules >, int > getRules();
+    COutlookObj< Outlook::_Rule > getRule( const COutlookObj< Outlook::Rules > &rules, int num );
+    COutlookObj< Outlook::_Rule > findRule( const QString &ruleName );
 
-    std::optional< bool > addRule( const std::shared_ptr< Outlook::Folder > &folder, const std::list< std::pair< QStringList, EFilterType > > &patterns, QStringList &msgs );
-    std::optional< bool > addToRule( std::shared_ptr< Outlook::Rule > rule, const std::list< std::pair< QStringList, EFilterType > > &patterns, QStringList &msg, bool copyFirst );
-    std::shared_ptr< Outlook::Rule > copyRule( std::shared_ptr< Outlook::Rule > rule );
+    std::optional< bool > addRule( const COutlookObj< Outlook::MAPIFolder > &folder, const std::list< std::pair< QStringList, EFilterType > > &patterns, QStringList &msgs );
+    std::optional< bool > addToRule( const COutlookObj< Outlook::_Rule > &rule, const std::list< std::pair< QStringList, EFilterType > > &patterns, QStringList &msg, bool copyFirst );
+    COutlookObj< Outlook::_Rule > copyRule( const COutlookObj< Outlook::_Rule > &rule );
 
-    static QString getDebugName( const std::shared_ptr< Outlook::Rule > &rule );
-    static QString getDebugName( const Outlook::Rule *rule );
+    static QString getDebugName( const COutlookObj< Outlook::_Rule > &rule );
     static QString getDebugName( const Outlook::_Rule *rule );
-    static QString getDisplayName( const std::shared_ptr< Outlook::Rule > &rule );
-    static QString getDisplayName( const Outlook::Rule *rule );
+    static QString getDisplayName( const COutlookObj< Outlook::_Rule > &rule );
     static QString getDisplayName( const Outlook::_Rule *rule );
 
-    bool ruleEnabled( const std::shared_ptr< Outlook::Rule > &rule );
-    bool disableRule( const std::shared_ptr< Outlook::Rule > &rule, bool andSave );
-    bool enableRule( const std::shared_ptr< Outlook::Rule > &rule, bool andSave );
-    bool deleteRule( std::shared_ptr< Outlook::Rule > rule, bool forceDisable, bool andSave );
+    bool ruleEnabled( const COutlookObj< Outlook::_Rule > &rule );
+    bool disableRule( const COutlookObj< Outlook::_Rule > &rule, bool andSave );
+    bool enableRule( const COutlookObj< Outlook::_Rule > &rule, bool andSave );
+    bool deleteRule( const COutlookObj< Outlook::_Rule > &rule, bool forceDisable, bool andSave );
 
-    void loadRuleData( QStandardItem *ruleItem, std::shared_ptr< Outlook::Rule > rule, bool force = false );
+    void loadRuleData( QStandardItem *ruleItem, COutlookObj< Outlook::_Rule > rule, bool force = false );
 
-    QString moveTargetFolderForRule( const std::shared_ptr< Outlook::Rule > &rule ) const;
-    std::list< EFilterType > filterTypesForRule( const std::shared_ptr< Outlook::Rule > &rule ) const;
+    QString moveTargetFolderForRule( const COutlookObj< Outlook::_Rule > &rule ) const;
+    std::list< EFilterType > filterTypesForRule( const COutlookObj< Outlook::_Rule > &rule ) const;
 
-    static QString ruleNameForRule( std::shared_ptr< Outlook::Rule > rule, bool forDisplay = false );
-    static std::optional< QString > getDestFolderNameForRule( std::shared_ptr< Outlook::Rule > rule, bool moveOnly );   // if move only false, checks move than copy
+    static QString ruleNameForRule( const COutlookObj< Outlook::_Rule > &rule, bool forDisplay = false );
+    static std::optional< QString > getDestFolderNameForRule( const COutlookObj< Outlook::_Rule > & rule, bool moveOnly );   // if move only false, checks move than copy
 
-    static QString rawRuleNameForRule( std::shared_ptr< Outlook::Rule > rule );
+    static QString rawRuleNameForRule( const COutlookObj< Outlook::_Rule > & rule );
 
-    static QStringList getActionStrings( std::shared_ptr< Outlook::Rule > rule );
+    static QStringList getActionStrings( const COutlookObj< Outlook::_Rule > &rule );
 
-    static std::list< QStringList > getConditionalStringList( std::shared_ptr< Outlook::Rule > rule, bool exceptions, EWrapperMode wrapperMode, bool includeSender = false );
-    static std::list< QStringList > getActionStringList( std::shared_ptr< Outlook::Rule > rule );
+    static std::list< QStringList > getConditionalStringList( const COutlookObj< Outlook::_Rule > &rule, bool exceptions, EWrapperMode wrapperMode, bool includeSender = false );
+    static std::list< QStringList > getActionStringList( const COutlookObj< Outlook::_Rule > &rule );
 
-    static bool isEnabled( const std::shared_ptr< Outlook::Rule > &rule );
+    static bool isEnabled( const COutlookObj< Outlook::_Rule > &rule );
 
-    bool ruleBeenLoaded( std::shared_ptr< Outlook::Rule > &rule ) const;
-    bool ruleLessThan( const std::shared_ptr< Outlook::Rule > &lhsRule, const std::shared_ptr< Outlook::Rule > &rhsRule ) const;
+    bool ruleBeenLoaded( const COutlookObj< Outlook::_Rule > &rule ) const;
+    bool ruleLessThan( const COutlookObj< Outlook::_Rule > &lhsRule, const COutlookObj< Outlook::_Rule > &rhsRule ) const;
 
-    bool runAllRules( const std::shared_ptr< Outlook::Folder > &folder = {} );
+    bool runAllRules( const COutlookObj< Outlook::MAPIFolder > &folder = {} );
     bool runAllRulesOnAllFolders();
     bool runAllRulesOnTrashFolder();
     bool runAllRulesOnJunkFolder();
 
-    bool runRule( std::shared_ptr< Outlook::Rule > rule, const std::shared_ptr< Outlook::Folder > &folder = {} );
+    bool runRule( const COutlookObj< Outlook::_Rule > &rule, const COutlookObj< Outlook::MAPIFolder > &folder = {} );
 
     // run from command line
-    bool runAllRules( std::shared_ptr< Outlook::Folder > folder, bool allFolders, bool junk );
-    bool runRule( const std::shared_ptr< Outlook::Rule > &rule, std::shared_ptr< Outlook::Folder > folder, bool allFolders, bool junk );
+    bool runAllRules( COutlookObj< Outlook::MAPIFolder > folder, bool allFolders, bool junk );
+    bool runRule( const COutlookObj< Outlook::_Rule > &rule, COutlookObj< Outlook::MAPIFolder > folder, bool allFolders, bool junk );
 
     // tools API in OutlookAPI_tools.cpp
     bool enableAllRules( bool andSave = true, bool *needsSaving = nullptr );
@@ -251,29 +255,29 @@ public:
     bool saveRules();
 
     // folders API in OutlookAPI_folders.cpp
-    using TFolderFunc = std::function< bool( const std::shared_ptr< Outlook::Folder > &folder ) >;
+    using TFolderFunc = std::function< bool( const COutlookObj< Outlook::MAPIFolder > &folder ) >;
 
-    std::shared_ptr< Outlook::Folder > rootFolder();
+    COutlookObj< Outlook::MAPIFolder > rootFolder();
     QString rootFolderName();
 
-    void setRootFolder( const std::shared_ptr< Outlook::Folder > &folder, bool update = true );
+    void setRootFolder( const COutlookObj< Outlook::MAPIFolder > &folder, bool update = true );
 
-    QString folderDisplayPath( const std::shared_ptr< Outlook::Folder > &folder, bool removeLeadingSlashes = false ) const;
-    QString folderDisplayName( const Outlook::Folder *folder );
+    QString folderDisplayPath( const COutlookObj< Outlook::MAPIFolder > &folder, bool removeLeadingSlashes = false ) const;
+    QString folderDisplayName( const Outlook::MAPIFolder *folder );
 
-    std::shared_ptr< Outlook::Folder > findFolder( const QString &folderName, std::shared_ptr< Outlook::Folder > parentFolder );
-    std::shared_ptr< Outlook::Folder > getFolder( const Outlook::Folder *item );
+    COutlookObj< Outlook::MAPIFolder > findFolder( const QString &folderName, COutlookObj< Outlook::MAPIFolder > parentFolder );
+    COutlookObj< Outlook::MAPIFolder > getFolder( const Outlook::MAPIFolder *item );
 
-    int recursiveSubFolderCount( const Outlook::Folder *parent );
+    int recursiveSubFolderCount( const Outlook::MAPIFolder *parent );
 
-    std::list< std::shared_ptr< Outlook::Folder > > getFolders( const std::shared_ptr< Outlook::Folder > &parent, bool recursive, const TFolderFunc &acceptFolder = {}, const TFolderFunc &checkChildFolders = {} );
-    std::shared_ptr< Outlook::Folder > addFolder( const std::shared_ptr< Outlook::Folder > &parent, const QString &folderName );
-    std::shared_ptr< Outlook::Folder > parentFolder( const std::shared_ptr< Outlook::Folder > &folder );
+    std::list< COutlookObj< Outlook::MAPIFolder > > getFolders( const COutlookObj< Outlook::MAPIFolder > &parent, bool recursive, const TFolderFunc &acceptFolder = {}, const TFolderFunc &checkChildFolders = {} );
+    COutlookObj< Outlook::MAPIFolder > addFolder( const COutlookObj< Outlook::MAPIFolder > &parent, const QString &folderName );
+    COutlookObj< Outlook::MAPIFolder > parentFolder( const COutlookObj< Outlook::MAPIFolder > &folder );
 
-    QString nameForFolder( const std::shared_ptr< Outlook::Folder > &folder ) const;
-    QString rawPathForFolder( const std::shared_ptr< Outlook::Folder > &folder ) const;
+    QString nameForFolder( const COutlookObj< Outlook::MAPIFolder > &folder ) const;
+    QString rawPathForFolder( const COutlookObj< Outlook::MAPIFolder > &folder ) const;
 
-    QString folderDisplayName( const std::shared_ptr< Outlook::Folder > &folder );
+    QString folderDisplayName( const COutlookObj< Outlook::MAPIFolder > &folder );
 
     bool emptyJunk();
     bool emptyTrash();
@@ -293,7 +297,7 @@ public:
     static bool isAddressType( EAddressTypes value, EAddressTypes filter );
     static bool isAddressType( std::optional< EAddressTypes > value, std::optional< EAddressTypes > filter );
     static bool isAddressType( Outlook::OlMailRecipientType type, std::optional< EAddressTypes > filter );
-    
+
     enum class EContactTypes
     {
         eNone = 0x00,
@@ -307,28 +311,28 @@ public:
     static bool isContactType( std::optional< EContactTypes > value, std::optional< EContactTypes > filter );
     static bool isContactType( Outlook::OlAddressEntryUserType type, std::optional< EContactTypes > filter );
 
-    std::pair< std::shared_ptr< Outlook::Items >, int > getEmailItemsForRootFolder();
+    std::pair< COutlookObj< Outlook::_Items >, int > getEmailItemsForRootFolder();
 
-    std::shared_ptr< Outlook::MailItem > getEmailItem( const std::shared_ptr< Outlook::Items > &items, int num );
-    std::shared_ptr< Outlook::MailItem > getEmailItem( IDispatch *item );
+    COutlookObj< Outlook::MailItem > getEmailItem( const COutlookObj< Outlook::_Items > &items, int num );
+    COutlookObj< Outlook::MailItem > getEmailItem( IDispatch *item );
 
     static bool isExchangeUser( Outlook::AddressEntry *address );
 
-    static QString getSubject( std::shared_ptr< Outlook::MailItem > mailItem );
+    static QString getSubject( const COutlookObj< Outlook::MailItem > & mailItem );
     static QString getSubject( Outlook::MailItem *mailItem );
 
-    void displayEmail( const std::shared_ptr< Outlook::MailItem > &email ) const;
+    void displayEmail( const COutlookObj< Outlook::MailItem > &email ) const;
 
     // in the Outlook_emailAddress file
     static QStringList getSenderEmailAddresses( Outlook::MailItem *mailItem );
 
-    static TEmailAddressList getEmailAddresses( std::shared_ptr< Outlook::MailItem > &mailItem, std::optional< EAddressTypes > addressTypes = {}, std::optional< EContactTypes > contactTypes = {} );
-    static TEmailAddressList getEmailAddresses( Outlook::MailItem *mailItem, std::optional< EAddressTypes > addressTypes = {}, std::optional< EContactTypes > contactTypes = {} );   
+    static TEmailAddressList getEmailAddresses( const COutlookObj< Outlook::MailItem > &mailItem, std::optional< EAddressTypes > addressTypes = {}, std::optional< EContactTypes > contactTypes = {} );
+    static TEmailAddressList getEmailAddresses( Outlook::MailItem *mailItem, std::optional< EAddressTypes > addressTypes = {}, std::optional< EContactTypes > contactTypes = {} );
     static TEmailAddressList getEmailAddresses( Outlook::Recipients *recipients, std::optional< EAddressTypes > addressTypes = {}, std::optional< EContactTypes > contactTypes = {} );
     static TEmailAddressList getEmailAddresses( Outlook::Recipient *recipient, std::optional< EAddressTypes > addressTypes = {}, std::optional< EContactTypes > contactTypes = {} );
-    static TEmailAddressList getEmailAddresses( Outlook::AddressList *addresses, std::optional< EContactTypes > contactTypes = {} );   
-    static TEmailAddressList getEmailAddresses( Outlook::AddressEntries *entries, std::optional< EContactTypes > contactTypes = {} );  
-    static TEmailAddressList getEmailAddresses( Outlook::AddressEntry *address, std::optional< EContactTypes > contactTypes = {} );  
+    static TEmailAddressList getEmailAddresses( Outlook::AddressList *addresses, std::optional< EContactTypes > contactTypes = {} );
+    static TEmailAddressList getEmailAddresses( Outlook::AddressEntries *entries, std::optional< EContactTypes > contactTypes = {} );
+    static TEmailAddressList getEmailAddresses( Outlook::AddressEntry *address, std::optional< EContactTypes > contactTypes = {} );
 
     static std::list< Outlook::AddressEntry * > getAddressEntries( Outlook::Recipients *recipients );
     static std::list< Outlook::AddressEntry * > getAddressEntries( Outlook::Recipient *recipients );
@@ -337,16 +341,6 @@ public:
     void dumpSession( Outlook::NameSpace &session );
     void dumpMetaMethods( QObject *object );
 
-private:
-    // general API in OutlookAPI.cpp
-    bool showRuleDialog( std::shared_ptr< Outlook::Rule > rule, bool readOnly );
-
-    std::shared_ptr< Outlook::Application > getApplication();
-    std::shared_ptr< Outlook::Application > outlookApp();
-
-    std::shared_ptr< Outlook::Items > getItems( Outlook::_Items *item );
-    std::shared_ptr< Outlook::Folder > selectContacts();
-    std::shared_ptr< Outlook::Folder > selectInbox();
     template< typename T >
     static Outlook::OlObjectClass getObjectClass( T *item )
     {
@@ -354,47 +348,45 @@ private:
             return {};
         return item->Class();
     }
-    static Outlook::OlObjectClass getObjectClass( IDispatch *item );
+
+    std::pair< void *, Outlook::OlObjectClass > createObj( IDispatch *baseItem );
+
+private:
+    // general API in OutlookAPI.cpp
+    bool showRuleDialog( const COutlookObj< Outlook::_Rule > &rule, bool readOnly );
+
+    COutlookObj< Outlook::Application > getApplication();
+    COutlookObj< Outlook::Application > outlookApp();
+
+    COutlookObj< Outlook::_Items > getItems( Outlook::_Items *item );
+    COutlookObj< Outlook::MAPIFolder > selectContacts();
+    COutlookObj< Outlook::MAPIFolder > selectInbox();
 
     void initSettings();
     void setEmailFilterTypes( EFilterType value );
 
-    template< typename T >
-    T connectToException( T obj )
-    {
-        connect( obj, SIGNAL( exception( int, QString, QString, QString ) ), this, SLOT( slotHandleException( int, const QString &, const QString &, const QString & ) ) );
-        return obj;
-    }
-
-    template< typename T >
-    std::shared_ptr< T > connectToException( std::shared_ptr< T > obj )
-    {
-        connect( obj.get(), SIGNAL( exception( int, QString, QString, QString ) ), this, SLOT( slotHandleException( int, const QString &, const QString &, const QString & ) ) );
-        return obj;
-    }
-
     QWidget *fParentWidget{ nullptr };
-    std::shared_ptr< Outlook::Application > fOutlookApp{ nullptr };
-    std::shared_ptr< Outlook::NameSpace > fSession{ nullptr };
-    std::shared_ptr< Outlook::Account > fAccount{ nullptr };
-    std::shared_ptr< Outlook::Folder > fInbox{ nullptr };
-    std::shared_ptr< Outlook::Folder > fRootFolder{ nullptr };   // used for loading emails
-    std::shared_ptr< Outlook::Folder > fJunkFolder{ nullptr };
-    std::shared_ptr< Outlook::Folder > fTrashFolder{ nullptr };
-    std::shared_ptr< Outlook::Folder > fContacts{ nullptr };
-    std::shared_ptr< Outlook::Rules > fRules{ nullptr };
+    COutlookObj< Outlook::Application > fOutlookApp;
+    COutlookObj< Outlook::_NameSpace > fSession;
+    COutlookObj< Outlook::_Account > fAccount;
+    COutlookObj< Outlook::MAPIFolder > fInbox;
+    COutlookObj< Outlook::MAPIFolder > fRootFolder;   // used for loading emails
+    COutlookObj< Outlook::MAPIFolder > fJunkFolder;
+    COutlookObj< Outlook::MAPIFolder > fTrashFolder;
+    COutlookObj< Outlook::MAPIFolder > fContacts;
+    COutlookObj< Outlook::Rules > fRules;
 
     static std::shared_ptr< COutlookAPI > sInstance;
 
     bool fLoggedIn{ false };
     bool fCanceled{ false };
-    bool fIgnoreExceptions{ false };
     bool fOnlyProcessUnread{ true };
     bool fProcessAllEmailWhenLessThan200Emails{ true };
     bool fOnlyProcessTheFirst500Emails{ true };
     bool fIncludeJunkFolderWhenRunningOnAllFolders{ false };
     bool fIncludeDeletedFolderWhenRunningOnAllFolders{ false };
     bool fDisableRatherThanDeleteRules{ false };
+    bool fRunRuleOnRootFolderWhenModified{ true };
     bool fLoadAccountInfo{ true };
     QString fLastAccountName;
     std::list< EFilterType > fEmailFilterTypes{ EFilterType::eByEmailAddressContains };
@@ -403,77 +395,75 @@ private:
 
     // account API in OutlookAPI_account.cpp
 private:
-    std::shared_ptr< Outlook::Account > getAccount( Outlook::_Account *item );
-    std::shared_ptr< Outlook::NameSpace > getNamespace( Outlook::_NameSpace *ns );
+    COutlookObj< Outlook::_Account > getAccount( Outlook::_Account *item );
+    COutlookObj< Outlook::_NameSpace > getNamespace( Outlook::_NameSpace *ns );
 
     // rules api in Outlook_rules.cpp
 private:
     // rules API in OutlookAPI_rules.cpp
-    std::shared_ptr< Outlook::Rules > selectRules();
-    bool skipRule( const std::shared_ptr< Outlook::Rule > &rule ) const;
+    COutlookObj< Outlook::Rules > selectRules();
+    bool skipRule( const COutlookObj< Outlook::_Rule > &rule ) const;
 
-    std::shared_ptr< Outlook::Rules > getRules( Outlook::Rules *item );
-    std::shared_ptr< Outlook::Rule > getRule( Outlook::_Rule *item );
+    COutlookObj< Outlook::Rules > getRules( Outlook::Rules *item );
+    COutlookObj< Outlook::_Rule > getRule( Outlook::_Rule *item );
 
-    std::optional< QStringList > getRecipients( Outlook::Rule *rule, QStringList *msgs );
+    std::optional< QStringList > getRecipients( Outlook::_Rule *rule, QStringList *msgs );
 
-    std::vector< std::shared_ptr< Outlook::Rule > > getAllRules();
+    std::vector< COutlookObj< Outlook::_Rule > > getAllRules();
 
-    bool runRules( std::vector< std::shared_ptr< Outlook::Rule > > rules, std::shared_ptr< Outlook::Folder > folder = {}, bool recursive = false, const std::optional< QString > &perFolderMsg = {} );
+    bool runRules( std::vector< COutlookObj< Outlook::_Rule > > rules, COutlookObj< Outlook::MAPIFolder > folder, bool recursive = false, const std::optional< QString > &perFolderMsg = {} );
 
-    bool addRecipientsToRule( Outlook::Rule *rule, const QStringList &recipients, QStringList &msgs );
-    bool addRecipientsToRule( Outlook::Rule *rule, const TEmailAddressList &recipients, QStringList &msgs );
-    bool addDisplayNamesToRule( Outlook::Rule *rule, const QStringList &displayNames, QStringList &msgs );
-    bool addSubjectsToRule( Outlook::Rule *rule, const QStringList &subjects, QStringList &msgs );
-    bool addSenderToRule( Outlook::Rule *rule, const TEmailAddressList &senders, QStringList &msgs );
-    bool addSenderToRule( Outlook::Rule *rule, const QStringList &senders, QStringList &msgs );
+    bool addRecipientsToRule( Outlook::_Rule *rule, const QStringList &recipients, QStringList &msgs );
+    bool addRecipientsToRule( Outlook::_Rule *rule, const TEmailAddressList &recipients, QStringList &msgs );
+    bool addDisplayNamesToRule( Outlook::_Rule *rule, const QStringList &displayNames, QStringList &msgs );
+    bool addSubjectsToRule( Outlook::_Rule *rule, const QStringList &subjects, QStringList &msgs );
+    bool addSenderToRule( Outlook::_Rule *rule, const TEmailAddressList &senders, QStringList &msgs );
+    bool addSenderToRule( Outlook::_Rule *rule, const QStringList &senders, QStringList &msgs );
 
-    std::unordered_set< std::shared_ptr< Outlook::Rule > > fRuleBeenLoaded;
+    std::unordered_set< COutlookObj< Outlook::_Rule > > fRuleBeenLoaded;
 
     // tools API in OutlookAPI_tools.cpp
 private:
-    using TRuleList = std::list< std::shared_ptr< Outlook::Rule > >;
-    using TRulePair = std::pair< std::shared_ptr< Outlook::Rule >, TRuleList >;
+    using TRuleList = std::list< COutlookObj< Outlook::_Rule > >;
+    using TRulePair = std::pair< COutlookObj< Outlook::_Rule >, TRuleList >;
     using TMergeRuleMap = std::multimap< QString, TRulePair >;
 
-    std::optional< QString > mergeKey( const std::shared_ptr< Outlook::Rule > &rule ) const;
-    std::optional< QStringList > mergeRecipients( Outlook::Rule *lhs, Outlook::Rule *rhs, QStringList *msgs );
-    std::optional< QStringList > mergeRecipients( Outlook::Rule *lhs, const QStringList &rhs, QStringList *msgs );
-    std::optional< QStringList > mergeRecipients( Outlook::Rule *lhs, const TEmailAddressList &rhs, QStringList *msgs );
-    std::optional< QStringList > mergeRecipients( const std::list< Outlook::Rule * > &rules, QStringList *msgs );
+    std::optional< QString > mergeKey( const COutlookObj< Outlook::_Rule > &rule ) const;
+    std::optional< QStringList > mergeRecipients( Outlook::_Rule *lhs, Outlook::_Rule *rhs, QStringList *msgs );
+    std::optional< QStringList > mergeRecipients( Outlook::_Rule *lhs, const QStringList &rhs, QStringList *msgs );
+    std::optional< QStringList > mergeRecipients( Outlook::_Rule *lhs, const TEmailAddressList &rhs, QStringList *msgs );
+    std::optional< QStringList > mergeRecipients( const std::list< Outlook::_Rule * > &rules, QStringList *msgs );
 
     static QString stripHeaderStringString( const QString &msg );   // can include the "From" portion of the pattern as well as quotes, returns the raw pattern
     static QStringList getFromMessageHeaderString( const QString &address );   // can include the "From" portion of the pattern as well as quotes, calls stripHeaderStringString first, returns both proper patterns From: "XXX" and From: XXX
     static QStringList getFromMessageHeaderStrings( const QStringList &msgs );   // can include the "From" portion of the pattern as well as quotes, returns the raw pattern, cleans each string first then gets all the proper patterns
-    bool canMergeRules( std::shared_ptr< Outlook::Rule > lhs, std::shared_ptr< Outlook::Rule > rhs );
+    bool canMergeRules( const COutlookObj< Outlook::_Rule > &lhs, const COutlookObj< Outlook::_Rule > &rhs );
 
-    void mergeRules( TRulePair &rules );
-    std::shared_ptr< Outlook::Rule > mergeRule( std::shared_ptr< Outlook::Rule > &lhs, std::shared_ptr< Outlook::Rule > &rhs );
+    bool mergeRules( TRulePair &rules );
+    bool mergeRule( COutlookObj< Outlook::_Rule > &lhs, const COutlookObj< Outlook::_Rule > &rhs );
     TMergeRuleMap findMergableRules();
 
 private:
     // folders API in OutlookAPI_folders.cpp
-    bool isFolder( const std::shared_ptr< Outlook::Folder > &folder, const QString &path ) const;
-    bool emptyFolder( std::shared_ptr< Outlook::Folder > &folder );
-
-    std::shared_ptr< Outlook::Folder > getFolder( const Outlook::MAPIFolder *item );
+    bool isFolder( const COutlookObj< Outlook::MAPIFolder > &folder, const QString &path ) const;
+    bool emptyFolder( const COutlookObj< Outlook::MAPIFolder > &folder );
 
     void setRootFolder( const QString &folderName, bool update = true );
 
-    std::shared_ptr< Outlook::Folder > getDefaultFolder( Outlook::OlDefaultFolders folderType );
-    std::pair< std::shared_ptr< Outlook::Folder >, bool > getMailFolder( const QString &folderLabel, const QString &fullPath, bool singleOnly );   // full path after \\account
-    std::pair< std::shared_ptr< Outlook::Folder >, bool > selectFolder( const QString &folderName, const TFolderFunc &acceptFolder, const TFolderFunc &checkChildFolders, bool singleOnly );
-    std::pair< std::shared_ptr< Outlook::Folder >, bool > selectFolder( const QString &folderName, const std::list< std::shared_ptr< Outlook::Folder > > &folders, bool singleOnly );
+    COutlookObj< Outlook::MAPIFolder > getDefaultFolder( Outlook::OlDefaultFolders folderType );
+    std::pair< COutlookObj< Outlook::MAPIFolder >, bool > getMailFolder( const QString &folderLabel, const QString &fullPath, bool singleOnly );   // full path after \\account
+    std::pair< COutlookObj< Outlook::MAPIFolder >, bool > selectFolder( const QString &folderName, const TFolderFunc &acceptFolder, const TFolderFunc &checkChildFolders, bool singleOnly );
+    std::pair< COutlookObj< Outlook::MAPIFolder >, bool > selectFolder( const QString &folderName, const std::list< COutlookObj< Outlook::MAPIFolder > > &folders, bool singleOnly );
 
-    std::list< std::shared_ptr< Outlook::Folder > > getFolders( bool recursive, const TFolderFunc &acceptFolder = {}, const TFolderFunc &checkChildFolders = {} );
+    std::list< COutlookObj< Outlook::MAPIFolder > > getFolders( bool recursive, const TFolderFunc &acceptFolder = {}, const TFolderFunc &checkChildFolders = {} );
 
-    static QString ruleNameForFolder( Outlook::Folder *folder );
-    static QString ruleNameForFolder( const std::shared_ptr< Outlook::Folder > &folder );
+    static QString ruleNameForFolder( Outlook::MAPIFolder *folder );
+    static QString ruleNameForFolder( const COutlookObj< Outlook::MAPIFolder > &folder );
 
-    int subFolderCount( const Outlook::Folder *parent, bool recursive );
+    int subFolderCount( const Outlook::MAPIFolder *parent, bool recursive );
 
     // dump API in OutlookAPI_dump.cpp
-    void dumpFolder( Outlook::Folder *root );
+    void dumpFolder( Outlook::MAPIFolder *root );
 };
 
 QString toString( const QVariant &variant, const QString &joinSeparator );
