@@ -90,8 +90,8 @@ protected Q_SLOTS:
     void slotSettings();
 
 protected:
-    bool showRule( const COutlookObj< Outlook::_Rule > & rule );
-    bool editRule( const COutlookObj< Outlook::_Rule > & rule );
+    bool showRule( const COutlookObj< Outlook::Rule > & rule );
+    bool editRule( const COutlookObj< Outlook::Rule > & rule );
     void updateActions();
     void reloadAll( bool andLoadServerInfo );
 

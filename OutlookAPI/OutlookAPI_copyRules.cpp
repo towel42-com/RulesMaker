@@ -89,7 +89,7 @@ void copyAction( Outlook::SendRuleAction *lhsAction, Outlook::SendRuleAction *rh
     }
 }
 
-void copyActions( COutlookObj< Outlook::_Rule > retValRule, COutlookObj< Outlook::_Rule > source )
+void copyActions( COutlookObj< Outlook::Rule > retValRule, COutlookObj< Outlook::Rule > source )
 {
     if ( !retValRule || !source )
         return;
@@ -259,7 +259,7 @@ void copyCondition( Outlook::SensitivityRuleCondition *retVal, Outlook::Sensitiv
     retVal->SetSensitivity( sourceCondition->Sensitivity() );
 }
 
-void copyConditions( COutlookObj< Outlook::_Rule > retValRule, COutlookObj< Outlook::_Rule > source, bool exceptions )
+void copyConditions( COutlookObj< Outlook::Rule > retValRule, COutlookObj< Outlook::Rule > source, bool exceptions )
 {
     if ( !retValRule || !source )
         return;
@@ -295,12 +295,12 @@ void copyConditions( COutlookObj< Outlook::_Rule > retValRule, COutlookObj< Outl
     copyCondition( retVal->ToOrCc(), sourceConditions->ToOrCc() );
 }
 
-COutlookObj< Outlook::_Rule > COutlookAPI::copyRule( const COutlookObj< Outlook::_Rule > &rule )
+COutlookObj< Outlook::Rule > COutlookAPI::copyRule( const COutlookObj< Outlook::Rule > &rule )
 {
     if ( !rule || !fRules )
         return {};
 
-    auto retVal = COutlookObj< Outlook::_Rule >( fRules->Create( rule->Name(), rule->RuleType() ) );
+    auto retVal = COutlookObj< Outlook::Rule >( fRules->Create( rule->Name(), rule->RuleType() ) );
     if ( !retVal )
         return {};
 

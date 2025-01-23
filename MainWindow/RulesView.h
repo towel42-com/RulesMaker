@@ -38,7 +38,7 @@ public:
 
     bool ruleSelected() const;
     QString folderForSelectedRule() const;
-    COutlookObj< Outlook::_Rule > selectedRule() const;
+    COutlookObj< Outlook::Rule > selectedRule() const;
 
     std::list< EFilterType > filterTypesForSelectedRule() const;
 
@@ -59,7 +59,7 @@ protected Q_SLOTS:
 
 protected:
     void updateButtons( const QModelIndex &index );
-    void updateButtons( const COutlookObj< Outlook::_Rule > &rule );
+    void updateButtons( const COutlookObj< Outlook::Rule > &rule );
     QModelIndex selectedIndex() const;
     QModelIndex sourceIndex( const QModelIndex &idx ) const;
 

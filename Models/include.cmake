@@ -25,7 +25,7 @@ set( project_pub_LIB_DIRS
 )
 
 set( project_pub_DEPS
-    Qt5::Widgets Qt5::AxContainer 
+    Qt5::Widgets Qt5::AxContainer OutlookAPI
 )
 
 set( EXTRA_CMAKE_FILES

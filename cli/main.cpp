@@ -143,7 +143,7 @@ std::pair< EParseResult, EOperation > parseCommandLine( QCommandLineParser &pars
 bool runRules( QCommandLineParser &parser )
 {
     auto api = COutlookAPI::instance();
-    COutlookObj< Outlook::_Rule > rule;
+    COutlookObj< Outlook::Rule > rule;
     if ( parser.isSet( "rule" ) )
     {
         auto ruleName = parser.value( "rule" );

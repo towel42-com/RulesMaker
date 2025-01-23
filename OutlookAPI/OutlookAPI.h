@@ -158,8 +158,8 @@ public:
     std::list< EFilterType > emailFilterTypes() { return fEmailFilterTypes; }
 
     QWidget *getParentWidget() const;
-    bool showRule( const COutlookObj< Outlook::_Rule > & rule );
-    bool editRule( const COutlookObj< Outlook::_Rule > &rule );
+    bool showRule( const COutlookObj< Outlook::Rule > & rule );
+    bool editRule( const COutlookObj< Outlook::Rule > &rule );
 
     void sendStatusMesage( const QString &msg ){ emit sigStatusMessage( msg ); }
 Q_SIGNALS:
@@ -171,9 +171,9 @@ Q_SIGNALS:
     void sigStatusFinished( const QString &label );
     void sigOptionChanged();
 
-    void sigRuleChanged( const COutlookObj< Outlook::_Rule > &rule );
-    void sigRuleAdded( const COutlookObj< Outlook::_Rule > &rule );
-    void sigRuleDeleted( const COutlookObj< Outlook::_Rule > &rule );
+    void sigRuleChanged( const COutlookObj< Outlook::Rule > &rule );
+    void sigRuleAdded( const COutlookObj< Outlook::Rule > &rule );
+    void sigRuleDeleted( const COutlookObj< Outlook::Rule > &rule );
 public Q_SLOTS:
     void slotCanceled() { fCanceled = true; }
     void slotClearCanceled() { fCanceled = false; }
@@ -196,53 +196,53 @@ public:
 
     // rules API in OutlookAPI_rules.cpp
     std::pair< COutlookObj< Outlook::Rules >, int > getRules();
-    COutlookObj< Outlook::_Rule > getRule( const COutlookObj< Outlook::Rules > &rules, int num );
-    COutlookObj< Outlook::_Rule > findRule( const QString &ruleName );
+    COutlookObj< Outlook::Rule > getRule( const COutlookObj< Outlook::Rules > &rules, int num );
+    COutlookObj< Outlook::Rule > findRule( const QString &ruleName );
 
     std::optional< bool > addRule( const COutlookObj< Outlook::MAPIFolder > &folder, const std::list< std::pair< QStringList, EFilterType > > &patterns, QStringList &msgs );
-    std::optional< bool > addToRule( const COutlookObj< Outlook::_Rule > &rule, const std::list< std::pair< QStringList, EFilterType > > &patterns, QStringList &msg, bool copyFirst );
-    COutlookObj< Outlook::_Rule > copyRule( const COutlookObj< Outlook::_Rule > &rule );
+    std::optional< bool > addToRule( const COutlookObj< Outlook::Rule > &rule, const std::list< std::pair< QStringList, EFilterType > > &patterns, QStringList &msg, bool copyFirst );
+    COutlookObj< Outlook::Rule > copyRule( const COutlookObj< Outlook::Rule > &rule );
 
-    static QString getDebugName( const COutlookObj< Outlook::_Rule > &rule );
-    static QString getDebugName( const Outlook::_Rule *rule );
-    static QString getDisplayName( const COutlookObj< Outlook::_Rule > &rule );
-    static QString getDisplayName( const Outlook::_Rule *rule );
+    static QString getDebugName( const COutlookObj< Outlook::Rule > &rule );
+    static QString getDebugName( const Outlook::Rule *rule );
+    static QString getDisplayName( const COutlookObj< Outlook::Rule > &rule );
+    static QString getDisplayName( const Outlook::Rule *rule );
 
-    bool ruleEnabled( const COutlookObj< Outlook::_Rule > &rule );
-    bool disableRule( const COutlookObj< Outlook::_Rule > &rule, bool andSave );
-    bool enableRule( const COutlookObj< Outlook::_Rule > &rule, bool andSave );
-    bool deleteRule( const COutlookObj< Outlook::_Rule > &rule, bool forceDisable, bool andSave );
+    bool ruleEnabled( const COutlookObj< Outlook::Rule > &rule );
+    bool disableRule( const COutlookObj< Outlook::Rule > &rule, bool andSave );
+    bool enableRule( const COutlookObj< Outlook::Rule > &rule, bool andSave );
+    bool deleteRule( const COutlookObj< Outlook::Rule > &rule, bool forceDisable, bool andSave );
 
-    void loadRuleData( QStandardItem *ruleItem, COutlookObj< Outlook::_Rule > rule, bool force = false );
+    void loadRuleData( QStandardItem *ruleItem, COutlookObj< Outlook::Rule > rule, bool force = false );
 
-    QString moveTargetFolderForRule( const COutlookObj< Outlook::_Rule > &rule ) const;
-    std::list< EFilterType > filterTypesForRule( const COutlookObj< Outlook::_Rule > &rule ) const;
+    QString moveTargetFolderForRule( const COutlookObj< Outlook::Rule > &rule ) const;
+    std::list< EFilterType > filterTypesForRule( const COutlookObj< Outlook::Rule > &rule ) const;
 
-    static QString ruleNameForRule( const COutlookObj< Outlook::_Rule > &rule, bool forDisplay = false );
-    static std::optional< QString > getDestFolderNameForRule( const COutlookObj< Outlook::_Rule > & rule, bool moveOnly );   // if move only false, checks move than copy
+    static QString ruleNameForRule( const COutlookObj< Outlook::Rule > &rule, bool forDisplay = false );
+    static std::optional< QString > getDestFolderNameForRule( const COutlookObj< Outlook::Rule > & rule, bool moveOnly );   // if move only false, checks move than copy
 
-    static QString rawRuleNameForRule( const COutlookObj< Outlook::_Rule > & rule );
+    static QString rawRuleNameForRule( const COutlookObj< Outlook::Rule > & rule );
 
-    static QStringList getActionStrings( const COutlookObj< Outlook::_Rule > &rule );
+    static QStringList getActionStrings( const COutlookObj< Outlook::Rule > &rule );
 
-    static std::list< QStringList > getConditionalStringList( const COutlookObj< Outlook::_Rule > &rule, bool exceptions, EWrapperMode wrapperMode, bool includeSender = false );
-    static std::list< QStringList > getActionStringList( const COutlookObj< Outlook::_Rule > &rule );
+    static std::list< QStringList > getConditionalStringList( const COutlookObj< Outlook::Rule > &rule, bool exceptions, EWrapperMode wrapperMode, bool includeSender = false );
+    static std::list< QStringList > getActionStringList( const COutlookObj< Outlook::Rule > &rule );
 
-    static bool isEnabled( const COutlookObj< Outlook::_Rule > &rule );
+    static bool isEnabled( const COutlookObj< Outlook::Rule > &rule );
 
-    bool ruleBeenLoaded( const COutlookObj< Outlook::_Rule > &rule ) const;
-    bool ruleLessThan( const COutlookObj< Outlook::_Rule > &lhsRule, const COutlookObj< Outlook::_Rule > &rhsRule ) const;
+    bool ruleBeenLoaded( const COutlookObj< Outlook::Rule > &rule ) const;
+    bool ruleLessThan( const COutlookObj< Outlook::Rule > &lhsRule, const COutlookObj< Outlook::Rule > &rhsRule ) const;
 
     bool runAllRules( const COutlookObj< Outlook::MAPIFolder > &folder = {} );
     bool runAllRulesOnAllFolders();
     bool runAllRulesOnTrashFolder();
     bool runAllRulesOnJunkFolder();
 
-    bool runRule( const COutlookObj< Outlook::_Rule > &rule, const COutlookObj< Outlook::MAPIFolder > &folder = {} );
+    bool runRule( const COutlookObj< Outlook::Rule > &rule, const COutlookObj< Outlook::MAPIFolder > &folder = {} );
 
     // run from command line
     bool runAllRules( COutlookObj< Outlook::MAPIFolder > folder, bool allFolders, bool junk );
-    bool runRule( const COutlookObj< Outlook::_Rule > &rule, COutlookObj< Outlook::MAPIFolder > folder, bool allFolders, bool junk );
+    bool runRule( const COutlookObj< Outlook::Rule > &rule, COutlookObj< Outlook::MAPIFolder > folder, bool allFolders, bool junk );
 
     // tools API in OutlookAPI_tools.cpp
     bool enableAllRules( bool andSave = true, bool *needsSaving = nullptr );
@@ -341,19 +341,11 @@ public:
     void dumpSession( Outlook::NameSpace &session );
     void dumpMetaMethods( QObject *object );
 
-    template< typename T >
-    static Outlook::OlObjectClass getObjectClass( T *item )
-    {
-        if ( !item )
-            return {};
-        return item->Class();
-    }
-
     std::pair< void *, Outlook::OlObjectClass > createObj( IDispatch *baseItem );
 
 private:
     // general API in OutlookAPI.cpp
-    bool showRuleDialog( const COutlookObj< Outlook::_Rule > &rule, bool readOnly );
+    bool showRuleDialog( const COutlookObj< Outlook::Rule > &rule, bool readOnly );
 
     COutlookObj< Outlook::Application > getApplication();
     COutlookObj< Outlook::Application > outlookApp();
@@ -402,45 +394,44 @@ private:
 private:
     // rules API in OutlookAPI_rules.cpp
     COutlookObj< Outlook::Rules > selectRules();
-    bool skipRule( const COutlookObj< Outlook::_Rule > &rule ) const;
+    bool skipRule( const COutlookObj< Outlook::Rule > &rule ) const;
 
     COutlookObj< Outlook::Rules > getRules( Outlook::Rules *item );
-    COutlookObj< Outlook::_Rule > getRule( Outlook::_Rule *item );
 
-    std::optional< QStringList > getRecipients( Outlook::_Rule *rule, QStringList *msgs );
+    std::optional< QStringList > getRecipients( Outlook::Rule *rule, QStringList *msgs );
 
-    std::vector< COutlookObj< Outlook::_Rule > > getAllRules();
+    std::vector< COutlookObj< Outlook::Rule > > getAllRules();
 
-    bool runRules( std::vector< COutlookObj< Outlook::_Rule > > rules, COutlookObj< Outlook::MAPIFolder > folder, bool recursive = false, const std::optional< QString > &perFolderMsg = {} );
+    bool runRules( std::vector< COutlookObj< Outlook::Rule > > rules, COutlookObj< Outlook::MAPIFolder > folder, bool recursive = false, const std::optional< QString > &perFolderMsg = {} );
 
-    bool addRecipientsToRule( Outlook::_Rule *rule, const QStringList &recipients, QStringList &msgs );
-    bool addRecipientsToRule( Outlook::_Rule *rule, const TEmailAddressList &recipients, QStringList &msgs );
-    bool addDisplayNamesToRule( Outlook::_Rule *rule, const QStringList &displayNames, QStringList &msgs );
-    bool addSubjectsToRule( Outlook::_Rule *rule, const QStringList &subjects, QStringList &msgs );
-    bool addSenderToRule( Outlook::_Rule *rule, const TEmailAddressList &senders, QStringList &msgs );
-    bool addSenderToRule( Outlook::_Rule *rule, const QStringList &senders, QStringList &msgs );
+    bool addRecipientsToRule( Outlook::Rule *rule, const QStringList &recipients, QStringList &msgs );
+    bool addRecipientsToRule( Outlook::Rule *rule, const TEmailAddressList &recipients, QStringList &msgs );
+    bool addDisplayNamesToRule( Outlook::Rule *rule, const QStringList &displayNames, QStringList &msgs );
+    bool addSubjectsToRule( Outlook::Rule *rule, const QStringList &subjects, QStringList &msgs );
+    bool addSenderToRule( Outlook::Rule *rule, const TEmailAddressList &senders, QStringList &msgs );
+    bool addSenderToRule( Outlook::Rule *rule, const QStringList &senders, QStringList &msgs );
 
-    std::unordered_set< COutlookObj< Outlook::_Rule > > fRuleBeenLoaded;
+    std::unordered_set< COutlookObj< Outlook::Rule > > fRuleBeenLoaded;
 
     // tools API in OutlookAPI_tools.cpp
 private:
-    using TRuleList = std::list< COutlookObj< Outlook::_Rule > >;
-    using TRulePair = std::pair< COutlookObj< Outlook::_Rule >, TRuleList >;
+    using TRuleList = std::list< COutlookObj< Outlook::Rule > >;
+    using TRulePair = std::pair< COutlookObj< Outlook::Rule >, TRuleList >;
     using TMergeRuleMap = std::multimap< QString, TRulePair >;
 
-    std::optional< QString > mergeKey( const COutlookObj< Outlook::_Rule > &rule ) const;
-    std::optional< QStringList > mergeRecipients( Outlook::_Rule *lhs, Outlook::_Rule *rhs, QStringList *msgs );
-    std::optional< QStringList > mergeRecipients( Outlook::_Rule *lhs, const QStringList &rhs, QStringList *msgs );
-    std::optional< QStringList > mergeRecipients( Outlook::_Rule *lhs, const TEmailAddressList &rhs, QStringList *msgs );
-    std::optional< QStringList > mergeRecipients( const std::list< Outlook::_Rule * > &rules, QStringList *msgs );
+    std::optional< QString > mergeKey( const COutlookObj< Outlook::Rule > &rule ) const;
+    std::optional< QStringList > mergeRecipients( Outlook::Rule *lhs, Outlook::Rule *rhs, QStringList *msgs );
+    std::optional< QStringList > mergeRecipients( Outlook::Rule *lhs, const QStringList &rhs, QStringList *msgs );
+    std::optional< QStringList > mergeRecipients( Outlook::Rule *lhs, const TEmailAddressList &rhs, QStringList *msgs );
+    std::optional< QStringList > mergeRecipients( const std::list< Outlook::Rule * > &rules, QStringList *msgs );
 
     static QString stripHeaderStringString( const QString &msg );   // can include the "From" portion of the pattern as well as quotes, returns the raw pattern
     static QStringList getFromMessageHeaderString( const QString &address );   // can include the "From" portion of the pattern as well as quotes, calls stripHeaderStringString first, returns both proper patterns From: "XXX" and From: XXX
     static QStringList getFromMessageHeaderStrings( const QStringList &msgs );   // can include the "From" portion of the pattern as well as quotes, returns the raw pattern, cleans each string first then gets all the proper patterns
-    bool canMergeRules( const COutlookObj< Outlook::_Rule > &lhs, const COutlookObj< Outlook::_Rule > &rhs );
+    bool canMergeRules( const COutlookObj< Outlook::Rule > &lhs, const COutlookObj< Outlook::Rule > &rhs );
 
     bool mergeRules( TRulePair &rules );
-    bool mergeRule( COutlookObj< Outlook::_Rule > &lhs, const COutlookObj< Outlook::_Rule > &rhs );
+    bool mergeRule( COutlookObj< Outlook::Rule > &lhs, const COutlookObj< Outlook::Rule > &rhs );
     TMergeRuleMap findMergableRules();
 
 private:

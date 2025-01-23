@@ -40,8 +40,8 @@ public:
     QStandardItem *getRuleItem( const QModelIndex &index ) const;
     QStandardItem *getRuleItem( const QStandardItem *item ) const;
 
-    COutlookObj< Outlook::_Rule > getRule( const QModelIndex &index ) const;
-    COutlookObj< Outlook::_Rule > getRule( const QStandardItem *item ) const;
+    COutlookObj< Outlook::Rule > getRule( const QModelIndex &index ) const;
+    COutlookObj< Outlook::Rule > getRule( const QStandardItem *item ) const;
 
     QString summary() const;
 
@@ -55,9 +55,9 @@ Q_SIGNALS:
 
 private Q_SLOTS:
     void slotLoadNextRule();
-    void slotRuleAdded( const COutlookObj< Outlook::_Rule > & rule );
-    void slotRuleChanged( const COutlookObj< Outlook::_Rule > & rule );
-    void slotRuleDeleted( const COutlookObj< Outlook::_Rule > & rule );
+    void slotRuleAdded( const COutlookObj< Outlook::Rule > & rule );
+    void slotRuleChanged( const COutlookObj< Outlook::Rule > & rule );
+    void slotRuleDeleted( const COutlookObj< Outlook::Rule > & rule );
 
 private:
     void updateAllRules();
@@ -65,12 +65,12 @@ private:
 
     void loadRules();
 
-    bool loadRule( const COutlookObj< Outlook::_Rule > & rule, QStandardItem *ruleItem = nullptr );
-    bool updateRule( const COutlookObj< Outlook::_Rule > & rule );
+    bool loadRule( const COutlookObj< Outlook::Rule > & rule, QStandardItem *ruleItem = nullptr );
+    bool updateRule( const COutlookObj< Outlook::Rule > & rule );
 
     std::pair< COutlookObj< Outlook::Rules >, int > fRules{ COutlookObj< Outlook::Rules >{}, 0 };
-    std::unordered_map< QStandardItem *, COutlookObj< Outlook::_Rule > > fRuleMap;
-    std::unordered_map< COutlookObj< Outlook::_Rule >, QStandardItem * > fReverseRuleMap;
+    std::unordered_map< QStandardItem *, COutlookObj< Outlook::Rule > > fRuleMap;
+    std::unordered_map< COutlookObj< Outlook::Rule >, QStandardItem * > fReverseRuleMap;
     int fCurrPos{ 1 };
 };
 

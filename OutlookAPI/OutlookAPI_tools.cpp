@@ -23,16 +23,16 @@ bool COutlookAPI::enableAllRules( bool andSave /*= true*/, bool *needsSaving /*=
     auto numRules = fRules->Count();
     emit sigInitStatus( "Enabling Rules:", numRules );
 
-    std::list< Outlook::_Rule * > rules;
+    auto allRules = getAllRules();
     int numChanged = 0;
-    for ( int ii = 1; ii <= numRules; ++ii )
+    for ( auto && rule : allRules )
     {
-        if ( canceled() )
-            return false;
-        auto rule = fRules->Item( ii );
-        emit sigIncStatusValue( "Enabling Rules:" );
         if ( !rule )
             continue;
+
+        if ( canceled() )
+            return false;
+        emit sigIncStatusValue( "Enabling Rules:" );
         if ( rule->Enabled() )
             continue;
         emit sigStatusMessage( QString( "Enabling rule '%1'" ).arg( getDisplayName( rule ) ) );
@@ -55,7 +55,7 @@ bool COutlookAPI::enableAllRules( bool andSave /*= true*/, bool *needsSaving /*=
     return true;
 }
 
-std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::_Rule *lhs, const QStringList &rhs, QStringList *msgs )
+std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::Rule *lhs, const QStringList &rhs, QStringList *msgs )
 {
     auto lhsRecipients = getRecipients( lhs, msgs );
     if ( !lhsRecipients.has_value() )
@@ -64,12 +64,12 @@ std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::_Rule *lhs, 
     return lhsRecipients;
 }
 
-std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::_Rule *lhs, const TEmailAddressList &rhs, QStringList *msgs )
+std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::Rule *lhs, const TEmailAddressList &rhs, QStringList *msgs )
 {
     return mergeRecipients( lhs, getAddresses( rhs ), msgs );
 }
 
-std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::_Rule *lhs, Outlook::_Rule *rhs, QStringList *msgs )
+std::optional< QStringList > COutlookAPI::mergeRecipients( Outlook::Rule *lhs, Outlook::Rule *rhs, QStringList *msgs )
 {
     auto tmpRhsRecipients = getRecipients( rhs, msgs );
     QStringList rhsRecipients;
@@ -132,7 +132,7 @@ struct SMessage
     {
     }
 
-    QString toString( bool toHtml, bool bold=false )
+    QString toString( bool toHtml, bool bold = false )
     {
         auto retVal = parameterize( toHtml );
         if ( toHtml && bold )
@@ -335,13 +335,13 @@ bool COutlookAPI::fixFromMessageHeaderRules( bool andSave /*= true*/, bool *need
 
     auto numRules = fRules->Count();
     emit sigInitStatus( "Fixing From Message Header Rules:", numRules );
-    std::list< std::pair< COutlookObj< Outlook::_Rule >, std::pair< QStringList, QStringList > > > changes;
+    std::list< std::pair< COutlookObj< Outlook::Rule >, std::pair< QStringList, QStringList > > > changes;
     for ( int ii = 1; ii <= numRules; ++ii )
     {
         if ( canceled() )
             return false;
 
-        auto rule = getRule( fRules->Item( ii ) );
+        auto rule = COutlookObj< Outlook::Rule >( fRules->Item( ii ) );
         if ( !rule )
             continue;
 
@@ -442,13 +442,13 @@ bool COutlookAPI::moveFromToAddress( bool andSave /*= true*/, bool *needsSaving 
 
     auto numRules = fRules->Count();
     emit sigInitStatus( "Transforming From to Address Rules:", numRules );
-    std::list< std::pair< COutlookObj< Outlook::_Rule >, TEmailAddressList > > changes;
+    std::list< std::pair< COutlookObj< Outlook::Rule >, TEmailAddressList > > changes;
     for ( int ii = 1; ii <= numRules; ++ii )
     {
         if ( canceled() )
             return false;
 
-        auto rule = getRule( fRules->Item( ii ) );
+        auto rule = COutlookObj< Outlook::Rule >( fRules->Item( ii ) );
         if ( !rule )
             continue;
 
@@ -552,14 +552,14 @@ bool COutlookAPI::renameRules( bool andSave /*= true*/, bool *needsSaving /*= nu
 
     emit sigInitStatus( "Analyzing Rule Names:", numRules );
 
-    std::list< std::pair< COutlookObj< Outlook::_Rule >, QString > > changes;
+    std::list< std::pair< COutlookObj< Outlook::Rule >, QString > > changes;
     for ( int ii = 1; ii <= numRules; ++ii )
     {
         if ( canceled() )
             return false;
 
         emit sigIncStatusValue( "Analyzing Rule Names:" );
-        auto rule = getRule( fRules->Item( ii ) );
+        auto rule = COutlookObj< Outlook::Rule >( fRules->Item( ii ) );
         if ( !rule )
             continue;
 
@@ -631,12 +631,12 @@ bool COutlookAPI::sortRules( bool andSave /*= true*/, bool *needsSaving /*= null
     auto numRules = fRules->Count();
     emit sigInitStatus( "Sorting Rules:", numRules );
 
-    std::list< Outlook::_Rule * > rules;
+    std::list< COutlookObj< Outlook::Rule > > rules;
     for ( int ii = 1; ii <= numRules; ++ii )
     {
         if ( canceled() )
             return false;
-        auto rule = fRules->Item( ii );
+        auto rule = COutlookObj< Outlook::Rule >( fRules->Item( ii ) );
         emit sigIncStatusValue( "Sorting Rules:" );
         if ( !rule )
             continue;
@@ -646,7 +646,7 @@ bool COutlookAPI::sortRules( bool andSave /*= true*/, bool *needsSaving /*= null
         return false;
 
     rules.sort(
-        []( Outlook::_Rule *lhs, Outlook::_Rule *rhs )
+        []( const COutlookObj< Outlook::Rule > & lhs, const COutlookObj< Outlook::Rule > & rhs )
         {
             if ( !lhs )
                 return false;
@@ -667,7 +667,7 @@ bool COutlookAPI::sortRules( bool andSave /*= true*/, bool *needsSaving /*= null
     auto pos = 1;
     emit sigInitStatus( "Recomputing Execution Order:", numRules );
 
-    std::list< std::tuple< QString, Outlook::_Rule *, int > > rulesChanged;
+    std::list< std::tuple< QString, COutlookObj< Outlook::Rule >, int > > rulesChanged;
     for ( auto &&ii : rules )
     {
         if ( canceled() )

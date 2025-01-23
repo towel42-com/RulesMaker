@@ -16,7 +16,7 @@
 
 std::shared_ptr< COutlookAPI > COutlookAPI::sInstance;
 
-Q_DECLARE_METATYPE( COutlookObj< Outlook::_Rule > );
+Q_DECLARE_METATYPE( COutlookObj< Outlook::Rule > );
 
 COutlookAPI::COutlookAPI( QWidget *parent, COutlookAPI::SPrivate )
 {
@@ -25,8 +25,8 @@ COutlookAPI::COutlookAPI( QWidget *parent, COutlookAPI::SPrivate )
 
     initSettings();
 
-    qRegisterMetaType< COutlookObj< Outlook::_Rule > >();
-    qRegisterMetaType< COutlookObj< Outlook::_Rule > >( "COutlookObj< Outlook::_Rule >const&" );
+    qRegisterMetaType< COutlookObj< Outlook::Rule > >();
+    qRegisterMetaType< COutlookObj< Outlook::Rule > >( "COutlookObj< Outlook::Rule >const&" );
 }
 
 std::shared_ptr< COutlookAPI > COutlookAPI::cliInstance()
@@ -79,24 +79,24 @@ void COutlookAPI::logout( bool andNotify )
     }
 }
 
-QString COutlookAPI::getDebugName( const COutlookObj< Outlook::_Rule > &rule )
+QString COutlookAPI::getDebugName( const COutlookObj< Outlook::Rule > &rule )
 {
     return getDebugName( rule.get() );
 }
 
-QString COutlookAPI::getDebugName( const Outlook::_Rule *rule )
+QString COutlookAPI::getDebugName( const Outlook::Rule *rule )
 {
     if ( !rule )
         return {};
     return QString( "%1%3" ).arg( getDisplayName( rule ) ).arg( rule->Enabled() ? "" : " (Disabled)" );
 }
 
-QString COutlookAPI::getDisplayName( const COutlookObj< Outlook::_Rule > &rule )
+QString COutlookAPI::getDisplayName( const COutlookObj< Outlook::Rule > &rule )
 {
     return getDisplayName( rule.get() );
 }
 
-QString COutlookAPI::getDisplayName( const Outlook::_Rule *rule )
+QString COutlookAPI::getDisplayName( const Outlook::Rule *rule )
 {
     if ( !rule )
         return {};
@@ -184,17 +184,17 @@ QWidget *COutlookAPI::getParentWidget() const
     return fParentWidget;
 }
 
-bool COutlookAPI::showRule( const COutlookObj< Outlook::_Rule > &rule )
+bool COutlookAPI::showRule( const COutlookObj< Outlook::Rule > &rule )
 {
     return showRuleDialog( rule, true );
 }
 
-bool COutlookAPI::editRule( const COutlookObj< Outlook::_Rule > &rule )
+bool COutlookAPI::editRule( const COutlookObj< Outlook::Rule > &rule )
 {
     return showRuleDialog( rule, false );
 }
 
-bool COutlookAPI::showRuleDialog( const COutlookObj< Outlook::_Rule > &rule, bool readOnly )
+bool COutlookAPI::showRuleDialog( const COutlookObj< Outlook::Rule > &rule, bool readOnly )
 {
     CShowRule ruleDlg( rule, readOnly, fParentWidget );
 

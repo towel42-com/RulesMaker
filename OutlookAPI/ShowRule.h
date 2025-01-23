@@ -20,7 +20,7 @@ class CShowRule : public QDialog
     Q_OBJECT
 
 public:
-    explicit CShowRule( const COutlookObj< Outlook::_Rule > &rule, bool readOnly, QWidget *parent = nullptr );
+    explicit CShowRule( const COutlookObj< Outlook::Rule > &rule, bool readOnly, QWidget *parent = nullptr );
     ~CShowRule();
 
     virtual void accept() override;
@@ -32,7 +32,7 @@ protected Q_SLOTS:
 
 protected:
     void init();
-    COutlookObj< Outlook::_Rule > fRule;
+    COutlookObj< Outlook::Rule > fRule;
     std::unique_ptr< Ui::CShowRule > fImpl;
     bool fReadOnly{ false };
 };

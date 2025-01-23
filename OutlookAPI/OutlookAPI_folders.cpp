@@ -411,7 +411,7 @@ bool COutlookAPI::emptyFolder( const COutlookObj< Outlook::MAPIFolder > &folder 
     int numEmailsDeleted = 0;
     if ( items && items->Count() )
     {
-        auto msg = tr( "Emptying Folder - %1 - Deleting Items:" ).arg( folder->Name() );
+        auto msg = tr( "Emptying Folder - Deleting Items: %1 " ).arg( folder->Name() );
         emit sigInitStatus( msg, items->Count() );
         int itemNum = 1;
         while ( !canceled() && ( itemNum <= items->Count() ) )
@@ -423,9 +423,15 @@ bool COutlookAPI::emptyFolder( const COutlookObj< Outlook::MAPIFolder > &folder 
                 itemNum++;
                 continue;
             }
-            COutlookObj< Outlook::MailItem > mailItem( item );
-            if ( mailItem.deleteItem( [ msg, this ]() { emit sigIncStatusValue( msg ); } ) )
-                numEmailsDeleted++;
+
+            if ( hasDelete( item ) )
+            {
+                auto desc = getDescription( item );
+                emit sigStatusMessage( tr( "Deleting Item - %1" ).arg( desc ) );
+                emit sigIncStatusValue( msg );
+                if ( deleteItem( item ) )
+                    numEmailsDeleted++;
+            }
             else
                 itemNum++;
         }

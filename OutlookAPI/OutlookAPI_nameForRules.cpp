@@ -6,7 +6,7 @@
 
 #include <QRegularExpression>
 
-std::list< QStringList > COutlookAPI::getConditionalStringList( const COutlookObj< Outlook::_Rule > &rule, bool exceptions, EWrapperMode wrapperMode, bool includeSender )
+std::list< QStringList > COutlookAPI::getConditionalStringList( const COutlookObj< Outlook::Rule > &rule, bool exceptions, EWrapperMode wrapperMode, bool includeSender )
 {
     if ( !rule )
         return {};
@@ -48,7 +48,7 @@ std::list< QStringList > COutlookAPI::getConditionalStringList( const COutlookOb
     return retVal;
 }
 
-QString COutlookAPI::rawRuleNameForRule( const COutlookObj< Outlook::_Rule > &rule )
+QString COutlookAPI::rawRuleNameForRule( const COutlookObj< Outlook::Rule > &rule )
 {
     QStringList addOns;
     if ( !rule )
@@ -56,7 +56,7 @@ QString COutlookAPI::rawRuleNameForRule( const COutlookObj< Outlook::_Rule > &ru
     return rule->Name();
 }
 
-std::optional< QString > COutlookAPI::getDestFolderNameForRule( const COutlookObj< Outlook::_Rule > &rule, bool moveOnly )
+std::optional< QString > COutlookAPI::getDestFolderNameForRule( const COutlookObj< Outlook::Rule > &rule, bool moveOnly )
 {
     if ( !rule )
         return {};
@@ -82,7 +82,7 @@ std::optional< QString > COutlookAPI::getDestFolderNameForRule( const COutlookOb
     return ruleNameForFolder( reinterpret_cast< Outlook::MAPIFolder * >( destFolder ) );
 }
 
-QString COutlookAPI::ruleNameForRule( const COutlookObj< Outlook::_Rule > &rule, bool forDisplay )
+QString COutlookAPI::ruleNameForRule( const COutlookObj< Outlook::Rule > &rule, bool forDisplay )
 {
     QStringList addOns;
     if ( !rule )
@@ -306,7 +306,7 @@ QStringList conditionNames( Outlook::AccountRuleCondition *condition, const QStr
     return conditionRuleNameBase( condition, conditionStr, toString( condition->ConditionType() ), wrapperMode );
 }
 
-QStringList COutlookAPI::getActionStrings( const COutlookObj< Outlook::_Rule > &rule )
+QStringList COutlookAPI::getActionStrings( const COutlookObj< Outlook::Rule > &rule )
 {
     if ( !rule )
         return {};

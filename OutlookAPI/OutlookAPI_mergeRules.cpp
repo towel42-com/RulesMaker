@@ -6,12 +6,12 @@
 #include <map>
 #include <QDebug>
 
-std::optional< QString > COutlookAPI::mergeKey( const COutlookObj< Outlook::_Rule > &rule ) const
+std::optional< QString > COutlookAPI::mergeKey( const COutlookObj< Outlook::Rule > &rule ) const
 {
     return getDestFolderNameForRule( rule, true );
 }
 
-bool COutlookAPI::canMergeRules( const COutlookObj< Outlook::_Rule > &lhs, const COutlookObj< Outlook::_Rule > &rhs )
+bool COutlookAPI::canMergeRules( const COutlookObj< Outlook::Rule > &lhs, const COutlookObj< Outlook::Rule > &rhs )
 {
     if ( !lhs || !rhs )
         return false;
@@ -134,7 +134,7 @@ void mergeConditions( Outlook::RuleConditions *lhs, Outlook::RuleConditions *rhs
     mergeCondition( lhs->Subject(), rhs->Subject() );
 }
 
-bool COutlookAPI::mergeRule( COutlookObj< Outlook::_Rule > &lhs, const COutlookObj< Outlook::_Rule > &rhs )
+bool COutlookAPI::mergeRule( COutlookObj< Outlook::Rule > &lhs, const COutlookObj< Outlook::Rule > &rhs )
 {
     if ( !canMergeRules( lhs, rhs ) )
         return false;
@@ -190,7 +190,7 @@ COutlookAPI::TMergeRuleMap COutlookAPI::findMergableRules()
         if ( canceled() )
             return {};
 
-        auto rule = getRule( fRules->Item( ii ) );
+        auto rule = COutlookObj< Outlook::Rule >( fRules->Item( ii ) );
         if ( !rule || !rule->Enabled() )
             continue;
 
@@ -242,7 +242,7 @@ COutlookAPI::TMergeRuleMap COutlookAPI::findMergableRules()
 
     for ( auto &&ii : retVal )
     {
-        ii.second.second.sort( []( const COutlookObj< Outlook::_Rule > &lhs, const COutlookObj< Outlook::_Rule > &rhs ) { return lhs->ExecutionOrder() > rhs->ExecutionOrder(); } );
+        ii.second.second.sort( []( const COutlookObj< Outlook::Rule > &lhs, const COutlookObj< Outlook::Rule > &rhs ) { return lhs->ExecutionOrder() > rhs->ExecutionOrder(); } );
     }
 
     return retVal;

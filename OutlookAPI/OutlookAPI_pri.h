@@ -103,7 +103,7 @@ bool loadAction( QStandardItem *parent, Outlook::NewItemAlertRuleAction *action 
 bool loadAction( QStandardItem *parent, Outlook::PlaySoundRuleAction *action );
 bool loadAction( QStandardItem *parent, Outlook::RuleAction *action, const QString &actionName );
 bool loadAction( QStandardItem *parent, Outlook::SendRuleAction *action, const QString &actionName );
-void loadActions( QStandardItem *parent, const COutlookObj< Outlook::_Rule > & rule );
+void loadActions( QStandardItem *parent, const COutlookObj< Outlook::Rule > & rule );
 
 bool loadCondition( QStandardItem *parent, Outlook::AccountRuleCondition *condition );
 bool loadCondition( QStandardItem *parent, Outlook::AddressRuleCondition *condition );
@@ -117,9 +117,9 @@ bool loadCondition( QStandardItem *parent, Outlook::SensitivityRuleCondition *co
 bool loadCondition( QStandardItem *parent, Outlook::TextRuleCondition *condition, const QString &ruleName );
 bool loadCondition( QStandardItem *parent, Outlook::ToOrFromRuleCondition *condition, bool from );   // from or sentTo
 
-void loadConditions( QStandardItem *parent, const COutlookObj< Outlook::_Rule > &rule );
-void loadConditions( QStandardItem *parent, const COutlookObj< Outlook::_Rule > &rule, bool exceptions );
-void loadExceptions( QStandardItem *parent, const COutlookObj< Outlook::_Rule > &rule );
+void loadConditions( QStandardItem *parent, const COutlookObj< Outlook::Rule > &rule );
+void loadConditions( QStandardItem *parent, const COutlookObj< Outlook::Rule > &rule, bool exceptions );
+void loadExceptions( QStandardItem *parent, const COutlookObj< Outlook::Rule > &rule );
 
 bool conditionEqual( Outlook::AccountRuleCondition *lhsCondition, Outlook::AccountRuleCondition *rhsCondition );
 bool conditionEqual( Outlook::AddressRuleCondition *lhsCondition, Outlook::AddressRuleCondition *rhsCondition );
@@ -148,7 +148,7 @@ void copyAction( Outlook::NewItemAlertRuleAction *retVal, Outlook::NewItemAlertR
 void copyAction( Outlook::PlaySoundRuleAction *retVal, Outlook::PlaySoundRuleAction *sourceAction );
 void copyAction( Outlook::RuleAction *retVal, Outlook::RuleAction *sourceAction );
 void copyAction( Outlook::SendRuleAction *retVal, Outlook::SendRuleAction *sourceAction );
-void copyActions( COutlookObj< Outlook::_Rule > & retValRule, const COutlookObj< Outlook::_Rule > &source );
+void copyActions( COutlookObj< Outlook::Rule > & retValRule, const COutlookObj< Outlook::Rule > &source );
 
 void copyCondition( Outlook::AccountRuleCondition *retVal, Outlook::AccountRuleCondition *sourceCondition );
 void copyCondition( Outlook::AddressRuleCondition *retVal, Outlook::AddressRuleCondition *sourceCondition );
@@ -161,7 +161,7 @@ void copyCondition( Outlook::SenderInAddressListRuleCondition *retVal, Outlook::
 void copyCondition( Outlook::SensitivityRuleCondition *retVal, Outlook::SensitivityRuleCondition *sourceCondition );
 void copyCondition( Outlook::TextRuleCondition *retVal, Outlook::TextRuleCondition *sourceCondition );
 void copyCondition( Outlook::ToOrFromRuleCondition *retVal, Outlook::ToOrFromRuleCondition *sourceCondition );
-void copyConditions( COutlookObj< Outlook::_Rule > &retValRule, const COutlookObj< Outlook::_Rule > &source, bool exceptions );
+void copyConditions( COutlookObj< Outlook::Rule > &retValRule, const COutlookObj< Outlook::Rule > &source, bool exceptions );
 
 void mergeCondition( Outlook::AddressRuleCondition *lhsCondition, Outlook::AddressRuleCondition *rhsCondition );
 void mergeCondition( Outlook::CategoryRuleCondition *lhsCondition, Outlook::CategoryRuleCondition *rhsCondition );

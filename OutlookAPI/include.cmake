@@ -12,8 +12,6 @@ set(project_SRCS
     OutlookAPI.cpp
     OutlookObj.cpp
     OutlookAPI_account.cpp
-    OutlookAPI_description.cpp
-    OutlookAPI_deleteItem.cpp
     OutlookAPI_dump.cpp
     OutlookAPI_email.cpp
     OutlookAPI_emailAddresses.cpp

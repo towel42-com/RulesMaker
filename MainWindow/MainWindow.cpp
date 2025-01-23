@@ -705,7 +705,7 @@ void CMainWindow::setWaitCursor( bool wait )
         qApp->restoreOverrideCursor();
 }
 
-bool CMainWindow::showRule( const COutlookObj< Outlook::_Rule > & rule )
+bool CMainWindow::showRule( const COutlookObj< Outlook::Rule > & rule )
 {
     bool restoreOverride = qApp->overrideCursor() != nullptr;
     if ( restoreOverride )
@@ -716,7 +716,7 @@ bool CMainWindow::showRule( const COutlookObj< Outlook::_Rule > & rule )
     return retVal;
 }
 
-bool CMainWindow::editRule( const COutlookObj< Outlook::_Rule > & rule )
+bool CMainWindow::editRule( const COutlookObj< Outlook::Rule > & rule )
 {
     bool restoreOverride = qApp->overrideCursor() != nullptr;
     if ( restoreOverride )
