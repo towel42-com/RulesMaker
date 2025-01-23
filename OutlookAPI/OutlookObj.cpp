@@ -10,59 +10,72 @@ std::optional< Outlook::OlObjectClass > getObjectClass( QAxObject *item )
     return static_cast< Outlook::OlObjectClass >( item->property( "Class" ).toInt() );
 }
 
-std::optional< Outlook::OlObjectClass > getObjectClass( IDispatch *item )
+struct SOleMethod
 {
-    if ( !item )
+    SOleMethod( OLECHAR *method, IDispatch *item ) :
+        fMethod( method ),
+        fItem( item )
+    {
+        if ( !fItem )
+            return;
+
+        auto result = item->GetIDsOfNames( IID_NULL, &fMethod, 1, LOCALE_SYSTEM_DEFAULT, &fDispid );
+        if ( !result == S_OK )
+            fDispid = -1;
+    }
+
+    bool hasMethod() const { return fItem && ( fDispid != -1 ); }
+
+    QString runStringMethod()
+    {
+        auto resultant = run();
+        if ( !resultant.has_value() )
+            return {};
+
+        return QString::fromWCharArray( resultant.value().bstrVal );
+    };
+
+    bool runBoolMethod()
+    {
+        auto resultant = run();
+        return resultant.has_value();
+    };
+
+    LONG runLongMethod()
+    {
+        auto resultant = run();
+        if ( !resultant.has_value() )
+            return -1;
+
+        return resultant.value().lVal;
+    }
+private:
+    OLECHAR *fMethod{ nullptr };
+    IDispatch *fItem{ nullptr };
+    DISPID fDispid{ -1 };
+
+    std::optional< VARIANT > run()
+    {
+        if ( !hasMethod() )
+            return {};
+        VARIANT resultant{};
+        DISPPARAMS params{ 0 };
+        EXCEPINFO excepInfo{};
+        UINT argErr{ 0 };
+        auto result = fItem->Invoke( fDispid, IID_NULL, LOCALE_SYSTEM_DEFAULT, DISPATCH_METHOD | DISPATCH_PROPERTYGET, &params, &resultant, &excepInfo, &argErr );
+        if ( result == S_OK )
+        {
+            return resultant;
+        }
         return {};
-
-    IDispatch *pdisp = (IDispatch *)nullptr;
-    DISPID dispid;
-    OLECHAR *szMember = L"Class";
-    auto result = item->GetIDsOfNames( IID_NULL, &szMember, 1, LOCALE_SYSTEM_DEFAULT, &dispid );
-
-    if ( result == S_OK )
-    {
-        VARIANT resultant{};
-        DISPPARAMS params{ 0 };
-        EXCEPINFO excepInfo{};
-        UINT argErr{ 0 };
-        result = item->Invoke( dispid, IID_NULL, LOCALE_SYSTEM_DEFAULT, DISPATCH_METHOD | DISPATCH_PROPERTYGET, &params, &resultant, &excepInfo, &argErr );
-        if ( result == S_OK )
-        {
-            return static_cast< Outlook::OlObjectClass >( resultant.lVal );
-        }
     }
-
-    return {};
-}
-
-QString runStringMethod( OLECHAR *method, IDispatch *item )
-{
-    if ( !item )
-        return false;
-    IDispatch *pdisp = (IDispatch *)nullptr;
-    DISPID dispid;
-    auto result = item->GetIDsOfNames( IID_NULL, &method, 1, LOCALE_SYSTEM_DEFAULT, &dispid );
-    if ( result == S_OK )
-    {
-        VARIANT resultant{};
-        DISPPARAMS params{ 0 };
-        EXCEPINFO excepInfo{};
-        UINT argErr{ 0 };
-        result = item->Invoke( dispid, IID_NULL, LOCALE_SYSTEM_DEFAULT, DISPATCH_METHOD | DISPATCH_PROPERTYGET, &params, &resultant, &excepInfo, &argErr );
-        if ( result == S_OK )
-        {
-            return QString::fromWCharArray( static_cast< wchar_t * >( resultant.bstrVal ) );
-        }
-    }
-    return {};
-}
+};
 
 bool hasMethod( OLECHAR *method, IDispatch *item )
 {
     if ( !item )
         return false;
-    IDispatch *pdisp = (IDispatch *)nullptr;
+
     DISPID dispid;
     auto result = item->GetIDsOfNames( IID_NULL, &method, 1, LOCALE_SYSTEM_DEFAULT, &dispid );
     return result == S_OK;
@@ -70,38 +83,14 @@ bool hasMethod( OLECHAR *method, IDispatch *item )
 
 bool hasDelete( IDispatch *item )
 {
-    if ( !item )
-        return false;
-
-    return hasMethod( L"Delete", item );
+    SOleMethod method( L"Delete", item );
+    return method.hasMethod();
 }
 
 bool deleteItem( IDispatch *item )
 {
-    if ( !hasDelete( item ) )
-        return false;
-
-    if ( !item )
-        return {};
-
-    IDispatch *pdisp = (IDispatch *)nullptr;
-    DISPID dispid;
-    OLECHAR *szMember = L"Delete";
-    auto result = item->GetIDsOfNames( IID_NULL, &szMember, 1, LOCALE_SYSTEM_DEFAULT, &dispid );
-
-    if ( result == S_OK )
-    {
-        VARIANT resultant{};
-        DISPPARAMS params{ 0 };
-        EXCEPINFO excepInfo{};
-        UINT argErr{ 0 };
-        result = item->Invoke( dispid, IID_NULL, LOCALE_SYSTEM_DEFAULT, DISPATCH_METHOD | DISPATCH_PROPERTYGET, &params, &resultant, &excepInfo, &argErr );
-        if ( result == S_OK )
-        {
-            return true;
-        }
-    }
-    return false;
+    SOleMethod method( L"Delete", item );
+    return method.runBoolMethod();
 }
 
 QString getDescription( IDispatch *item )
@@ -112,41 +101,58 @@ QString getDescription( IDispatch *item )
         typeString = toString( classType.value() );
 
     QString desc;
-    if ( hasMethod( L"DisplayName", item ) )
+    SOleMethod displayNameMethod( L"DisplayName", item );
+    SOleMethod nameMethod( L"Name", item );
+    SOleMethod currentProfileNameMethod( L"CurrentProfileName", item );
+    SOleMethod subjectMethod( L"Subject", item );
+    SOleMethod captionMethod( L"Caption", item );
+    SOleMethod formulaMethod( L"Formula", item );
+    SOleMethod filterMethod( L"Filter", item );
+    SOleMethod conversationTopicMethod( L"ConversationTopic", item );
+
+    if ( displayNameMethod.hasMethod() )
     {
-        desc = runStringMethod( L"DisplayName", item );
+        desc = displayNameMethod.runStringMethod();
     }
-    else if ( hasMethod( L"Name", item ) )
+    else if ( nameMethod.hasMethod() )
     {
-        desc = runStringMethod( L"Name", item );
+        desc = nameMethod.runStringMethod();
     }
-    else if ( hasMethod( L"CurrentProfileName", item ) )
+    else if ( currentProfileNameMethod.hasMethod() )
     {
-        desc = runStringMethod( L"CurrentProfileName", item );
+        desc = currentProfileNameMethod.runStringMethod();
     }
-    else if ( hasMethod( L"Subject", item ) )
+    else if ( subjectMethod.hasMethod() )
     {
-        desc = runStringMethod( L"Subject", item );
+        desc = subjectMethod.runStringMethod();
     }
-    else if ( hasMethod( L"Caption", item ) )
+    else if ( captionMethod.hasMethod() )
     {
-        desc = runStringMethod( L"Caption", item );
+        desc = captionMethod.runStringMethod();
     }
-    else if ( hasMethod( L"Formula", item ) )
+    else if ( formulaMethod.hasMethod() )
     {
-        desc = runStringMethod( L"Formula", item );
+        desc = formulaMethod.runStringMethod();
     }
-    else if ( hasMethod( L"Filter", item ) )
+    else if ( filterMethod.hasMethod() )
     {
-        desc = runStringMethod( L"Filter", item );
+        desc = filterMethod.runStringMethod();
     }
-    else if ( hasMethod( L"ConversationTopic", item ) )
+    else if ( conversationTopicMethod.hasMethod() )
     {
-        desc = runStringMethod( L"ConversationTopic", item );
+        desc = conversationTopicMethod.runStringMethod();
     }
     else
         return typeString;
 
     auto descText = ( QStringList() << typeString << desc ).join( " - " );
     return descText;
+}
+
+std::optional< Outlook::OlObjectClass > getObjectClass( IDispatch *item )
+{
+    SOleMethod method( L"Class", item );
+    if ( !method.hasMethod() )
+        return {};
+    return static_cast< Outlook::OlObjectClass >( method.runLongMethod() );
 }
