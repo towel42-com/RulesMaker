@@ -38,7 +38,7 @@
      <x>0</x>
      <y>0</y>
      <width>1185</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -198,7 +198,7 @@
   <action name="actionAddRule">
    <property name="icon">
     <iconset resource="MainWindow.qrc">
-     <normaloff>:/resources/rules.png</normaloff>:/resources/rules.png</iconset>
+     <normaloff>:/resources/new.png</normaloff>:/resources/new.png</iconset>
    </property>
    <property name="text">
     <string>Add &amp;Rule...</string>
@@ -239,7 +239,7 @@
   <action name="actionAddToSelectedRule">
    <property name="icon">
     <iconset resource="MainWindow.qrc">
-     <normaloff>:/resources/add.png</normaloff>:/resources/add.png</iconset>
+     <normaloff>:/resources/modify.png</normaloff>:/resources/modify.png</iconset>
    </property>
    <property name="text">
     <string>Add to Selected Rule</string>
