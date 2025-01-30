@@ -150,8 +150,8 @@ void CMainWindow::slotUpdateActions()
 void CMainWindow::updateActions()
 {
     TReason accountSelected( COutlookAPI::instance()->accountSelected(), "Rule not selected" );
-    TReason emailSelected( !fImpl->email->getEmailPatternForSelection().isEmpty(), "Email not selected" );
-    TReason emailHasDisplayName( !fImpl->email->selectionHasDisplayName(), "Selected email does not have a display name" );
+    TReason emailSelected( fImpl->email->selectionHasPattern(), "Email not selected" );
+    TReason emailHasDisplayName( fImpl->email->selectionHasDisplayName(), "Selected email does not have a display name" );
     TReason ruleSelected( fImpl->rules->ruleSelected(), "Rule not selected" );
     TReason disableRatherThanDeleteRules( !COutlookAPI::instance()->disableRatherThanDeleteRules(), "Disable rather than delete rules is enabled" );
 

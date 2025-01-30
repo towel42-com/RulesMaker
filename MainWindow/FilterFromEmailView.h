@@ -32,6 +32,7 @@ public:
 
     bool selectionHasSender() const;
     bool selectionHasDisplayName() const;
+    bool selectionHasPattern() const;
 
     QString getDisplayNameForSingleSelection() const;
     QString getDisplayNamePatternForSelection() const;

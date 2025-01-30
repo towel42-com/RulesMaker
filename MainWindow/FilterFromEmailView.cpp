@@ -204,6 +204,11 @@ bool CFilterFromEmailView::selectionHasDisplayName() const
     return !getDisplayNamesForSelection().empty();
 }
 
+bool CFilterFromEmailView::selectionHasPattern() const
+{
+    return !getEmailPatternForSelection().isEmpty();
+}
+
 QString CFilterFromEmailView::getDisplayNameForSingleSelection() const
 {
     auto displayNames = getDisplayNamesForSelection();
