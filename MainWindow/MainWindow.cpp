@@ -46,7 +46,6 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     connect( fImpl->actionAddToSelectedRule, &QAction::triggered, this, &CMainWindow::slotAddToSelectedRule );
 
     connect( fImpl->actionRunAllRules, &QAction::triggered, this, &CMainWindow::slotRunAllRules );
-    connect( fImpl->actionRunAllRulesOnAllFolders, &QAction::triggered, this, &CMainWindow::slotRunAllRulesOnAllFolders );
     connect( fImpl->actionRunAllRulesOnTrashFolder, &QAction::triggered, this, &CMainWindow::slotRunAllRulesOnTrashFolder );
     connect( fImpl->actionRunAllRulesOnJunkFolder, &QAction::triggered, this, &CMainWindow::slotRunAllRulesOnJunkFolder );
     connect( fImpl->actionRunSelectedRule, &QAction::triggered, this, &CMainWindow::slotRunSelectedRule );
@@ -63,8 +62,6 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     connect( fImpl->actionOnlyProcessTheFirst500Emails, &QAction::triggered, [ = ]() { api->setOnlyProcessTheFirst500Emails( fImpl->actionOnlyProcessTheFirst500Emails->isChecked() ); } );
 
     connect( fImpl->actionOnlyProcessUnread, &QAction::triggered, [ = ]() { api->setOnlyProcessUnread( fImpl->actionOnlyProcessUnread->isChecked() ); } );
-    connect( fImpl->actionIncludeJunkFolderWhenRunningOnAllFolders, &QAction::triggered, [ = ]() { api->setIncludeJunkFolderWhenRunningOnAllFolders( fImpl->actionIncludeJunkFolderWhenRunningOnAllFolders->isChecked() ); } );
-    connect( fImpl->actionIncludeDeletedFolderWhenRunningOnAllFolders, &QAction::triggered, [ = ]() { api->setIncludeDeletedFolderWhenRunningOnAllFolders( fImpl->actionIncludeDeletedFolderWhenRunningOnAllFolders->isChecked() ); } );
     connect( fImpl->actionDisableRatherThanDeleteRules, &QAction::triggered, [ = ]() { api->setDisableRatherThanDeleteRules( fImpl->actionDisableRatherThanDeleteRules->isChecked() ); } );
 
     connect( COutlookAPI::instance().get(), &COutlookAPI::sigOptionChanged, this, &CMainWindow::slotOptionsChanged );
@@ -170,7 +167,6 @@ void CMainWindow::updateActions()
     setEnabled( fImpl->actionFixFromMessageHeaderRules, accountSelected );
     setEnabled( fImpl->actionReloadAllData, accountSelected );
     setEnabled( fImpl->actionRunAllRules, accountSelected );
-    setEnabled( fImpl->actionRunAllRulesOnAllFolders, accountSelected );
     setEnabled( fImpl->actionRunAllRulesOnTrashFolder, accountSelected );
     setEnabled( fImpl->actionRunAllRulesOnJunkFolder, accountSelected );
     setEnabled( fImpl->actionEmptyTrash, accountSelected );
@@ -391,14 +387,6 @@ void CMainWindow::slotRunAllRules()
 {
     setWaitCursor( true );
     COutlookAPI::instance()->runAllRules();
-    slotReloadEmail();
-    setWaitCursor( false );
-}
-
-void CMainWindow::slotRunAllRulesOnAllFolders()
-{
-    setWaitCursor( true );
-    COutlookAPI::instance()->runAllRulesOnAllFolders();
     slotReloadEmail();
     setWaitCursor( false );
 }
@@ -697,8 +685,6 @@ void CMainWindow::slotOptionsChanged()
     fImpl->actionProcessAllEmailWhenLessThan200Emails->setChecked( api->processAllEmailWhenLessThan200Emails() );
     fImpl->actionOnlyProcessTheFirst500Emails->setChecked( api->onlyProcessTheFirst500Emails() );
     fImpl->actionOnlyProcessUnread->setChecked( api->onlyProcessUnread() );
-    fImpl->actionIncludeJunkFolderWhenRunningOnAllFolders->setChecked( api->includeJunkFolderWhenRunningOnAllFolders() );
-    fImpl->actionIncludeDeletedFolderWhenRunningOnAllFolders->setChecked( api->includeDeletedFolderWhenRunningOnAllFolders() );
     fImpl->actionDisableRatherThanDeleteRules->setChecked( api->disableRatherThanDeleteRules() );
 
     updateWindowTitle();

@@ -131,12 +131,6 @@ public:
     void setOnlyProcessTheFirst500Emails( bool value, bool update = true );
     bool onlyProcessTheFirst500Emails() const { return fOnlyProcessTheFirst500Emails; }
 
-    void setIncludeJunkFolderWhenRunningOnAllFolders( bool value, bool update = true );
-    bool includeJunkFolderWhenRunningOnAllFolders() { return fIncludeJunkFolderWhenRunningOnAllFolders; }
-
-    void setIncludeDeletedFolderWhenRunningOnAllFolders( bool value, bool update = true );
-    bool includeDeletedFolderWhenRunningOnAllFolders() { return fIncludeDeletedFolderWhenRunningOnAllFolders; }
-
     void setDisableRatherThanDeleteRules( bool value, bool update = true );
     bool disableRatherThanDeleteRules() { return fDisableRatherThanDeleteRules; }
 
@@ -230,15 +224,11 @@ public:
     bool ruleLessThan( const std::shared_ptr< Outlook::Rule > &lhsRule, const std::shared_ptr< Outlook::Rule > &rhsRule ) const;
 
     bool runAllRules( const std::shared_ptr< Outlook::Folder > &folder = {} );
-    bool runAllRulesOnAllFolders();
     bool runAllRulesOnTrashFolder();
     bool runAllRulesOnJunkFolder();
+    bool runAllRulesOnFolder( std::shared_ptr< Outlook::Folder > folder );
 
-    bool runRule( std::shared_ptr< Outlook::Rule > rule, const std::shared_ptr< Outlook::Folder > &folder = {} );
-
-    // run from command line
-    bool runAllRules( std::shared_ptr< Outlook::Folder > folder, bool allFolders, bool junk );
-    bool runRule( const std::shared_ptr< Outlook::Rule > &rule, std::shared_ptr< Outlook::Folder > folder, bool allFolders, bool junk );
+    bool runRule( const std::shared_ptr< Outlook::Rule > &rule, std::shared_ptr< Outlook::Folder > folder = {} );
 
     // tools API in OutlookAPI_tools.cpp
     bool enableAllRules( bool andSave = true, bool *needsSaving = nullptr );
@@ -294,7 +284,7 @@ public:
     static bool isAddressType( EAddressTypes value, EAddressTypes filter );
     static bool isAddressType( std::optional< EAddressTypes > value, std::optional< EAddressTypes > filter );
     static bool isAddressType( Outlook::OlMailRecipientType type, std::optional< EAddressTypes > filter );
-    
+
     enum class EContactTypes
     {
         eNone = 0x00,
@@ -324,12 +314,12 @@ public:
     static QStringList getSenderEmailAddresses( Outlook::MailItem *mailItem );
 
     static TEmailAddressList getEmailAddresses( std::shared_ptr< Outlook::MailItem > &mailItem, std::optional< EAddressTypes > addressTypes = {}, std::optional< EContactTypes > contactTypes = {} );
-    static TEmailAddressList getEmailAddresses( Outlook::MailItem *mailItem, std::optional< EAddressTypes > addressTypes = {}, std::optional< EContactTypes > contactTypes = {} );   
+    static TEmailAddressList getEmailAddresses( Outlook::MailItem *mailItem, std::optional< EAddressTypes > addressTypes = {}, std::optional< EContactTypes > contactTypes = {} );
     static TEmailAddressList getEmailAddresses( Outlook::Recipients *recipients, std::optional< EAddressTypes > addressTypes = {}, std::optional< EContactTypes > contactTypes = {} );
     static TEmailAddressList getEmailAddresses( Outlook::Recipient *recipient, std::optional< EAddressTypes > addressTypes = {}, std::optional< EContactTypes > contactTypes = {} );
-    static TEmailAddressList getEmailAddresses( Outlook::AddressList *addresses, std::optional< EContactTypes > contactTypes = {} );   
-    static TEmailAddressList getEmailAddresses( Outlook::AddressEntries *entries, std::optional< EContactTypes > contactTypes = {} );  
-    static TEmailAddressList getEmailAddresses( Outlook::AddressEntry *address, std::optional< EContactTypes > contactTypes = {} );  
+    static TEmailAddressList getEmailAddresses( Outlook::AddressList *addresses, std::optional< EContactTypes > contactTypes = {} );
+    static TEmailAddressList getEmailAddresses( Outlook::AddressEntries *entries, std::optional< EContactTypes > contactTypes = {} );
+    static TEmailAddressList getEmailAddresses( Outlook::AddressEntry *address, std::optional< EContactTypes > contactTypes = {} );
 
     static std::list< Outlook::AddressEntry * > getAddressEntries( Outlook::Recipients *recipients );
     static std::list< Outlook::AddressEntry * > getAddressEntries( Outlook::Recipient *recipients );
@@ -393,8 +383,6 @@ private:
     bool fOnlyProcessUnread{ true };
     bool fProcessAllEmailWhenLessThan200Emails{ true };
     bool fOnlyProcessTheFirst500Emails{ true };
-    bool fIncludeJunkFolderWhenRunningOnAllFolders{ false };
-    bool fIncludeDeletedFolderWhenRunningOnAllFolders{ false };
     bool fDisableRatherThanDeleteRules{ false };
     bool fLoadAccountInfo{ true };
     QString fLastAccountName;
@@ -420,7 +408,7 @@ private:
 
     std::vector< std::shared_ptr< Outlook::Rule > > getAllRules();
 
-    bool runRules( std::vector< std::shared_ptr< Outlook::Rule > > rules, std::shared_ptr< Outlook::Folder > folder = {}, bool recursive = false, const std::optional< QString > &perFolderMsg = {} );
+    bool runRules( std::vector< std::shared_ptr< Outlook::Rule > > rules, std::shared_ptr< Outlook::Folder > folder = {}, const std::optional< QString > &perFolderMsg = {} );
 
     bool addRecipientsToRule( Outlook::Rule *rule, const QStringList &recipients, QStringList &msgs );
     bool addRecipientsToRule( Outlook::Rule *rule, const TEmailAddressList &recipients, QStringList &msgs );

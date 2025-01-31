@@ -7,38 +7,14 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>297</height>
+    <height>310</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Settings</string>
   </property>
   <layout class="QGridLayout" name="gridLayout_2">
-   <item row="9" column="0">
-    <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="0">
-    <widget class="QCheckBox" name="includeDeletedFolderWhenRunningOnAllFolders">
-     <property name="text">
-      <string>Include Deleted Folder when Running on All Folders?</string>
-     </property>
-    </widget>
-   </item>
    <item row="5" column="0">
-    <widget class="QCheckBox" name="disableRatherThanDeleteRules">
-     <property name="text">
-      <string>Disable rather than Delete Rules?</string>
-     </property>
-    </widget>
-   </item>
-   <item row="7" column="0">
     <widget class="QGroupBox" name="groupBox">
      <property name="toolTip">
       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Each regular expression will be compared against the rule name. &lt;br/&gt;If you explicitly use ^ or $, then the regular expression must match the complete name.&lt;br/&gt;Otherwise, the regular expression will be treated as .*&amp;lt;regex&amp;gt;.* and match anywhere in the regular expression&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -88,28 +64,28 @@
      </layout>
     </widget>
    </item>
-   <item row="2" column="0">
-    <widget class="QCheckBox" name="onlyProcessTheFirst500Emails">
+   <item row="3" column="0">
+    <widget class="QCheckBox" name="disableRatherThanDeleteRules">
      <property name="text">
-      <string>Only Process the first 500 Emails?</string>
+      <string>Disable rather than Delete Rules?</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="0">
+    <widget class="QCheckBox" name="loadAccountInfo">
+     <property name="text">
+      <string>Load Account Info after Account Selection?</string>
      </property>
     </widget>
    </item>
    <item row="0" column="0">
-    <widget class="QCheckBox" name="includeJunkFolderWhenRunningOnAllFolders">
+    <widget class="QCheckBox" name="onlyProcessUnread">
      <property name="text">
       <string>Only Process Unread?</string>
      </property>
     </widget>
    </item>
-   <item row="3" column="0">
-    <widget class="QCheckBox" name="onlyProcessUnread">
-     <property name="text">
-      <string>Include Junk Folder when Running on All Folders?</string>
-     </property>
-    </widget>
-   </item>
-   <item row="8" column="0">
+   <item row="6" column="0">
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -122,6 +98,23 @@
      </property>
     </spacer>
    </item>
+   <item row="7" column="0">
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="QCheckBox" name="onlyProcessTheFirst500Emails">
+     <property name="text">
+      <string>Only Process the first 500 Emails?</string>
+     </property>
+    </widget>
+   </item>
    <item row="1" column="0">
     <widget class="QCheckBox" name="processAllEmailWhenLessThan200Emails">
      <property name="text">
@@ -129,21 +122,12 @@
      </property>
     </widget>
    </item>
-   <item row="6" column="0">
-    <widget class="QCheckBox" name="loadAccountInfo">
-     <property name="text">
-      <string>Load Account Info after Account Selection?</string>
-     </property>
-    </widget>
-   </item>
   </layout>
  </widget>
  <tabstops>
-  <tabstop>includeJunkFolderWhenRunningOnAllFolders</tabstop>
+  <tabstop>onlyProcessUnread</tabstop>
   <tabstop>processAllEmailWhenLessThan200Emails</tabstop>
   <tabstop>onlyProcessTheFirst500Emails</tabstop>
-  <tabstop>onlyProcessUnread</tabstop>
-  <tabstop>includeDeletedFolderWhenRunningOnAllFolders</tabstop>
   <tabstop>disableRatherThanDeleteRules</tabstop>
   <tabstop>loadAccountInfo</tabstop>
   <tabstop>rulesToSkip</tabstop>

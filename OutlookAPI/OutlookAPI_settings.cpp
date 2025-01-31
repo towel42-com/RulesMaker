@@ -8,8 +8,6 @@ void COutlookAPI::initSettings()
     setOnlyProcessUnread( settings.value( "OnlyProcessUnread", true ).toBool(), false );
     setProcessAllEmailWhenLessThan200Emails( settings.value( "ProcessAllEmailWhenLessThan200Emails", true ).toBool(), false );
     setOnlyProcessTheFirst500Emails( settings.value( "OnlyProcessTheFirst500Emails", true ).toBool(), false );
-    setIncludeJunkFolderWhenRunningOnAllFolders( settings.value( "IncludeJunkFolderWhenRunningOnAllFolders", false ).toBool(), false );
-    setIncludeDeletedFolderWhenRunningOnAllFolders( settings.value( "IncludeJunkDeletedWhenRunningOnAllFolders", false ).toBool(), false );
     setDisableRatherThanDeleteRules( settings.value( "DisableRatherThanDeleteRules", true ).toBool(), false );
     setLoadAccountInfo( settings.value( "LoadAccountInfo", true ).toBool(), false );
     setLastAccountName( settings.value( "Account", QString() ).toString(), false );
@@ -26,28 +24,6 @@ void COutlookAPI::setOnlyProcessUnread( bool value, bool update )
     fOnlyProcessUnread = value;
     QSettings settings;
     settings.setValue( "OnlyProcessUnread", value );
-    if ( update )
-        emit sigOptionChanged();
-}
-
-void COutlookAPI::setIncludeJunkFolderWhenRunningOnAllFolders( bool value, bool update )
-{
-    update = update && ( fIncludeJunkFolderWhenRunningOnAllFolders != value );
-
-    fIncludeJunkFolderWhenRunningOnAllFolders = value;
-    QSettings settings;
-    settings.setValue( "IncludeJunkFolderWhenRunningOnAllFolders ", value );
-    if ( update )
-        emit sigOptionChanged();
-}
-
-void COutlookAPI::setIncludeDeletedFolderWhenRunningOnAllFolders( bool value, bool update )
-{
-    update = update && ( fIncludeDeletedFolderWhenRunningOnAllFolders != value );
-
-    fIncludeDeletedFolderWhenRunningOnAllFolders = value;
-    QSettings settings;
-    settings.setValue( "IncludeDeletedFolderWhenRunningOnAllFolders ", value );
     if ( update )
         emit sigOptionChanged();
 }

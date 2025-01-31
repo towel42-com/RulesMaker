@@ -65,8 +65,6 @@
      <addaction name="separator"/>
      <addaction name="actionRunAllRulesOnJunkFolder"/>
      <addaction name="actionRunAllRulesOnTrashFolder"/>
-     <addaction name="separator"/>
-     <addaction name="actionRunAllRulesOnAllFolders"/>
     </widget>
     <addaction name="actionAddRule"/>
     <addaction name="actionAddToSelectedRule"/>
@@ -361,15 +359,6 @@
    </property>
    <property name="text">
     <string>Run Selected Rule on Selected Folder</string>
-   </property>
-  </action>
-  <action name="actionRunAllRulesOnAllFolders">
-   <property name="icon">
-    <iconset resource="MainWindow.qrc">
-     <normaloff>:/resources/run.png</normaloff>:/resources/run.png</iconset>
-   </property>
-   <property name="text">
-    <string>Run All Rules on All Folders</string>
    </property>
   </action>
   <action name="actionAbout">

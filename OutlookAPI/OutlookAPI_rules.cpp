@@ -278,35 +278,15 @@ bool COutlookAPI::ruleLessThan( const std::shared_ptr< Outlook::Rule > &lhsRule,
     return lhsRule->ExecutionOrder() < rhsRule->ExecutionOrder();
 }
 
-bool COutlookAPI::runAllRules( std::shared_ptr< Outlook::Folder > folder, bool allFolders, bool junk )
+bool COutlookAPI::runAllRulesOnFolder( std::shared_ptr< Outlook::Folder > folder )
 {
     auto rules = getAllRules();
-    bool recursive = allFolders;
-    bool addJunk = false;
     if ( !folder )
     {
         folder = getInbox();
-        addJunk = junk;
     }
-    bool aOK = runRules( rules, folder, recursive );
-    if ( addJunk )
-        aOK = aOK && runRules( rules, getJunkFolder(), recursive );
+    bool aOK = runRules( rules, folder );
     return aOK;
-}
-
-bool COutlookAPI::runRule( const std::shared_ptr< Outlook::Rule > &rule, std::shared_ptr< Outlook::Folder > folder, bool allFolders, bool junk )
-{
-    if ( !rule )
-        return false;
-
-    fIncludeJunkFolderWhenRunningOnAllFolders = junk;
-
-    bool recursive = allFolders;
-    if ( !folder )
-    {
-        folder = getInbox();
-    }
-    return runRules( { rule }, folder, recursive );
 }
 
 bool COutlookAPI::runAllRules( const std::shared_ptr< Outlook::Folder > &folder )
@@ -314,26 +294,16 @@ bool COutlookAPI::runAllRules( const std::shared_ptr< Outlook::Folder > &folder 
     return runRules( {}, folder );
 }
 
-bool COutlookAPI::runAllRulesOnAllFolders()
+bool COutlookAPI::runRule( const std::shared_ptr< Outlook::Rule > &rule, std::shared_ptr< Outlook::Folder > folder )
 {
-    auto allRules = getAllRules();
-    auto inbox = getInbox();
-    auto junk = getJunkFolder();
+    if ( !rule )
+        return false;
 
-    bool retVal = true;
-
-    int numFolders = recursiveSubFolderCount( inbox.get() );
-
-    auto msg = QString( "Running All Rules on All Folders:" );
-    auto totalFolders = numFolders + ( junk ? 1 : 0 );
-    emit sigInitStatus( msg, totalFolders );
-
-    if ( inbox )
-        retVal = runRules( allRules, inbox, true, msg ) && retVal;
-
-    if ( junk && fIncludeJunkFolderWhenRunningOnAllFolders )
-        retVal = runRules( allRules, junk, false, msg ) && retVal;
-    return retVal;
+    if ( !folder )
+    {
+        folder = getInbox();
+    }
+    return runRules( { rule }, folder );
 }
 
 bool COutlookAPI::runAllRulesOnTrashFolder()
@@ -349,7 +319,7 @@ bool COutlookAPI::runAllRulesOnTrashFolder()
     emit sigInitStatus( msg, numFolders );
 
     if ( folder )
-        retVal = runRules( allRules, folder, true, msg ) && retVal;
+        retVal = runRules( allRules, folder, msg ) && retVal;
     return retVal;
 }
 
@@ -366,13 +336,8 @@ bool COutlookAPI::runAllRulesOnJunkFolder()
     emit sigInitStatus( msg, numFolders );
 
     if ( folder )
-        retVal = runRules( allRules, folder, true, msg ) && retVal;
+        retVal = runRules( allRules, folder, msg ) && retVal;
     return retVal;
-}
-
-bool COutlookAPI::runRule( std::shared_ptr< Outlook::Rule > rule, const std::shared_ptr< Outlook::Folder > &folder )
-{
-    return runRules( std::vector< std::shared_ptr< Outlook::Rule > >( { rule } ), folder );
 }
 
 std::shared_ptr< Outlook::Rules > COutlookAPI::selectRules()
@@ -482,7 +447,7 @@ std::vector< std::shared_ptr< Outlook::Rule > > COutlookAPI::getAllRules()
     return rules;
 }
 
-bool COutlookAPI::runRules( std::vector< std::shared_ptr< Outlook::Rule > > rules, std::shared_ptr< Outlook::Folder > folder, bool recursive, const std::optional< QString > &perFolderMsg /*={}*/ )
+bool COutlookAPI::runRules( std::vector< std::shared_ptr< Outlook::Rule > > rules, std::shared_ptr< Outlook::Folder > folder, const std::optional< QString > &perFolderMsg /*={}*/ )
 {
     if ( !folder )
         folder = rootFolder();
@@ -520,18 +485,8 @@ bool COutlookAPI::runRules( std::vector< std::shared_ptr< Outlook::Rule > > rule
         emit sigIncStatusValue( msg );
     }
 
-    bool retVal = true;
-    if ( recursive )
-    {
-        auto childFolders = getFolders( folder, false );
-
-        for ( auto &&ii : childFolders )
-        {
-            retVal = runRules( rules, ii, recursive, perFolderMsg ) && retVal;
-        }
-    }
     sigStatusFinished( msg );
-    return retVal;
+    return true;
 }
 
 bool COutlookAPI::addDisplayNamesToRule( Outlook::Rule *rule, const QStringList &displayNames, QStringList &msgs )
@@ -616,7 +571,6 @@ bool COutlookAPI::addSenderToRule( Outlook::Rule *rule, const TEmailAddressList 
         auto curr = from->Recipients()->Add( ii->toString() );
         if ( curr )
         {
-
             qDebug() << curr->Address() << curr->Name();
             auto entry = curr->AddressEntry();
             if ( entry )

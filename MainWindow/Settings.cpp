@@ -20,8 +20,6 @@ void CSettings::init()
     fImpl->onlyProcessUnread->setChecked( api->onlyProcessUnread() );
     fImpl->processAllEmailWhenLessThan200Emails->setChecked( api->processAllEmailWhenLessThan200Emails() );
     fImpl->onlyProcessTheFirst500Emails->setChecked( api->onlyProcessTheFirst500Emails() );
-    fImpl->includeJunkFolderWhenRunningOnAllFolders->setChecked( api->includeJunkFolderWhenRunningOnAllFolders() );
-    fImpl->includeDeletedFolderWhenRunningOnAllFolders->setChecked( api->includeDeletedFolderWhenRunningOnAllFolders() );
     fImpl->disableRatherThanDeleteRules->setChecked( api->disableRatherThanDeleteRules() );
     fImpl->rulesToSkip->addItems( api->rulesToSkip() );
     fImpl->loadAccountInfo->setChecked( api->loadAccountInfo() );
@@ -43,8 +41,6 @@ void CSettings::accept()
     api->setOnlyProcessUnread( fImpl->onlyProcessUnread->isChecked() );
     api->setProcessAllEmailWhenLessThan200Emails( fImpl->processAllEmailWhenLessThan200Emails->isChecked() );
     api->setOnlyProcessTheFirst500Emails( fImpl->onlyProcessTheFirst500Emails->isChecked() );
-    api->setIncludeJunkFolderWhenRunningOnAllFolders( fImpl->includeJunkFolderWhenRunningOnAllFolders->isChecked() );
-    api->setIncludeDeletedFolderWhenRunningOnAllFolders( fImpl->includeDeletedFolderWhenRunningOnAllFolders->isChecked() );
     api->setLoadAccountInfo( fImpl->loadAccountInfo->isChecked() );
 
     api->setDisableRatherThanDeleteRules( fImpl->disableRatherThanDeleteRules->isChecked() );
@@ -63,8 +59,6 @@ bool CSettings::changed() const
     bool retVal = fImpl->onlyProcessUnread->isChecked() != api->onlyProcessUnread();
     retVal = retVal || ( fImpl->processAllEmailWhenLessThan200Emails->isChecked() != api->processAllEmailWhenLessThan200Emails() );
     retVal = retVal || ( fImpl->onlyProcessTheFirst500Emails->isChecked() != api->onlyProcessTheFirst500Emails() );
-    retVal = retVal || ( fImpl->includeJunkFolderWhenRunningOnAllFolders->isChecked() != api->includeJunkFolderWhenRunningOnAllFolders() );
-    retVal = retVal || ( fImpl->includeDeletedFolderWhenRunningOnAllFolders->isChecked() != api->includeDeletedFolderWhenRunningOnAllFolders() );
     retVal = retVal || ( fImpl->loadAccountInfo->isChecked() != api->loadAccountInfo() );
 
     retVal = retVal || ( fImpl->disableRatherThanDeleteRules->isChecked() != api->disableRatherThanDeleteRules() );
