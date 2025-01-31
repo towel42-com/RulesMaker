@@ -36,6 +36,7 @@ void CFilterFromEmailModel::clear()
     fEmailCache.clear();
     fItemCountCache.reset();
     fNumEmailsProcessed = 0;
+    fNumEmailAddressesProcessed = 0;
     fUniqueEmails = 0;
     fCurrPos = 1;
     endResetModel();
