@@ -407,11 +407,12 @@ bool COutlookAPI::emptyFolder( std::shared_ptr< Outlook::Folder > &folder )
     }
     emit sigStatusMessage( QString( "%1 folders deleted" ).arg( numFoldersDeleted ) );
     auto items = getItems( folder->Items() );
-    int numEmailsDeleted = 0;
+    int numItemsDeleted = 0;
+    int numItemsSkipped = 0;
     if ( items && items->Count() )
     {
         auto count = items->Count();
-        auto msg = tr( "Emptying Folder - %1 - Deleting emails:" ).arg( folder->Name() );
+        auto msg = tr( "Emptying Folder - %1 - Deleting items:" ).arg( folder->Name() );
         emit sigInitStatus( msg, count );
         for ( int ii = count; ii > 0; --ii )
         {
@@ -419,15 +420,18 @@ bool COutlookAPI::emptyFolder( std::shared_ptr< Outlook::Folder > &folder )
                 break;
             auto email = getEmailItem( items, ii );
             if ( !email )
+            {
+                numItemsSkipped++;
                 continue;
+            }
             auto emailName = email->Subject();
-            emit sigStatusMessage( tr( "Deleting email - %1" ).arg( emailName ) );
+            emit sigStatusMessage( tr( "Deleting item - %1" ).arg( emailName ) );
             emit sigSetStatus( msg, count - ii, count );
             email->Delete();
-            numEmailsDeleted++;
+            numItemsDeleted++;
         }
     }
-    emit sigStatusMessage( QString( "%1 emails deleted" ).arg( numEmailsDeleted ) );
+    emit sigStatusMessage( QString( "%1 items deleted, %2 items skipped" ).arg( numItemsDeleted ).arg( numItemsSkipped ) );
     emit sigStatusFinished( msg );
     return !canceled();
 }
