@@ -13,8 +13,21 @@
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout">
-   <item row="4" column="3">
+  <layout class="QGridLayout" name="gridLayout_2">
+   <item row="2" column="0" rowspan="3">
+    <widget class="QTreeView" name="rules">
+     <property name="editTriggers">
+      <set>QAbstractItemView::NoEditTriggers</set>
+     </property>
+     <property name="sortingEnabled">
+      <bool>true</bool>
+     </property>
+     <property name="expandsOnDoubleClick">
+      <bool>false</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
     <widget class="QToolButton" name="ruleEnabled">
      <property name="text">
       <string>Enable Rule</string>
@@ -28,7 +41,18 @@
      </property>
     </widget>
    </item>
-   <item row="7" column="3">
+   <item row="3" column="1">
+    <widget class="QToolButton" name="deleteRule">
+     <property name="text">
+      <string>Delete Rule</string>
+     </property>
+     <property name="icon">
+      <iconset resource="MainWindow.qrc">
+       <normaloff>:/resources/trash.png</normaloff>:/resources/trash.png</iconset>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="1">
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -41,48 +65,53 @@
      </property>
     </spacer>
    </item>
-   <item row="5" column="3">
-    <widget class="QToolButton" name="deleteRule">
-     <property name="text">
-      <string>Delete Rule</string>
-     </property>
-     <property name="icon">
-      <iconset resource="MainWindow.qrc">
-       <normaloff>:/resources/trash.png</normaloff>:/resources/trash.png</iconset>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="2">
-    <widget class="QLineEdit" name="filter">
-     <property name="placeholderText">
-      <string>&lt;filter&gt;</string>
-     </property>
-    </widget>
-   </item>
    <item row="1" column="0" colspan="2">
-    <widget class="QLabel" name="label">
-     <property name="text">
-      <string>Rule &amp;Name:</string>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string>Filter</string>
      </property>
-     <property name="buddy">
-      <cstring>filter</cstring>
-     </property>
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="0" column="2">
+       <widget class="QLineEdit" name="filter">
+        <property name="placeholderText">
+         <string>&lt;filter&gt;</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="2">
+       <widget class="QCheckBox" name="showDisabled">
+        <property name="text">
+         <string>Show Disabled?</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0" rowspan="2">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Rule &amp;Name:</string>
+        </property>
+        <property name="buddy">
+         <cstring>filter</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0" colspan="2">
+       <widget class="QCheckBox" name="showEnabled">
+        <property name="text">
+         <string>Show Enabled?</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </widget>
    </item>
-   <item row="3" column="0" rowspan="5" colspan="3">
-    <widget class="QTreeView" name="rules">
-     <property name="editTriggers">
-      <set>QAbstractItemView::NoEditTriggers</set>
-     </property>
-     <property name="sortingEnabled">
-      <bool>true</bool>
-     </property>
-     <property name="expandsOnDoubleClick">
-      <bool>false</bool>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="0" colspan="4">
+   <item row="0" column="0" colspan="2">
     <widget class="QLabel" name="summary">
      <property name="text">
       <string>Summary:</string>

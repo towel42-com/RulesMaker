@@ -17,11 +17,16 @@ bool CListFilterModel::filterAcceptsColumn( int source_column, const QModelIndex
     return QSortFilterProxyModel::filterAcceptsColumn( source_column, source_parent );
 }
 
-bool CListFilterModel::filterAcceptsRow( int source_row, const QModelIndex &source_parent ) const
+bool CListFilterModel::filterAcceptsRow( int sourceRow, const QModelIndex &sourceParent ) const
 {
-    if ( !onlyFilterParent() || !source_parent.isValid() )
-        return QSortFilterProxyModel::filterAcceptsRow( source_row, source_parent );
-    return true;
+    if ( onlyFilterParent() && sourceParent.isValid() )
+        return true;
+
+    auto retVal = QSortFilterProxyModel::filterAcceptsRow( sourceRow, sourceParent );
+    if ( retVal && fShowRowFunc )
+        retVal = fShowRowFunc( sourceRow, sourceParent );
+
+    return retVal;
 }
 
 bool CListFilterModel::lessThan( const QModelIndex &source_left, const QModelIndex &source_right ) const

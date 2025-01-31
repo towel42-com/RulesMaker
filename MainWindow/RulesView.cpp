@@ -37,6 +37,26 @@ void CRulesView::init()
             auto rhsRule = fModel->getRule( rhs );
             return COutlookAPI::instance()->ruleLessThan( lhsRule, rhsRule );
         } );
+    fFilterModel->setShowRowFunc(
+        [ = ]( int sourceRow, const QModelIndex &sourceParent )
+        {
+            if ( fImpl->showDisabled->isChecked() && fImpl->showEnabled->isChecked() )
+                return true;
+
+            auto sourceIndex = fModel->index( sourceRow, 0, sourceParent );
+            auto rule = fModel->getRule( sourceIndex );
+            if ( !rule )
+                return true;
+
+            bool ruleEnabled = COutlookAPI::instance()->ruleEnabled( rule );
+            if ( !fImpl->showDisabled->isChecked() && !ruleEnabled )
+                return false;
+
+            if ( !fImpl->showEnabled->isChecked() && ruleEnabled )
+                return false;
+
+            return true;
+        } );
     fFilterModel->setSourceModel( fModel );
     fImpl->rules->setModel( fFilterModel );
 
@@ -78,6 +98,8 @@ void CRulesView::init()
             if ( fFilterModel->rowCount() == 1 )
                 fImpl->rules->expandAll();
         } );
+    connect( fImpl->showEnabled, &QCheckBox::clicked, [ = ]() { fFilterModel->invalidateFilter(); } );
+    connect( fImpl->showDisabled, &QCheckBox::clicked, [ = ]() { fFilterModel->invalidateFilter(); } );
 
     setWindowTitle( QObject::tr( "Rules" ) );
 }
@@ -164,9 +186,11 @@ void CRulesView::slotItemSelected()
 
 void CRulesView::slotDeleteCurrent()
 {
-    if ( !selectedIndex().isValid() )
+    auto idx = selectedIndex();
+    if ( !idx.isValid() )
         return;
-    auto rule = fModel->getRule( selectedIndex() );
+
+    auto rule = fModel->getRule( idx );
     if ( !rule )
         return;
     qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
@@ -177,10 +201,11 @@ void CRulesView::slotDeleteCurrent()
 
 void CRulesView::slotToggleCurrentEnable()
 {
-    if ( !selectedIndex().isValid() )
+    auto idx = selectedIndex();
+    if ( !idx.isValid() )
         return;
 
-    auto rule = fModel->getRule( selectedIndex() );
+    auto rule = fModel->getRule( idx );
     if ( !rule )
         return;
 
