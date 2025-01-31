@@ -17,47 +17,54 @@ enum class EParseResult
 
 enum EOperation
 {
-    eNone = 0x00,
-    eRun = 0x01,
-    eRename = 0x02,
-    eSort = 0x04,
-    eFixRules = 0x08,
-    eMerge = 0x10,
-    eEnableAll = 0x20,
-    eEmptyJunk = 0x40,
-    eEmptyTrash = 0x80
+    eNone = 0x0000,
+    eRun = 0x0001,
+    eRename = 0x0002,
+    eSort = 0x0004,
+    eMerge = 0x0010,
+    eEnableAll = 0x0020,
+    eEmptyJunk = 0x0040,
+    eEmptyTrash = 0x0080,
+    eRunOnJunk = 0x0100
 };
+
+EOperation operator|( const EOperation &lhs, const EOperation &rhs )
+{
+    return static_cast< EOperation >( static_cast< int >( lhs ) | static_cast< int >( rhs ) );
+}
 
 bool isOperation( EOperation value, EOperation filter )
 {
     return ( static_cast< int >( filter ) & static_cast< int >( value ) ) != 0;
 }
 
-std::pair< EParseResult, EOperation > parseCommandLine( QCommandLineParser &parser, QString &errorMsg )
+QCommandLineParser sParser;
+
+std::pair< EParseResult, EOperation > parseCommandLine( QString &errorMsg )
 {
-    auto helpOpt = parser.addHelpOption();
-    auto versionOpt = parser.addVersionOption();
+    auto helpOpt = sParser.addHelpOption();
+    auto versionOpt = sParser.addVersionOption();
 
     EOperation operation = EOperation::eNone;
-    if ( !parser.parse( QCoreApplication::arguments() ) )
+    if ( !sParser.parse( QCoreApplication::arguments() ) )
     {
-        errorMsg = parser.errorText();
+        errorMsg = sParser.errorText();
         return { EParseResult::eError, operation };
     }
 
-    if ( parser.isSet( helpOpt ) )
+    if ( sParser.isSet( helpOpt ) )
         return { EParseResult::eHelp, operation };
 
-    if ( parser.isSet( versionOpt ) )
+    if ( sParser.isSet( versionOpt ) )
         return { EParseResult::eVersion, operation };
 
     auto api = COutlookAPI::cliInstance();
 
     QSettings settings;
     QString profileName;
-    if ( parser.isSet( "profile" ) )
+    if ( sParser.isSet( "profile" ) )
     {
-        profileName = parser.value( "profile" );
+        profileName = sParser.value( "profile" );
         settings.setValue( "Profile", profileName );
     }
     else
@@ -70,9 +77,9 @@ std::pair< EParseResult, EOperation > parseCommandLine( QCommandLineParser &pars
     }
 
     QString accountName;
-    if ( parser.isSet( "account" ) )
+    if ( sParser.isSet( "account" ) )
     {
-        accountName = parser.value( "account" );
+        accountName = sParser.value( "account" );
         settings.setValue( "Account", accountName );
     }
     else
@@ -92,40 +99,41 @@ std::pair< EParseResult, EOperation > parseCommandLine( QCommandLineParser &pars
 
     bool needsRules = false;
 
-    if ( parser.isSet( "run" ) )
+    if ( sParser.isSet( "run" ) )
     {
-        operation = static_cast< EOperation >( operation | EOperation::eRun );
+        operation = operation | EOperation::eRun;
         needsRules = true;
     }
-    if ( parser.isSet( "rename" ) )
+    if ( sParser.isSet( "run_on_junk" ) )
     {
-        operation = static_cast< EOperation >( operation | EOperation::eRename );
+        operation = operation | EOperation::eRunOnJunk;
         needsRules = true;
     }
-    if ( parser.isSet( "sort" ) )
+
+    if ( sParser.isSet( "rename" ) )
     {
-        operation = static_cast< EOperation >( operation | EOperation::eSort );
+        operation = operation | EOperation::eRename;
         needsRules = true;
     }
-    if ( parser.isSet( "fix_rules" ) )
+    if ( sParser.isSet( "sort" ) )
     {
-        operation = static_cast< EOperation >( operation | EOperation::eFixRules );
+        operation = operation | EOperation::eSort;
         needsRules = true;
     }
-    if ( parser.isSet( "merge" ) )
+    if ( sParser.isSet( "merge" ) )
     {
-        operation = static_cast< EOperation >( operation | EOperation::eMerge );
+        operation = operation | EOperation::eMerge;
         needsRules = true;
     }
-    if ( parser.isSet( "enable_all" ) )
+    if ( sParser.isSet( "enable_all" ) )
     {
-        operation = static_cast< EOperation >( operation | EOperation::eEnableAll );
+        operation = operation | EOperation::eEnableAll;
         needsRules = true;
     }
-    if ( parser.isSet( "empty_junk" ) )
-        operation = static_cast< EOperation >( operation | EOperation::eEmptyJunk );
-    if ( parser.isSet( "empty_trash" ) )
-        operation = static_cast< EOperation >( operation | EOperation::eEmptyTrash );
+    if ( sParser.isSet( "empty_junk" ) )
+        operation = operation | EOperation::eEmptyJunk;
+    if ( sParser.isSet( "empty_trash" ) )
+        operation = operation | EOperation::eEmptyTrash;
 
     if ( operation == EOperation::eNone )
     {
@@ -139,13 +147,13 @@ std::pair< EParseResult, EOperation > parseCommandLine( QCommandLineParser &pars
     return { EParseResult::eSuccess, operation };
 }
 
-bool runRules( QCommandLineParser &parser )
+bool runRules( bool onJunkIfFolderNotSet )
 {
     auto api = COutlookAPI::instance();
     std::shared_ptr< Outlook::Rule > rule;
-    if ( parser.isSet( "rule" ) )
+    if ( sParser.isSet( "rule" ) )
     {
-        auto ruleName = parser.value( "rule" );
+        auto ruleName = sParser.value( "rule" );
         rule = api->findRule( ruleName );
         if ( !rule )
         {
@@ -155,10 +163,9 @@ bool runRules( QCommandLineParser &parser )
     }
 
     std::shared_ptr< Outlook::Folder > folder;
-    auto allFolders = parser.isSet( "all_folders" );
-    if ( parser.isSet( "folder" ) )
+    if ( sParser.isSet( "folder" ) )
     {
-        auto folderName = parser.value( "folder" );
+        auto folderName = sParser.value( "folder" );
         folder = api->findFolder( folderName, {} );
         if ( !folder )
         {
@@ -167,13 +174,16 @@ bool runRules( QCommandLineParser &parser )
         }
     }
 
-    auto junk = parser.isSet( "junk" );
-
     bool aOK = false;
     if ( !rule )
-        aOK = api->runAllRules( folder, allFolders, junk );
+    {
+        if ( onJunkIfFolderNotSet )
+            aOK = api->runAllRulesOnJunkFolder();
+        else
+            aOK = api->runAllRules( folder );
+    }
     else
-        aOK = api->runRule( rule, folder, allFolders, junk );
+        aOK = api->runRule( rule, folder );
 
     if ( !aOK )
         std::cerr << "Failed to run rule(s)." << std::endl;
@@ -222,32 +232,29 @@ int main( int argc, char *argv[] )
     QObject::connect( api.get(), &COutlookAPI::sigStatusMessage, [ = ]( const QString &msg ) { std::cout << qPrintable( msg ) << std::endl; } );
     QObject::connect( api.get(), &COutlookAPI::sigStatusFinished, [ = ]( const QString &label ) { std::cout << "Finished - " << qPrintable( label ) << std::endl; } );
 
-    QCommandLineParser parser;
-    parser.setApplicationDescription( NVersion::APP_NAME + " is a tool to help create and maintain Outlook Rules to keep your inbox clean." );
+    sParser.setApplicationDescription( NVersion::APP_NAME + " is a tool to help create and maintain Outlook Rules to keep your inbox clean." );
 
     QSettings settings;
     auto lastProfile = settings.value( "Profile", QString() ).toString();
-    parser.addOption( QCommandLineOption( { "p", "profile" }, "The Outlook <profile> to use. If there is only one profile, it is selected.  If unset, use the default profile if one exists.", "profile", lastProfile ) );
+    sParser.addOption( QCommandLineOption( { "p", "profile" }, "The Outlook <profile> to use. If there is only one profile, it is selected.  If unset, use the default profile if one exists.", "profile", lastProfile ) );
     auto lastAccount = settings.value( "Account", QString() ).toString();
-    parser.addOption( QCommandLineOption( { "a", "account" }, "The <account> to use. If there is only 1 account it is automatically selected, and this option is ignored.", "account", lastAccount ) );
+    sParser.addOption( QCommandLineOption( { "a", "account" }, "The <account> to use. If there is only 1 account it is automatically selected, and this option is ignored.", "account", lastAccount ) );
 
-    parser.addOption( QCommandLineOption( { "r", "rule" }, "The <rule> to run (if not set all rules are run).", "rule" ) );
-    parser.addOption( QCommandLineOption( { "f", "folder" }, "The <folder> to run the rule on (if not set the rule is run on the inbox).", "folder" ) );
+    sParser.addOption( QCommandLineOption( "rule", "The <rule> to run (if not set all rules are run).", "rule" ) );
+    sParser.addOption( QCommandLineOption( { "f", "folder" }, "The <folder> to run the rule on (if not set the rule is run on the inbox).", "folder" ) );
 
-    parser.addOption( QCommandLineOption( "all_folders", "Run rule(s) on all folders, overwrites the -f <folder> option." ) );
-    parser.addOption( QCommandLineOption( "junk", "Include junk in all_folders." ) );
+    sParser.addOption( QCommandLineOption( "run", "Run the rule(s) on the folder(s) (if nothing else set, defaults to true)." ) );
+    sParser.addOption( QCommandLineOption( "run_on_junk", "Run all the rule(s) on the junk folder." ) );
 
-    parser.addOption( QCommandLineOption( "run", "Run the rule(s) on the folder(s) (if nothing else set, defaults to true)." ) );
-    parser.addOption( QCommandLineOption( "rename", "Rename all rules based on their settings." ) );
-    parser.addOption( QCommandLineOption( "sort", "Sort rules based on their names." ) );
-    parser.addOption( QCommandLineOption( "fix_rules", R"(Move "From" conditional to "Address" in rules settings)" ) );
-    parser.addOption( QCommandLineOption( "merge", R"(Merge rules based on destination folder)" ) );
-    parser.addOption( QCommandLineOption( "enable_all", R"(Enable all rules)" ) );
-    parser.addOption( QCommandLineOption( "empty_junk", R"(Empty Junk Folder)" ) );
-    parser.addOption( QCommandLineOption( "empty_trash", R"(Empty Trash Folder)" ) );
+    sParser.addOption( QCommandLineOption( "rename", "Rename all rules based on their settings." ) );
+    sParser.addOption( QCommandLineOption( "sort", "Sort rules based on their names." ) );
+    sParser.addOption( QCommandLineOption( "merge", R"(Merge rules based on destination folder and conditions)" ) );
+    sParser.addOption( QCommandLineOption( "enable_all", R"(Enable all rules)" ) );
+    sParser.addOption( QCommandLineOption( "empty_junk", R"(Empty Junk Folder)" ) );
+    sParser.addOption( QCommandLineOption( "empty_trash", R"(Empty Trash Folder)" ) );
 
     QString msg;
-    auto &&[ result, operation ] = parseCommandLine( parser, msg );
+    auto &&[ result, operation ] = parseCommandLine( msg );
 
     switch ( result )
     {
@@ -255,13 +262,13 @@ int main( int argc, char *argv[] )
             break;
         case EParseResult::eError:
             std::cerr << qPrintable( msg ) << std::endl;
-            parser.showHelp( 1 );
+            sParser.showHelp( 1 );
             return 1;
         case EParseResult::eVersion:
-            parser.showVersion();
+            sParser.showVersion();
             return 0;
         case EParseResult::eHelp:
-            parser.showHelp();
+            sParser.showHelp();
             return 0;
     }
 
@@ -279,13 +286,6 @@ int main( int argc, char *argv[] )
         aOK = aOK && api->sortRules( false, &needsSaving );
         if ( !aOK )
             std::cerr << "Failed to sort rule(s)." << std::endl;
-    }
-
-    if ( aOK && isOperation( operation, EOperation::eFixRules ) )
-    {
-        aOK = aOK && api->moveFromToAddress( false, &needsSaving );
-        if ( !aOK )
-            std::cerr << "Failed to fix rule(s)." << std::endl;
     }
 
     if ( aOK && isOperation( operation, EOperation::eMerge ) )
@@ -307,19 +307,24 @@ int main( int argc, char *argv[] )
 
     if ( aOK && isOperation( operation, EOperation::eRun ) )
     {
-        aOK = runRules( parser );
+        aOK = runRules( false );
+    }
+
+    if ( aOK && isOperation( operation, EOperation::eRunOnJunk ) )
+    {
+        aOK = runRules( true );
     }
 
     if ( aOK && isOperation( operation, EOperation::eEmptyJunk ) )
     {
-        aOK = aOK && api->emptyJunk();
+        aOK = api->emptyJunk();
         if ( !aOK )
             std::cerr << "Failed to empty Junk." << std::endl;
     }
 
     if ( aOK && isOperation( operation, EOperation::eEmptyTrash ) )
     {
-        aOK = aOK && api->emptyTrash();
+        aOK = api->emptyTrash();
         if ( !aOK )
             std::cerr << "Failed to empty Trash." << std::endl;
     }
