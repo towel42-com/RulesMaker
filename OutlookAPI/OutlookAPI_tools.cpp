@@ -10,6 +10,53 @@
 #include "MSOUTL.h"
 #include <tuple>
 
+bool COutlookAPI::deleteAllDisabledRules( bool andSave /*= true*/, bool *needsSaving /*= nullptr*/ )
+{
+    if ( needsSaving )
+        *needsSaving = false;
+
+    if ( !fRules )
+        return false;
+
+    slotClearCanceled();
+
+    auto numRules = fRules->Count();
+    emit sigInitStatus( "Deleting Disabled Rules:", numRules );
+
+    std::list< Outlook::_Rule * > rules;
+    int numChanged = 0;
+    for ( int ii = 1; ii <= numRules; ++ii )
+    {
+        if ( canceled() )
+            return false;
+        auto rule = getRule( fRules->Item( ii ) );
+        emit sigIncStatusValue( "Deleting Disabled Rules:" );
+        if ( !rule )
+            continue;
+        if ( rule->Enabled() )
+            continue;
+        emit sigStatusMessage( QString( "Deleting rule '%1'" ).arg( getDisplayName( rule ) ) );
+        deleteRule( rule, false, false );
+        numChanged++;
+        numRules--;
+        --ii;
+    }
+    if ( canceled() )
+        return false;
+
+    if ( fParentWidget )
+        QMessageBox::information( fParentWidget, R"(Delete Disabled Rules)", QString( "%1 rules deleted" ).arg( numChanged ) );
+    else
+        emit sigStatusMessage( QString( "%1 rules deleted" ).arg( numChanged ) );
+
+    if ( needsSaving )
+        *needsSaving = numChanged != 0;
+
+    if ( andSave && ( numChanged != 0 ) )
+        saveRules();
+    return true;
+}
+
 bool COutlookAPI::enableAllRules( bool andSave /*= true*/, bool *needsSaving /*= nullptr*/ )
 {
     if ( needsSaving )

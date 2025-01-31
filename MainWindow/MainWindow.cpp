@@ -35,6 +35,8 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     connect( fImpl->actionRenameRules, &QAction::triggered, this, &CMainWindow::slotRenameRules );
     connect( fImpl->actionMergeRules, &QAction::triggered, this, &CMainWindow::slotMergeRules );
     connect( fImpl->actionEnableAllRules, &QAction::triggered, this, &CMainWindow::slotEnableAllRules );
+    connect( fImpl->actionDeleteAllDisabledRules, &QAction::triggered, this, &CMainWindow::slotDeleteAllDisabledRules );
+    
     connect( fImpl->actionMoveFromToAddress, &QAction::triggered, this, &CMainWindow::slotMoveFromToAddress );
     connect( fImpl->actionFixFromMessageHeaderRules, &QAction::triggered, this, &CMainWindow::slotFixFromMessageHeaderRules );
 
@@ -194,6 +196,7 @@ void CMainWindow::updateActions()
 
     setEnabled( fImpl->actionRunSelectedRule, ruleSelected );
     setEnabled( fImpl->actionDeleteRule, { ruleSelected, disableRatherThanDeleteRules } );
+    setEnabled( fImpl->actionDeleteAllDisabledRules, disableRatherThanDeleteRules );
     setEnabled( fImpl->actionAddToSelectedRule, { emailSelected, ruleSelected, folderSame } );
 
     setEnabled( fImpl->actionRuleEnabled, ruleSelected );
@@ -316,6 +319,14 @@ void CMainWindow::slotEnableAllRules()
 {
     setWaitCursor( true );
     if ( COutlookAPI::instance()->enableAllRules() )
+        slotReloadRules();
+    setWaitCursor( false );
+}
+
+void CMainWindow::slotDeleteAllDisabledRules()
+{
+    setWaitCursor( true );
+    if ( COutlookAPI::instance()->deleteAllDisabledRules() )
         slotReloadRules();
     setWaitCursor( false );
 }

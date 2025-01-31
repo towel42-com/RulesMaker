@@ -56,6 +56,7 @@ protected Q_SLOTS:
     void slotSortRules();
     void slotMoveFromToAddress();
     void slotEnableAllRules();
+    void slotDeleteAllDisabledRules();
     void slotFixFromMessageHeaderRules();
 
     void slotAddFolderForSelectedEmail();

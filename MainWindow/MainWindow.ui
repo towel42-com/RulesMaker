@@ -122,12 +122,14 @@
     <addaction name="actionMergeRules"/>
     <addaction name="separator"/>
     <addaction name="actionEnableAllRules"/>
+    <addaction name="actionDeleteAllDisabledRules"/>
     <addaction name="separator"/>
     <addaction name="actionMoveFromToAddress"/>
     <addaction name="actionFixFromMessageHeaderRules"/>
     <addaction name="separator"/>
     <addaction name="actionEmptyJunkFolder"/>
     <addaction name="actionEmptyTrash"/>
+    <addaction name="separator"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuReload"/>
@@ -442,6 +444,11 @@
   <action name="actionRunAllRulesOnTrashFolder">
    <property name="text">
     <string>Run All Rules on Trash Folder</string>
+   </property>
+  </action>
+  <action name="actionDeleteAllDisabledRules">
+   <property name="text">
+    <string>Delete All Disabled Rules...</string>
    </property>
   </action>
  </widget>

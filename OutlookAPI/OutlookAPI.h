@@ -242,6 +242,7 @@ public:
 
     // tools API in OutlookAPI_tools.cpp
     bool enableAllRules( bool andSave = true, bool *needsSaving = nullptr );
+    bool deleteAllDisabledRules( bool andSave = true, bool *needsSaving = nullptr );
     bool mergeRules( bool andSave = true, bool *needsSaving = nullptr );
 
     bool moveFromToAddress( bool andSave = true, bool *needsSaving = nullptr );
