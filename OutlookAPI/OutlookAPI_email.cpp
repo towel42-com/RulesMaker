@@ -34,25 +34,21 @@ std::pair< std::shared_ptr< Outlook::Items >, int > COutlookAPI::getEmailItemsFo
     return { retVal, retVal->Count() };
 }
 
-std::shared_ptr< Outlook::MailItem > COutlookAPI::getEmailItem( const std::shared_ptr< Outlook::Items > &items, int num )
+IDispatch *COutlookAPI::getItem( const std::shared_ptr< Outlook::Items > &items, int num )
 {
     if ( !items || !num || ( num > items->Count() ) )
-        return {};
+        return nullptr;
 
     auto item = items->Item( num );
     if ( !item )
-        return {};
+        return item;
 
-    if ( getObjectClass( item ) == Outlook::OlObjectClass::olMail )
-    {
-        return getEmailItem( item );
-    }
-    return {};
+    return item;
 }
 
 std::shared_ptr< Outlook::MailItem > COutlookAPI::getEmailItem( IDispatch *item )
 {
-    if ( !item )
+    if ( !item || ( getObjectClass( item ) != Outlook::OlObjectClass::olMail ) )
         return {};
     return connectToException( std::make_shared< Outlook::MailItem >( item ) );
 }
@@ -67,4 +63,3 @@ bool COutlookAPI::isExchangeUser( Outlook::AddressEntry *address )
 {
     return address && ( address->GetExchangeUser() || address->GetExchangeDistributionList() );
 }
-

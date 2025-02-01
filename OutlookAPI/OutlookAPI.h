@@ -300,7 +300,8 @@ public:
 
     std::pair< std::shared_ptr< Outlook::Items >, int > getEmailItemsForRootFolder();
 
-    std::shared_ptr< Outlook::MailItem > getEmailItem( const std::shared_ptr< Outlook::Items > &items, int num );
+    IDispatch * getItem( const std::shared_ptr< Outlook::Items > &items, int num );
+
     std::shared_ptr< Outlook::MailItem > getEmailItem( IDispatch *item );
 
     static bool isExchangeUser( Outlook::AddressEntry *address );

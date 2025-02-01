@@ -78,7 +78,7 @@ void CFilterFromEmailModel::slotGroupNextMailItemBySender()
         return;
     }
 
-    auto mailItem = COutlookAPI::instance()->getEmailItem( fItems, fCurrPos );
+    auto mailItem = COutlookAPI::instance()->getEmailItem( COutlookAPI::instance()->getItem( fItems, fCurrPos ) );
     if ( mailItem )
         addMailItem( mailItem );
 

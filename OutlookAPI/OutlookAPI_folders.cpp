@@ -418,7 +418,7 @@ bool COutlookAPI::emptyFolder( std::shared_ptr< Outlook::Folder > &folder )
         {
             if ( canceled() )
                 break;
-            auto email = getEmailItem( items, ii );
+            auto email = getEmailItem( getItem( items, ii ) );
             if ( !email )
             {
                 numItemsSkipped++;
