@@ -2,6 +2,7 @@
 #include "EmailAddress.h"
 
 #include "MSOUTL.h"
+#include <oaidl.h>
 
 std::pair< std::shared_ptr< Outlook::Items >, int > COutlookAPI::getEmailItemsForRootFolder()
 {
@@ -51,6 +52,38 @@ std::shared_ptr< Outlook::MailItem > COutlookAPI::getEmailItem( IDispatch *item 
     if ( !item || ( getObjectClass( item ) != Outlook::OlObjectClass::olMail ) )
         return {};
     return connectToException( std::make_shared< Outlook::MailItem >( item ) );
+}
+
+std::pair< bool, QString > COutlookAPI::canDeleteItem( IDispatch *item )
+{
+    std::pair< bool, QString > retVal{ false, QString() };
+    if ( !item )
+        return retVal;
+
+    item->AddRef();
+    auto axObject = QAxObject( (IUnknown *)item, nullptr );
+    auto properties = axObject.propertyBag();
+
+    auto desc = Outlook::toString( static_cast< Outlook::OlObjectClass >( axObject.dynamicCall( "Class()" ).toInt() ) );
+    auto metaObject = axObject.metaObject();
+    if ( !metaObject )
+    {
+        return retVal;
+    }
+
+    auto methodIndex = metaObject->indexOfMethod( "Delete()" );
+    return { methodIndex != -1, desc };
+}
+
+bool COutlookAPI::deleteItem( IDispatch *item )
+{
+    if ( !canDeleteItem( item ).first )
+        return false;
+
+    auto axObject = QAxObject( (IUnknown *)item, nullptr );
+
+    axObject.dynamicCall( "Delete()" );
+    return true;
 }
 
 void COutlookAPI::displayEmail( const std::shared_ptr< Outlook::MailItem > &email ) const

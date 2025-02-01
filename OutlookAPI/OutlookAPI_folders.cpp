@@ -264,7 +264,7 @@ std::pair< std::shared_ptr< Outlook::Folder >, bool > COutlookAPI::selectFolder(
         folderMap[ path ] = ii;
     }
     bool aOK{ false };
-    auto item = QInputDialog::getItem( fParentWidget, QString( "Select %1 Folder" ).arg( folderName ), folderName + " Folder:", folderNames, 0, false, &aOK );
+    auto item = QInputDialog::getItem( fParentWidget, QString( "Select %1 Folder" ).arg( folderName ), folderName + " Folder", folderNames, 0, false, &aOK );
     if ( !aOK )
         return { {}, false };
     auto pos = folderMap.find( item );
@@ -326,9 +326,9 @@ int COutlookAPI::recursiveSubFolderCount( const Outlook::Folder *parent )
     if ( !parent )
         return 0;
 
-    emit sigInitStatus( "Counting Folders:", 0 );
+    emit sigInitStatus( "Counting Folders", 0 );
     auto retVal = subFolderCount( parent, true );
-    emit sigStatusFinished( "Counting Folders:" );
+    emit sigStatusFinished( "Counting Folders" );
     return retVal;
 }
 
@@ -337,7 +337,7 @@ int COutlookAPI::subFolderCount( const Outlook::Folder *parent, bool recursive )
     if ( !parent )
         return 0;
 
-    emit sigInitStatus( "Counting Folders:", 0 );
+    emit sigInitStatus( "Counting Folders", 0 );
 
     auto folders = parent->Folders();
     auto folderCount = folders->Count();
@@ -352,7 +352,7 @@ int COutlookAPI::subFolderCount( const Outlook::Folder *parent, bool recursive )
     }
 
     if ( !recursive )
-        emit sigStatusFinished( "Counting Folders:" );
+        emit sigStatusFinished( "Counting Folders" );
 
     return retVal;
 }
@@ -383,24 +383,25 @@ bool COutlookAPI::emptyFolder( std::shared_ptr< Outlook::Folder > &folder )
         return false;
 
     auto subFolders = folder->Folders();
-    auto msg = tr( "Emptying Folder - %1:" ).arg( folder->Name() );
+    auto msg = tr( "Emptying Folder - %1" ).arg( folder->Name() );
     emit sigStatusMessage( msg );
     int numFoldersDeleted = 0;
     if ( subFolders && subFolders->Count() )
     {
-        auto msg = tr( "Emptying Folder - %1 - Deleting Sub-Folders:" ).arg( folder->Name() );
+        auto msg = tr( "Emptying Folder - %1 - Deleting Sub-Folders" ).arg( folder->Name() );
         auto count = subFolders->Count();
         emit sigInitStatus( msg, count );
-        for ( int ii = count; ii > 0; --ii )
+        int itemNum = 1;
+        while ( subFolders->Count() && ( itemNum <= subFolders->Count() ) )
         {
             if ( canceled() )
                 break;
-            auto subFolder = subFolders->Item( ii );
+            auto subFolder = subFolders->Item( itemNum );
             if ( !subFolder )
                 continue;
             auto subFolderName = subFolder->Name();
             emit sigStatusMessage( tr( "Deleting Folder - %1" ).arg( subFolderName ) );
-            emit sigSetStatus( msg, count - ii, count );
+            emit sigIncStatusValue( msg );
             subFolder->Delete();
             numFoldersDeleted++;
         }
@@ -412,22 +413,24 @@ bool COutlookAPI::emptyFolder( std::shared_ptr< Outlook::Folder > &folder )
     if ( items && items->Count() )
     {
         auto count = items->Count();
-        auto msg = tr( "Emptying Folder - %1 - Deleting items:" ).arg( folder->Name() );
+        auto msg = tr( "Emptying Folder - %1 - Deleting items" ).arg( folder->Name() );
         emit sigInitStatus( msg, count );
-        for ( int ii = count; ii > 0; --ii )
+        int itemNum = 1;
+        while ( items->Count() && ( itemNum <= items->Count() ) ) 
         {
             if ( canceled() )
                 break;
-            auto email = getEmailItem( getItem( items, ii ) );
-            if ( !email )
+            auto item = getItem( items, itemNum );
+            auto && [ aOK, desc ] = canDeleteItem( item );
+            if ( !aOK )
             {
+                itemNum++;
                 numItemsSkipped++;
                 continue;
             }
-            auto emailName = email->Subject();
-            emit sigStatusMessage( tr( "Deleting item - %1" ).arg( emailName ) );
-            emit sigSetStatus( msg, count - ii, count );
-            email->Delete();
+            emit sigStatusMessage( tr( "Deleting item - %1" ).arg( desc ) );
+            emit sigIncStatusValue( msg );
+            deleteItem( item );
             numItemsDeleted++;
         }
     }

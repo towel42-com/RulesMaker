@@ -302,6 +302,9 @@ public:
 
     IDispatch * getItem( const std::shared_ptr< Outlook::Items > &items, int num );
 
+    std::pair< bool, QString > canDeleteItem( IDispatch *item );
+    bool deleteItem( IDispatch *item );
+
     std::shared_ptr< Outlook::MailItem > getEmailItem( IDispatch *item );
 
     static bool isExchangeUser( Outlook::AddressEntry *address );
