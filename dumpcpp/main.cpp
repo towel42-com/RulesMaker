@@ -385,14 +385,14 @@ void generateClassDecl( QTextStream &out, const QString &controlID, const QMetaO
         out << "public:" << Qt::endl;
         out << "    " << className << '(';
         if ( category & Licensed )
-            out << "const QString &licenseKey = QString(), ";
+            out << "const QString &licenseKey = {}, ";
         if ( category & ActiveX )
-            out << "QWidget *parent = 0, Qt::WindowFlags f";
+            out << "QWidget *parent = nullptr, Qt::WindowFlags f = {}";
         else if ( category & SubObject )
-            out << "IDispatch *subobject = 0, QAxObject *parent";
+            out << "IDispatch *subobject = nullptr, QAxObject *parent = nullptr";
         else
-            out << "QObject *parent";
-        out << " = 0)" << Qt::endl;
+            out << "QObject *parent = nullptr";
+        out << " )" << Qt::endl;
         out << "    : ";
         if ( category & ActiveX )
             out << "QAxWidget(parent, f";
@@ -529,7 +529,7 @@ void generateClassDecl( QTextStream &out, const QString &controlID, const QMetaO
             {
                 if ( foreignNamespace )
                     out << "#ifdef QAX_DUMPCPP_" << propertyType.left( propertyType.indexOf( "::" ) ).toUpper() << "_H" << Qt::endl;
-                out << indent << "    " << propertyType << " qax_pointer = 0;" << Qt::endl;
+                out << indent << "    " << propertyType << " qax_pointer = nullptr;" << Qt::endl;
                 QByteArray simplePropTypeWithNamespace = propertyType;
                 simplePropTypeWithNamespace.replace( '*', "" );
                 out << indent << "    qRegisterMetaType<" << propertyType << ">(\"" << property.typeName() << "\", &qax_pointer);" << Qt::endl;
@@ -741,7 +741,7 @@ void generateClassDecl( QTextStream &out, const QString &controlID, const QMetaO
             {
                 out << indent << "    " << slotType << " qax_result";
                 if ( slotType.endsWith( '*' ) )
-                    out << " = 0";
+                    out << " = nullptr";
                 out << ';' << Qt::endl;
                 if ( qax_qualified_usertypes.contains( simpleSlotType ) )
                 {
