@@ -235,6 +235,14 @@ public:
     bool deleteAllDisabledRules( bool andSave = true, bool *needsSaving = nullptr );
     bool mergeRules( bool andSave = true, bool *needsSaving = nullptr );
 
+    bool findEmptyFolders();
+
+    void deleteFolderAndParentsIfEmpty( const std::shared_ptr< Outlook::Folder > &folder );
+    bool folderIsEmpty( const Outlook::Folder *folder );
+    bool folderIsEmpty( const Outlook::MAPIFolder *folder );
+    bool folderIsEmpty( const std::shared_ptr< Outlook::Folder > &folder );
+    bool folderIsEmpty( const std::shared_ptr< Outlook::MAPIFolder > &folder );
+
     bool moveFromToAddress( bool andSave = true, bool *needsSaving = nullptr );
     bool fixFromMessageHeaderRules( bool andSave = true, bool *needsSaving = nullptr );
     bool renameRules( bool andSave = true, bool *needsSaving = nullptr );
@@ -257,7 +265,7 @@ public:
 
     int recursiveSubFolderCount( const Outlook::Folder *parent );
 
-    std::list< std::shared_ptr< Outlook::Folder > > getFolders( const std::shared_ptr< Outlook::Folder > &parent, bool recursive, const TFolderFunc &acceptFolder = {}, const TFolderFunc &checkChildFolders = {} );
+    std::list< std::shared_ptr< Outlook::Folder > > getFolders( const std::shared_ptr< Outlook::Folder > &parent, bool showStatus, bool recursive, const TFolderFunc &acceptFolder = {}, const TFolderFunc &checkChildFolders = {} );
     std::shared_ptr< Outlook::Folder > addFolder( const std::shared_ptr< Outlook::Folder > &parent, const QString &folderName );
     std::shared_ptr< Outlook::Folder > parentFolder( const std::shared_ptr< Outlook::Folder > &folder );
 
@@ -300,7 +308,7 @@ public:
 
     std::pair< std::shared_ptr< Outlook::Items >, int > getEmailItemsForRootFolder();
 
-    IDispatch * getItem( const std::shared_ptr< Outlook::Items > &items, int num );
+    IDispatch *getItem( const std::shared_ptr< Outlook::Items > &items, int num );
 
     std::pair< bool, QString > canDeleteItem( IDispatch *item );
     bool deleteItem( IDispatch *item );
@@ -313,6 +321,7 @@ public:
     static QString getSubject( Outlook::MailItem *mailItem );
 
     void displayEmail( const std::shared_ptr< Outlook::MailItem > &email ) const;
+    void displayFolder( const std::shared_ptr< Outlook::Folder > &folder ) const;
 
     // in the Outlook_emailAddress file
     static QStringList getSenderEmailAddresses( Outlook::MailItem *mailItem );
@@ -458,7 +467,7 @@ private:
     std::pair< std::shared_ptr< Outlook::Folder >, bool > selectFolder( const QString &folderName, const TFolderFunc &acceptFolder, const TFolderFunc &checkChildFolders, bool singleOnly );
     std::pair< std::shared_ptr< Outlook::Folder >, bool > selectFolder( const QString &folderName, const std::list< std::shared_ptr< Outlook::Folder > > &folders, bool singleOnly );
 
-    std::list< std::shared_ptr< Outlook::Folder > > getFolders( bool recursive, const TFolderFunc &acceptFolder = {}, const TFolderFunc &checkChildFolders = {} );
+    std::list< std::shared_ptr< Outlook::Folder > > getFolders( bool showStatus, bool recursive, const TFolderFunc &acceptFolder = {}, const TFolderFunc &checkChildFolders = {} );
 
     static QString ruleNameForFolder( Outlook::Folder *folder );
     static QString ruleNameForFolder( const std::shared_ptr< Outlook::Folder > &folder );

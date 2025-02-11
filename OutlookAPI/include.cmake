@@ -3,6 +3,7 @@ set(FOLDER_NAME libs)
 
 set(qtproject_UIS
     SelectAccount.ui
+    SelectFolders.ui
     ShowRule.ui
 )
 
@@ -25,11 +26,13 @@ set(project_SRCS
     OutlookAPI_utils.cpp
     ShowRule.cpp
     SelectAccount.cpp
+    SelectFolders.cpp
 )
  
 set(qtproject_H
     OutlookAPI.h
     SelectAccount.h
+    SelectFolders.h
     ShowRule.h
 )
 

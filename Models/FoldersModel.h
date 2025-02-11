@@ -4,7 +4,9 @@
 #include <QString>
 #include <QStandardItemModel>
 
-#include <memory>
+
+#include <optional>
+#include< memory >
 #include <list>
 
 namespace Outlook
@@ -24,6 +26,8 @@ public:
 
     virtual ~CFoldersModel();
 
+    void setFolders( const std::list< std::shared_ptr< Outlook::Folder > > &folders );
+    std::list< std::shared_ptr< Outlook::Folder > > selectedFolders() const;
     void reload();
     void reloadJunk();
     void reloadTrash();
@@ -48,6 +52,12 @@ public:
     QModelIndex inboxIndex() const;
 
     QString summary() const;
+
+    void setCheckable( bool checkable ) { fCheckable = checkable; }
+    bool checkable() const { return fCheckable; }
+
+    void displayFolder( const QModelIndex &idx );
+    void displayFolder( QStandardItem *item );
 Q_SIGNALS:
     void sigFinishedLoading();
     void sigFinishedLoadingChildren( QStandardItem *parent );
@@ -58,6 +68,8 @@ private Q_SLOTS:
     void slotLoadNextFolder( QStandardItem *parent );
 
 private:
+    std::shared_ptr< Outlook::Folder > inbox() const;
+
     void loadRootFolders( const std::list< std::shared_ptr< Outlook::Folder > > &rootFolder );
     void loadSubFolders( QStandardItem *item, const std::shared_ptr< Outlook::Folder > &parentFolder );
 
@@ -65,14 +77,16 @@ private:
 
     void updateMaps( QStandardItem *child, const std::shared_ptr< Outlook::Folder > &folder );
 
-    [[nodiscard]] QStandardItem *loadFolder( const std::shared_ptr< Outlook::Folder > &folder, QStandardItem *parentItem );
+    [[nodiscard]] QStandardItem *loadFolder( const std::shared_ptr< Outlook::Folder > &folder, QStandardItem *parentItem, bool loadParentOnMissing );
 
     std::unordered_map< QStandardItem *, std::unique_ptr< SCurrFolderInfo > > fFolders;
     std::unordered_map< QStandardItem *, std::shared_ptr< Outlook::Folder > > fItemToFolderMap;
     std::map< QString, QStandardItem * > fFolderToItemMap;
+    std::optional< std::shared_ptr< Outlook::Folder > > fInbox;
 
     int fCurrFolderNum{ 0 };
     int fNumFolders{ 0 };
+    bool fCheckable{ false };
 };
 
 #endif

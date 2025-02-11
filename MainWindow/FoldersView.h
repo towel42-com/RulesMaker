@@ -45,7 +45,7 @@ Q_SIGNALS:
 
 public Q_SLOTS:
     void slotRunningStateChanged( bool running );
-
+    void slotItemDoubleClicked( const QModelIndex &idx );
 protected Q_SLOTS:
     void slotItemSelected();
 

@@ -71,7 +71,7 @@ std::shared_ptr< Outlook::Folder > COutlookAPI::getFolder( const Outlook::Folder
     return connectToException( std::shared_ptr< Outlook::Folder >( const_cast< Outlook::Folder * >( item ) ) );
 }
 
-std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( const std::shared_ptr< Outlook::Folder > &parent, bool recursive, const TFolderFunc &acceptFolder, const TFolderFunc &checkChildFolders )
+std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( const std::shared_ptr< Outlook::Folder > &parent, bool updateStatus, bool recursive, const TFolderFunc &acceptFolder, const TFolderFunc &checkChildFolders )
 {
     if ( !parent )
         return {};
@@ -80,8 +80,23 @@ std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( const s
 
     auto folders = parent->Folders();
     auto folderCount = folders->Count();
+    QString msg;
+    if ( parent )
+        msg = QString( "Finding Sub-Folders of %1:" ).arg( parent->FolderPath() );
+    else
+        msg = QString( "Finding Folders:" );
+    if ( updateStatus )
+        emit sigInitStatus( msg, folderCount );
     for ( auto jj = 1; jj <= folderCount; ++jj )
     {
+        if ( canceled() )
+            break;
+
+        if ( updateStatus )
+        {
+            emit sigIncStatusValue( msg );
+        }
+        
         auto folder = getFolder( folders->Item( jj ) );
 
         bool isMatch = !acceptFolder || ( acceptFolder && acceptFolder( folder ) );
@@ -91,10 +106,12 @@ std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( const s
             retVal.push_back( folder );
         if ( cont )
         {
-            auto &&subFolders = getFolders( folder, true, acceptFolder );
+            auto &&subFolders = getFolders( folder, false, true, acceptFolder );
             retVal.insert( retVal.end(), subFolders.begin(), subFolders.end() );
         }
     }
+    if ( updateStatus )
+        emit sigStatusFinished( msg );
 
     retVal.sort(
         []( const std::shared_ptr< Outlook::Folder > &lhs, const std::shared_ptr< Outlook::Folder > &rhs )
@@ -238,7 +255,7 @@ std::pair< std::shared_ptr< Outlook::Folder >, bool > COutlookAPI::getMailFolder
 
 std::pair< std::shared_ptr< Outlook::Folder >, bool > COutlookAPI::selectFolder( const QString &folderName, const TFolderFunc &acceptFolder, const TFolderFunc &checkChildFolders, bool singleOnly )
 {
-    auto &&folders = getFolders( false, acceptFolder, checkChildFolders );
+    auto &&folders = getFolders( false, false, acceptFolder, checkChildFolders );
     return selectFolder( folderName, folders, singleOnly );
 }
 
@@ -273,7 +290,7 @@ std::pair< std::shared_ptr< Outlook::Folder >, bool > COutlookAPI::selectFolder(
     return { ( *pos ).second, true };
 }
 
-std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( bool recursive, const TFolderFunc &acceptFolder, const TFolderFunc &checkChildFolders )
+std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( bool updateStatus, bool recursive, const TFolderFunc &acceptFolder, const TFolderFunc &checkChildFolders )
 {
     if ( !selectAccount( true ) )
         return {};
@@ -283,7 +300,7 @@ std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( bool re
         return {};
 
     auto root = getFolder( store->GetRootFolder() );
-    auto retVal = getFolders( root, recursive, acceptFolder, checkChildFolders );
+    auto retVal = getFolders( root, updateStatus, recursive, acceptFolder, checkChildFolders );
 
     return retVal;
 }
@@ -437,4 +454,11 @@ bool COutlookAPI::emptyFolder( std::shared_ptr< Outlook::Folder > &folder )
     emit sigStatusMessage( QString( "%1 items deleted, %2 items skipped" ).arg( numItemsDeleted ).arg( numItemsSkipped ) );
     emit sigStatusFinished( msg );
     return !canceled();
+}
+
+void COutlookAPI::displayFolder( const std::shared_ptr< Outlook::Folder > &folder ) const
+{
+    if ( !folder )
+        return;
+    folder->Display();
 }

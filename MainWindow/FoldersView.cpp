@@ -31,6 +31,7 @@ void CFoldersView::init()
     fImpl->addFolder->setEnabled( false );
     connect( fImpl->setRootFolderBtn, &QPushButton::clicked, this, &CFoldersView::slotSetRootFolder );
     connect( fImpl->folders->selectionModel(), &QItemSelectionModel::selectionChanged, this, &CFoldersView::slotItemSelected );
+    connect( fImpl->folders, &QTreeView::doubleClicked, this, &CFoldersView::slotItemDoubleClicked );
     connect(
         fModel, &CFoldersModel::sigFinishedLoading,
         [ = ]()
@@ -200,4 +201,12 @@ std::shared_ptr< Outlook::Folder > CFoldersView::selectedFolder() const
     if ( !idx.isValid() )
         return {};
     return fModel->folderForIndex( idx );
+}
+
+void CFoldersView::slotItemDoubleClicked(const QModelIndex& idx)
+{
+    if ( !idx.isValid() )
+        return;
+
+    fModel->displayFolder( sourceIndex( idx ) );
 }

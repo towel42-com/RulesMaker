@@ -36,9 +36,8 @@ CMainWindow::CMainWindow( QWidget *parent ) :
     connect( fImpl->actionMergeRules, &QAction::triggered, this, &CMainWindow::slotMergeRules );
     connect( fImpl->actionEnableAllRules, &QAction::triggered, this, &CMainWindow::slotEnableAllRules );
     connect( fImpl->actionDeleteAllDisabledRules, &QAction::triggered, this, &CMainWindow::slotDeleteAllDisabledRules );
-    
-    connect( fImpl->actionMoveFromToAddress, &QAction::triggered, this, &CMainWindow::slotMoveFromToAddress );
-    connect( fImpl->actionFixFromMessageHeaderRules, &QAction::triggered, this, &CMainWindow::slotFixFromMessageHeaderRules );
+
+    connect( fImpl->actionFindEmptyFolders, &QAction::triggered, this, &CMainWindow::slotFindEmptyFolders );
 
     connect( fImpl->actionAddFolderForSelectedEmail, &QAction::triggered, this, &CMainWindow::slotAddFolderForSelectedEmail );
 
@@ -163,8 +162,7 @@ void CMainWindow::updateActions()
     setEnabled( fImpl->actionReloadRules, accountSelected );
     setEnabled( fImpl->actionSortRules, accountSelected );
     setEnabled( fImpl->actionRenameRules, accountSelected );
-    setEnabled( fImpl->actionMoveFromToAddress, accountSelected );
-    setEnabled( fImpl->actionFixFromMessageHeaderRules, accountSelected );
+    setEnabled( fImpl->actionFindEmptyFolders, accountSelected );
     setEnabled( fImpl->actionReloadAllData, accountSelected );
     setEnabled( fImpl->actionRunAllRules, accountSelected );
     setEnabled( fImpl->actionRunAllRulesOnTrashFolder, accountSelected );
@@ -295,19 +293,11 @@ void CMainWindow::slotSortRules()
     setWaitCursor( false );
 }
 
-void CMainWindow::slotMoveFromToAddress()
+void CMainWindow::slotFindEmptyFolders()
 {
     setWaitCursor( true );
-    if ( COutlookAPI::instance()->moveFromToAddress() )
-        slotReloadRules();
-    setWaitCursor( false );
-}
-
-void CMainWindow::slotFixFromMessageHeaderRules()
-{
-    setWaitCursor( true );
-    if ( COutlookAPI::instance()->fixFromMessageHeaderRules() )
-        slotReloadRules();
+    if ( COutlookAPI::instance()->findEmptyFolders() )
+        slotReloadFolders();
     setWaitCursor( false );
 }
 
@@ -693,6 +683,22 @@ void CMainWindow::slotOptionsChanged()
 void CMainWindow::setWaitCursor( bool wait )
 {
     if ( wait )
+    {
+        if ( !fNumWaitCursors.has_value() )
+            fNumWaitCursors = 0;
+
+        fNumWaitCursors.value()++;
+    }
+    else
+    {
+        if ( fNumWaitCursors.has_value() )
+        {
+            fNumWaitCursors.value()--;
+            if ( fNumWaitCursors.value() == 0 )
+                fNumWaitCursors.reset();
+        }
+    }
+    if ( fNumWaitCursors.has_value() )
         qApp->setOverrideCursor( QCursor( Qt::WaitCursor ) );
     else
         qApp->restoreOverrideCursor();

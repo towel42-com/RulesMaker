@@ -274,32 +274,41 @@ int main( int argc, char *argv[] )
 
     bool aOK = true;
     bool needsSaving = false;
+    bool currNeedsSaving = false;
     if ( aOK && isOperation( operation, EOperation::eRename ) )
     {
-        aOK = aOK && api->renameRules( false, &needsSaving );
+        aOK = aOK && api->renameRules( false, &currNeedsSaving );
         if ( !aOK )
             std::cerr << "Failed to rename rule(s)." << std::endl;
+        else
+            needsSaving = needsSaving || currNeedsSaving;
     }
 
     if ( aOK && isOperation( operation, EOperation::eSort ) )
     {
-        aOK = aOK && api->sortRules( false, &needsSaving );
+        aOK = aOK && api->sortRules( false, &currNeedsSaving );
         if ( !aOK )
             std::cerr << "Failed to sort rule(s)." << std::endl;
+        else
+            needsSaving = needsSaving || currNeedsSaving;
     }
 
     if ( aOK && isOperation( operation, EOperation::eMerge ) )
     {
-        aOK = aOK && api->mergeRules( false, &needsSaving );
+        aOK = aOK && api->mergeRules( false, &currNeedsSaving );
         if ( !aOK )
             std::cerr << "Failed to merge rule(s)." << std::endl;
+        else
+            needsSaving = needsSaving || currNeedsSaving;
     }
 
     if ( aOK && isOperation( operation, EOperation::eEnableAll ) )
     {
-        aOK = aOK && api->enableAllRules( false, &needsSaving );
+        aOK = aOK && api->enableAllRules( false, &currNeedsSaving );
         if ( !aOK )
             std::cerr << "Failed to enable all rules rule(s)." << std::endl;
+        else
+            needsSaving = needsSaving || currNeedsSaving;
     }
 
     if ( needsSaving )

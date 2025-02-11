@@ -7,6 +7,7 @@
 #include <memory>
 #include <list>
 #include <utility>
+#include <optional>
 namespace Ui
 {
     class CMainWindow;
@@ -54,10 +55,9 @@ protected Q_SLOTS:
     void slotRenameRules();
     void slotMergeRules();
     void slotSortRules();
-    void slotMoveFromToAddress();
     void slotEnableAllRules();
     void slotDeleteAllDisabledRules();
-    void slotFixFromMessageHeaderRules();
+    void slotFindEmptyFolders();
 
     void slotAddFolderForSelectedEmail();
 
@@ -181,6 +181,7 @@ protected:
     void clearViews();
     std::unique_ptr< Ui::CMainWindow > fImpl;
     std::map< QString, CStatusProgress * > fProgressBars;
+    std::optional< int > fNumWaitCursors;
     QPushButton *fCancelButton{ nullptr };
 };
 

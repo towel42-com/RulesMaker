@@ -122,12 +122,10 @@
     <addaction name="actionEnableAllRules"/>
     <addaction name="actionDeleteAllDisabledRules"/>
     <addaction name="separator"/>
-    <addaction name="actionMoveFromToAddress"/>
-    <addaction name="actionFixFromMessageHeaderRules"/>
+    <addaction name="actionFindEmptyFolders"/>
     <addaction name="separator"/>
     <addaction name="actionEmptyJunkFolder"/>
     <addaction name="actionEmptyTrash"/>
-    <addaction name="separator"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuReload"/>
@@ -275,7 +273,7 @@
      <normaloff>:/resources/sort.png</normaloff>:/resources/sort.png</iconset>
    </property>
    <property name="text">
-    <string>Sort Rules</string>
+    <string>Sort Rules...</string>
    </property>
   </action>
   <action name="actionRenameRules">
@@ -284,16 +282,7 @@
      <normaloff>:/resources/rename.png</normaloff>:/resources/rename.png</iconset>
    </property>
    <property name="text">
-    <string>Rename Rules</string>
-   </property>
-  </action>
-  <action name="actionMoveFromToAddress">
-   <property name="icon">
-    <iconset resource="MainWindow.qrc">
-     <normaloff>:/resources/fixrules.png</normaloff>:/resources/fixrules.png</iconset>
-   </property>
-   <property name="text">
-    <string>Move &quot;From&quot; conditional to &quot;Address&quot;</string>
+    <string>Rename Rules...</string>
    </property>
   </action>
   <action name="actionMergeRules">
@@ -302,7 +291,7 @@
      <normaloff>:/resources/merge.png</normaloff>:/resources/merge.png</iconset>
    </property>
    <property name="text">
-    <string>Merge Rules</string>
+    <string>Merge Rules...</string>
    </property>
   </action>
   <action name="actionProcessAllEmailWhenLessThan200Emails">
@@ -340,7 +329,7 @@
      <normaloff>:/resources/enable.png</normaloff>:/resources/enable.png</iconset>
    </property>
    <property name="text">
-    <string>Enable All Rules</string>
+    <string>Enable All Rules...</string>
    </property>
   </action>
   <action name="actionRunAllRulesOnSelectedFolder">
@@ -407,11 +396,6 @@
     <string>Include Deleted Folder when Running on All Folders?</string>
    </property>
   </action>
-  <action name="actionFixFromMessageHeaderRules">
-   <property name="text">
-    <string>Fix &quot;From&quot; Message Header Rules...</string>
-   </property>
-  </action>
   <action name="actionRuleEnabled">
    <property name="checkable">
     <bool>true</bool>
@@ -438,6 +422,11 @@
   <action name="actionDeleteAllDisabledRules">
    <property name="text">
     <string>Delete All Disabled Rules...</string>
+   </property>
+  </action>
+  <action name="actionFindEmptyFolders">
+   <property name="text">
+    <string>Find Empty Folders...</string>
    </property>
   </action>
  </widget>

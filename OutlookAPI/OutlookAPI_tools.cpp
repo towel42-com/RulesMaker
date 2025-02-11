@@ -1,5 +1,6 @@
 #include "OutlookAPI.h"
 #include "EmailAddress.h"
+#include "SelectFolders.h"
 
 #include <QMessageBox>
 
@@ -7,6 +8,8 @@
 #include <QRegularExpression>
 #include <QDebug>
 #include <QTextStream>
+#include <QMetaMethod>
+
 #include "MSOUTL.h"
 #include <tuple>
 
@@ -179,7 +182,7 @@ struct SMessage
     {
     }
 
-    QString toString( bool toHtml, bool bold=false )
+    QString toString( bool toHtml, bool bold = false )
     {
         auto retVal = parameterize( toHtml );
         if ( toHtml && bold )
@@ -207,7 +210,7 @@ private:
 
 struct SDisplayMessage
 {
-    SDisplayMessage() {};
+    SDisplayMessage(){};
 
     QString toString( bool toHtml, int level = 0 )
     {
@@ -474,6 +477,151 @@ bool COutlookAPI::fixFromMessageHeaderRules( bool andSave /*= true*/, bool *need
     if ( andSave )
         saveRules();
 
+    return true;
+}
+
+template< typename T >
+bool folderIsEmpty( const T *folder )
+{
+    if ( !folder )
+        return false;
+
+    auto hasFolders = folder->Folders() && ( folder->Folders()->Count() > 0 );
+    auto hasItems = folder->Items() && ( folder->Items()->Count() > 0 );
+    bool isEmpty = !hasFolders && !hasItems;
+    if ( isEmpty )
+        return true;
+
+    if ( !hasItems && hasFolders )
+    {
+        for ( int ii = 1; ii < folder->Folders()->Count(); ++ii )
+        {
+            auto subFolder = folder->Folders()->Item( ii );
+            if ( !folderIsEmpty( subFolder ) )
+                return false;
+        }
+        return true;
+    }
+    return false;
+}
+
+bool COutlookAPI::folderIsEmpty( const Outlook::Folder *folder )
+{
+    return ::folderIsEmpty( folder );
+}
+
+bool COutlookAPI::folderIsEmpty( const Outlook::MAPIFolder *folder )
+{
+    return ::folderIsEmpty( folder );
+}
+
+bool COutlookAPI::folderIsEmpty( const std::shared_ptr< Outlook::Folder > &folder )
+{
+    return ::folderIsEmpty( folder.get() );
+}
+
+bool COutlookAPI::folderIsEmpty( const std::shared_ptr< Outlook::MAPIFolder > &folder )
+{
+    return ::folderIsEmpty( folder.get() );
+}
+
+void COutlookAPI::deleteFolderAndParentsIfEmpty( const std::shared_ptr< Outlook::Folder > &folder )
+{
+    if ( !folder )
+        return;
+    if ( !folderIsEmpty( folder ) )
+        return;
+
+    auto currFolder = folder;
+    while ( currFolder && folderIsEmpty( currFolder ) )
+    {
+        auto mapiFolder = reinterpret_cast< Outlook::MAPIFolder * >( currFolder.get() );
+        auto parentFolder = this->parentFolder( currFolder );
+        mapiFolder->Delete();
+        currFolder = parentFolder;
+    }
+}
+
+bool COutlookAPI::findEmptyFolders()
+{
+    slotClearCanceled();
+    auto allFolders = getFolders(
+        getInbox(), true, true,
+        [ = ]( const std::shared_ptr< Outlook::Folder > &folder )
+        {
+            return folderIsEmpty( folder );   //
+        } );
+    auto numFolders = allFolders.size();
+
+    allFolders.sort(
+        []( const std::shared_ptr< const Outlook::Folder > &lhs, const std::shared_ptr< Outlook::Folder > &rhs )
+        {
+            if ( !lhs )
+                return false;
+            if ( !rhs )
+                return true;
+            auto lhsName = lhs->FolderPath();
+            auto rhsName = rhs->FolderPath();
+            if ( lhsName.startsWith( rhsName ) && ( lhsName != rhsName ) )
+                return true;
+            else if ( rhsName.startsWith( lhsName ) && ( lhsName != rhsName ) )
+                return false;
+            else
+                return lhsName < rhsName;
+        } );
+
+    if ( allFolders.empty() )
+    {
+        if ( fParentWidget )
+            QMessageBox::information( fParentWidget, "Find Empty Folders", QString( "No empty folders found" ) );
+        else
+            emit sigStatusMessage( QString( "No empty folders found" ) );
+        return false;
+    }
+
+    if ( fParentWidget )
+    {
+        CSelectFolders dlg( fParentWidget );
+        dlg.setWindowTitle( "Select Folders to Delete:" );
+        dlg.setFolders( allFolders );
+        if ( dlg.exec() == QDialog::Accepted )
+        {
+            auto selectedFolders = dlg.selectedFolders();
+            QStringList folderNames;
+            for ( auto &&ii : selectedFolders )
+            {
+                if ( folderIsEmpty( ii ) )
+                {
+                    folderNames.push_back( ii->FolderPath() );
+                }
+            }
+
+            auto msg = QString( "%1 folders will be deleted<ul>" ).arg( folderNames.size() );
+            msg += "<ul>";
+            folderNames.sort();
+            msg += getULForList( folderNames ) + "</ul";
+            auto process = QMessageBox::information( fParentWidget, "Delete Empty Folders", msg, QMessageBox::Yes | QMessageBox::No );
+            if ( process == QMessageBox::No )
+                return false;
+            for ( auto &&ii : selectedFolders )
+            {
+                if ( folderIsEmpty( ii ) )
+                {
+                    deleteFolderAndParentsIfEmpty( ii );
+                }
+            }
+        }
+        else
+            return false;
+    }
+    else
+    {
+        emit sigStatusMessage( QString( "The Following Folders are empty:\n" ) );
+        for ( auto &&ii : allFolders )
+        {
+            emit sigStatusMessage( QString( "    %1:\n" ).arg( ii->FolderPath() ) );
+        }
+    }
     return true;
 }
 
