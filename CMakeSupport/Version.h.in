@@ -31,7 +31,7 @@
     #include <QApplication>
     #include <QTimeZone>
     #include <QLocale>
-    #include <QDebug>
+    // #include <QDebug>
 #else
     #include <string>
 #endif
@@ -90,14 +90,14 @@ namespace NVersion
 
         auto retVal = QDateTime::fromString( BUILD_DATE_UTC + " " + BUILD_TIME_UTC, "MM/dd/yyyy HH:mm:sst" );
         Q_ASSERT( retVal.isValid() );
-        qDebug() << retVal;
+        //qDebug() << retVal;
         retVal.setTimeSpec( Qt::TimeSpec::UTC );
-        qDebug() << retVal;
+        //qDebug() << retVal;
         if ( localTime )
         {
             retVal = retVal.toLocalTime();
         }
-        qDebug() << retVal;
+        //qDebug() << retVal;
            
         return retVal;
     }
