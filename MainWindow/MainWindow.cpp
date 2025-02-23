@@ -350,7 +350,7 @@ void CMainWindow::slotRunSelectedRule()
     if ( !selectedRule )
         return;
 
-    COutlookAPI::instance()->runRule( selectedRule );
+    COutlookAPI::instance()->runRuleOnFolder( selectedRule, {} );
 
     slotReloadEmail();
     setWaitCursor( false );
@@ -367,7 +367,7 @@ void CMainWindow::slotRunSelectedRuleOnSelectedFolder()
     if ( !selectedRule )
         return;
 
-    COutlookAPI::instance()->runRule( selectedRule, destFolder );
+    COutlookAPI::instance()->runRuleOnFolder( selectedRule, destFolder );
 
     slotReloadEmail();
     setWaitCursor( false );
@@ -376,7 +376,7 @@ void CMainWindow::slotRunSelectedRuleOnSelectedFolder()
 void CMainWindow::slotRunAllRules()
 {
     setWaitCursor( true );
-    COutlookAPI::instance()->runAllRules();
+    COutlookAPI::instance()->runAllRulesOnFolder( {} );
     slotReloadEmail();
     setWaitCursor( false );
 }
@@ -404,7 +404,7 @@ void CMainWindow::slotRunAllRulesOnSelectedFolder()
     if ( !destFolder )
         return;
 
-    COutlookAPI::instance()->runAllRules( destFolder );
+    COutlookAPI::instance()->runAllRulesOnFolder( destFolder );
 
     slotReloadEmail();
     setWaitCursor( false );
@@ -543,6 +543,10 @@ CStatusProgress *CMainWindow::addStatusBar( QString label, CWidgetWithStatus *ob
         label = object->statusLabel();
     }
 
+    if (label.startsWith(' '))
+    {
+        label = label.trimmed();
+    }
     auto progress = new CStatusProgress( label );
     progress->setVisible( false );
     connect( progress, &CStatusProgress::sigShow, this, &CMainWindow::slotHandleProgressToggle );

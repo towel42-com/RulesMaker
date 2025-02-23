@@ -223,12 +223,12 @@ public:
     bool ruleBeenLoaded( std::shared_ptr< Outlook::Rule > &rule ) const;
     bool ruleLessThan( const std::shared_ptr< Outlook::Rule > &lhsRule, const std::shared_ptr< Outlook::Rule > &rhsRule ) const;
 
-    bool runAllRules( const std::shared_ptr< Outlook::Folder > &folder = {} );
     bool runAllRulesOnTrashFolder();
     bool runAllRulesOnJunkFolder();
     bool runAllRulesOnFolder( std::shared_ptr< Outlook::Folder > folder );
 
-    bool runRule( const std::shared_ptr< Outlook::Rule > &rule, std::shared_ptr< Outlook::Folder > folder = {} );
+    bool runRulesOnFolder( const std::pair< std::vector< std::shared_ptr< Outlook::Rule > >, QString > &rules, std::shared_ptr< Outlook::Folder > folder );
+    bool runRuleOnFolder( const std::shared_ptr< Outlook::Rule > &rule, std::shared_ptr< Outlook::Folder > folder );
 
     // tools API in OutlookAPI_tools.cpp
     bool enableAllRules( bool andSave = true, bool *needsSaving = nullptr );
@@ -421,7 +421,8 @@ private:
 
     std::vector< std::shared_ptr< Outlook::Rule > > getAllRules();
 
-    bool runRules( std::vector< std::shared_ptr< Outlook::Rule > > rules, std::shared_ptr< Outlook::Folder > folder = {}, const std::optional< QString > &perFolderMsg = {} );
+    bool runRulesOnFolder( const std::pair< std::vector< std::shared_ptr< Outlook::Rule > >, QString > &rules, std::shared_ptr< Outlook::Folder > folder, int indent );
+    bool runRuleOnFolder( const std::shared_ptr< Outlook::Rule > &rule, std::shared_ptr< Outlook::Folder > folder, int indent );
 
     bool addRecipientsToRule( Outlook::Rule *rule, const QStringList &recipients, QStringList &msgs );
     bool addRecipientsToRule( Outlook::Rule *rule, const TEmailAddressList &recipients, QStringList &msgs );

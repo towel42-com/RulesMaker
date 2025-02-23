@@ -1,6 +1,7 @@
 #include <QCoreApplication>
 #include <QCommandLineParser>
 #include <QSettings>
+#include <QRegularExpression>
 
 #include "OutlookAPI/OutlookAPI.h"
 
@@ -175,15 +176,15 @@ bool runRules( bool onJunkIfFolderNotSet )
     }
 
     bool aOK = false;
-    if ( !rule )
+    if ( rule )
+        aOK = api->runRuleOnFolder( rule, folder );
+    else
     {
         if ( onJunkIfFolderNotSet )
             aOK = api->runAllRulesOnJunkFolder();
         else
-            aOK = api->runAllRules( folder );
+            aOK = api->runAllRulesOnFolder( folder );
     }
-    else
-        aOK = api->runRule( rule, folder );
 
     if ( !aOK )
         std::cerr << "Failed to run rule(s)." << std::endl;
@@ -230,7 +231,20 @@ int main( int argc, char *argv[] )
             std::cout << qPrintable( label ) << " " << ( *pos ).second.first << " of " << ( *pos ).second.second << std::endl;
         } );
     QObject::connect( api.get(), &COutlookAPI::sigStatusMessage, [ = ]( const QString &msg ) { std::cout << qPrintable( msg ) << std::endl; } );
-    QObject::connect( api.get(), &COutlookAPI::sigStatusFinished, [ = ]( const QString &label ) { std::cout << "Finished - " << qPrintable( label ) << std::endl; } );
+    QObject::connect(
+        api.get(), &COutlookAPI::sigStatusFinished,
+        [ = ]( const QString &label )
+        {
+
+            auto pos = label.indexOf( QRegularExpression( "[^\\s]" ) );
+            if ( pos )
+            {
+                auto prefix = label.left( pos );
+                std::cout << qPrintable( prefix ) << "Finished - " << qPrintable( label.mid( pos ) ) << std::endl;
+            }
+            else
+                std::cout << "Finished - " << qPrintable( label ) << std::endl;
+        } );
 
     sParser.setApplicationDescription( NVersion::APP_NAME + " is a tool to help create and maintain Outlook Rules to keep your inbox clean." );
 
