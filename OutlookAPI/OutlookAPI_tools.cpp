@@ -47,8 +47,8 @@ bool COutlookAPI::deleteAllDisabledRules( bool andSave /*= true*/, bool *needsSa
     if ( canceled() )
         return false;
 
-    if ( fParentWidget )
-        QMessageBox::information( fParentWidget, R"(Delete Disabled Rules)", QString( "%1 rules deleted" ).arg( numChanged ) );
+    if ( getParentWidget() )
+        QMessageBox::information( getParentWidget(), R"(Delete Disabled Rules)", QString( "%1 rules deleted" ).arg( numChanged ) );
     else
         emit sigStatusMessage( QString( "%1 rules deleted" ).arg( numChanged ) );
 
@@ -92,8 +92,8 @@ bool COutlookAPI::enableAllRules( bool andSave /*= true*/, bool *needsSaving /*=
     if ( canceled() )
         return false;
 
-    if ( fParentWidget )
-        QMessageBox::information( fParentWidget, R"(Enable All Rules)", QString( "%1 rules enabled" ).arg( numChanged ) );
+    if ( getParentWidget() )
+        QMessageBox::information( getParentWidget(), R"(Enable All Rules)", QString( "%1 rules enabled" ).arg( numChanged ) );
     else
         emit sigStatusMessage( QString( "%1 rules enabled" ).arg( numChanged ) );
 
@@ -310,7 +310,7 @@ bool COutlookAPI::mergeRules( bool andSave /*= true*/, bool *needsSaving /*= nul
     if ( canceled() )
         return false;
 
-    bool forMsgBox = fParentWidget != nullptr;
+    bool forMsgBox = getParentWidget() != nullptr;
     SDisplayMessage msg;
     msg.addTitle( QString( "%1 merge(s) found" ), { QString::number( rules.size() ) } );
     if ( !rules.empty() )
@@ -338,13 +338,13 @@ bool COutlookAPI::mergeRules( bool andSave /*= true*/, bool *needsSaving /*= nul
         {
             msg.addFooter( "Do you wish to continue?" );
 
-            auto process = QMessageBox::information( fParentWidget, R"(Merge Rules by Target Folder)", msg.toString( true ), QMessageBox::Yes | QMessageBox::No );
+            auto process = QMessageBox::information( getParentWidget(), R"(Merge Rules by Target Folder)", msg.toString( true ), QMessageBox::Yes | QMessageBox::No );
             if ( process == QMessageBox::No )
                 return false;
         }
         else
         {
-            QMessageBox::information( fParentWidget, R"(Merge Rules by Target Folder)", msg.toString( true ) );
+            QMessageBox::information( getParentWidget(), R"(Merge Rules by Target Folder)", msg.toString( true ) );
             return false;
         }
     }
@@ -419,14 +419,14 @@ bool COutlookAPI::fixFromMessageHeaderRules( bool andSave /*= true*/, bool *need
 
     if ( changes.empty() )
     {
-        if ( fParentWidget )
-            QMessageBox::information( fParentWidget, "Fixing From Message Header Rules", QString( "No rules needed fixing" ) );
+        if ( getParentWidget() )
+            QMessageBox::information( getParentWidget(), "Fixing From Message Header Rules", QString( "No rules needed fixing" ) );
         else
             emit sigStatusMessage( QString( "No rules needed fixing" ) );
         return false;
     }
 
-    if ( fParentWidget )
+    if ( getParentWidget() )
     {
         QStringList tmp;
         for ( auto &&ii : changes )
@@ -440,7 +440,7 @@ bool COutlookAPI::fixFromMessageHeaderRules( bool andSave /*= true*/, bool *need
             tmp << curr;
         }
         auto msg = QString( "Rules to be changed:<ul>\n%1</ul>\nDo you wish to continue?" ).arg( tmp.join( "\n" ) );
-        auto process = QMessageBox::information( fParentWidget, "Renamed Rules", msg, QMessageBox::Yes | QMessageBox::No );
+        auto process = QMessageBox::information( getParentWidget(), "Renamed Rules", msg, QMessageBox::Yes | QMessageBox::No );
         if ( process == QMessageBox::No )
             return false;
     }
@@ -572,16 +572,16 @@ bool COutlookAPI::findEmptyFolders()
 
     if ( allFolders.empty() )
     {
-        if ( fParentWidget )
-            QMessageBox::information( fParentWidget, "Find Empty Folders", QString( "No empty folders found" ) );
+        if ( getParentWidget() )
+            QMessageBox::information( getParentWidget(), "Find Empty Folders", QString( "No empty folders found" ) );
         else
             emit sigStatusMessage( QString( "No empty folders found" ) );
         return false;
     }
 
-    if ( fParentWidget )
+    if ( getParentWidget() )
     {
-        CSelectFolders dlg( fParentWidget );
+        CSelectFolders dlg( getParentWidget() );
         dlg.setWindowTitle( "Select Folders to Delete:" );
         dlg.setFolders( allFolders );
         if ( dlg.exec() == QDialog::Accepted )
@@ -600,7 +600,7 @@ bool COutlookAPI::findEmptyFolders()
             msg += "<ul>";
             folderNames.sort();
             msg += getULForList( folderNames ) + "</ul";
-            auto process = QMessageBox::information( fParentWidget, "Delete Empty Folders", msg, QMessageBox::Yes | QMessageBox::No );
+            auto process = QMessageBox::information( getParentWidget(), "Delete Empty Folders", msg, QMessageBox::Yes | QMessageBox::No );
             if ( process == QMessageBox::No )
                 return false;
             for ( auto &&ii : selectedFolders )
@@ -667,14 +667,14 @@ bool COutlookAPI::moveFromToAddress( bool andSave /*= true*/, bool *needsSaving 
 
     if ( changes.empty() )
     {
-        if ( fParentWidget )
-            QMessageBox::information( fParentWidget, "Transforming From to Address", QString( "No rules needed fixing" ) );
+        if ( getParentWidget() )
+            QMessageBox::information( getParentWidget(), "Transforming From to Address", QString( "No rules needed fixing" ) );
         else
             emit sigStatusMessage( QString( "No rules needed fixing" ) );
         return false;
     }
 
-    if ( fParentWidget )
+    if ( getParentWidget() )
     {
         QStringList tmp;
         for ( auto &&ii : changes )
@@ -687,7 +687,7 @@ bool COutlookAPI::moveFromToAddress( bool andSave /*= true*/, bool *needsSaving 
         }
 
         auto msg = QString( "Rules to be changed:<ul>%1</ul>Do you wish to continue?" ).arg( tmp.join( "\n" ) );
-        auto process = QMessageBox::information( fParentWidget, "Renamed Rules", msg, QMessageBox::Yes | QMessageBox::No );
+        auto process = QMessageBox::information( getParentWidget(), "Renamed Rules", msg, QMessageBox::Yes | QMessageBox::No );
         if ( process == QMessageBox::No )
             return false;
     }
@@ -770,14 +770,14 @@ bool COutlookAPI::renameRules( bool andSave /*= true*/, bool *needsSaving /*= nu
 
     if ( changes.empty() )
     {
-        if ( fParentWidget )
-            QMessageBox::information( fParentWidget, "Renamed Rules", QString( "No rules needed renaming" ) );
+        if ( getParentWidget() )
+            QMessageBox::information( getParentWidget(), "Renamed Rules", QString( "No rules needed renaming" ) );
         else
             emit sigStatusMessage( QString( "No rules needed renaming" ) );
         return false;
     }
 
-    if ( fParentWidget )
+    if ( getParentWidget() )
     {
         QStringList tmp;
         for ( auto &&ii : changes )
@@ -785,7 +785,7 @@ bool COutlookAPI::renameRules( bool andSave /*= true*/, bool *needsSaving /*= nu
             tmp << "<li style=\"white-space:nowrap\">" + getDisplayName( ii.first ).toHtmlEscaped() + " => " + ii.second.toHtmlEscaped() + "</li>";
         }
         auto msg = QString( "Rules to be changed:<ul>%1</ul>Do you wish to continue?" ).arg( tmp.join( "\n" ) );
-        auto process = QMessageBox::information( fParentWidget, "Renamed Rules", msg, QMessageBox::Yes | QMessageBox::No );
+        auto process = QMessageBox::information( getParentWidget(), "Renamed Rules", msg, QMessageBox::Yes | QMessageBox::No );
         if ( process == QMessageBox::No )
             return false;
     }
@@ -871,7 +871,7 @@ bool COutlookAPI::sortRules( bool andSave /*= true*/, bool *needsSaving /*= null
         if ( ii->ExecutionOrder() != pos )
         {
             auto msg = QString( "%1 -> %3" ).arg( getDisplayName( ii ) ).arg( pos );
-            if ( !fParentWidget )
+            if ( !getParentWidget() )
                 emit sigStatusMessage( msg );
             rulesChanged.emplace_back( msg.toHtmlEscaped(), ii, pos );
         }
@@ -880,10 +880,10 @@ bool COutlookAPI::sortRules( bool andSave /*= true*/, bool *needsSaving /*= null
     }
 
     auto msg = QString( "%1 rules needed re-ordering" ).arg( rulesChanged.size() );
-    if ( fParentWidget )
+    if ( getParentWidget() )
     {
         if ( rulesChanged.empty() )
-            QMessageBox::information( fParentWidget, R"(Sorting Rules by Name)", msg );
+            QMessageBox::information( getParentWidget(), R"(Sorting Rules by Name)", msg );
         else
         {
             msg += "<ul>";
@@ -900,7 +900,7 @@ bool COutlookAPI::sortRules( bool andSave /*= true*/, bool *needsSaving /*= null
             }
             msg += "</ul>";
             msg += "Do you wish to Continue?";
-            auto process = QMessageBox::information( fParentWidget, R"(Sorting Rules by Name)", msg, QMessageBox::Yes | QMessageBox::No );
+            auto process = QMessageBox::information( getParentWidget(), R"(Sorting Rules by Name)", msg, QMessageBox::Yes | QMessageBox::No );
             if ( process == QMessageBox::No )
                 return false;
         }
@@ -933,7 +933,7 @@ bool COutlookAPI::saveRules()
     emit sigStatusMessage( QString( "Saving Rules" ) );
     fSaveRulesSuccess = true;
     connect( fRules.get(), SIGNAL( exception( int, QString, QString, QString ) ), this, SLOT( slotHandleRulesSaveException( int, const QString &, const QString &, const QString & ) ) );
-    fRules->Save( fParentWidget ? true : false );
+    fRules->Save( getParentWidget() ? true : false );
     disconnect( fRules.get(), SIGNAL( exception( int, QString, QString, QString ) ), this, SLOT( slotHandleRulesSaveException( int, const QString &, const QString &, const QString & ) ) );
     return fSaveRulesSuccess;
 }
