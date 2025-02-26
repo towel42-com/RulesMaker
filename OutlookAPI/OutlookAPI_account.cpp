@@ -4,6 +4,73 @@
 #include <QSettings>
 
 #include "MSOUTL.h"
+#include <objbase.h>
+
+#include <iostream>
+
+bool COutlookAPI::connected()
+{
+    if ( !fLoggedIn || !fOutlookApp )
+        return false;
+    if ( !fSession || fSession->isNull() )
+        return false;
+    return ( fSession->ExchangeConnectionMode() != Outlook::OlExchangeConnectionMode::olOffline );
+}
+
+bool COutlookAPI::logon( const QString &profileName )
+{
+    if ( !connected() )
+    {
+        fSession = getNamespace( fOutlookApp->Session() );
+        if ( !fSession )
+            return {};
+
+        if ( !profileName.isEmpty() )
+            fSession->Logon( profileName );
+        else
+            fSession->Logon();
+        fLoggedIn = true;
+    }
+    return fLoggedIn;
+}
+
+void COutlookAPI::logout( bool andNotify )
+{
+    fSession.reset();
+    fAccount.reset();
+    fInbox.reset();
+    fRootFolder.reset();
+    fJunkFolder.reset();
+    fTrashFolder.reset();
+    fContacts.reset();
+    fRules.reset();
+
+    if ( fLoggedIn && fOutlookApp && !fOutlookApp->isNull() && fOutlookApp->Session() )
+    {
+        Outlook::NameSpace( fOutlookApp->Session() ).Logoff();
+        if ( !outlookProcessRunning() )
+            fOutlookApp->Quit();
+        fLoggedIn = false;
+        if ( andNotify )
+            emit sigAccountChanged();
+    }
+    CoUninitialize();
+}
+
+bool COutlookAPI::outlookFullySetup( bool resetOutlook )
+{
+    if ( !fOutlookApp )
+        return false;
+    if ( fOutlookApp->isNull() )
+        return false;
+    auto profileName = defaultProfileName();
+    auto accountName = defaultAccountName();
+    //std::cout << "Profile Name: '" << qPrintable( profileName  ) << "'\n";
+    //std::cout << "Account Name: '" << qPrintable( accountName ) << "'" << std::endl;
+    if ( resetOutlook )
+        this->resetApplication();
+    return !profileName.isEmpty() && !accountName.isEmpty();
+}
 
 QString COutlookAPI::defaultProfileName() const
 {
@@ -39,18 +106,8 @@ std::shared_ptr< Outlook::NameSpace > COutlookAPI::getNamespace( Outlook::_NameS
 
 std::optional< std::map< QString, std::shared_ptr< Outlook::Account > > > COutlookAPI::getAllAccounts( const QString &profileName )
 {
-    if ( !connected() )
-    {
-        fSession = getNamespace( fOutlookApp->Session() );
-        if ( !fSession )
-            return {};
-
-        if ( !profileName.isEmpty() )
-            fSession->Logon( profileName );
-        else
-            fSession->Logon();
-        fLoggedIn = true;
-    }
+    if ( !logon( profileName ) )
+        return {};
 
     auto accounts = fSession->Accounts();
     if ( !accounts )
@@ -92,7 +149,11 @@ std::optional< std::map< QString, std::shared_ptr< Outlook::Account > > > COutlo
 QString COutlookAPI::defaultAccountName()
 {
     auto lastAccount = lastAccountName();
-    auto allAccounts = getAllAccounts( lastAccount );
+    auto profileName = defaultProfileName();
+    if ( profileName.isEmpty() )
+        return {};
+
+    auto allAccounts = getAllAccounts( profileName );
     if ( !allAccounts.has_value() )
         return {};
 
@@ -107,15 +168,6 @@ QString COutlookAPI::defaultAccountName()
     }
 
     return {};
-}
-
-bool COutlookAPI::connected()
-{
-    if ( !fLoggedIn )
-        return false;
-    if ( !fSession || fSession->isNull() )
-        return false;
-    return ( fSession->ExchangeConnectionMode() != Outlook::OlExchangeConnectionMode::olOffline );
 }
 
 bool COutlookAPI::selectAccount( const QString &accountName, bool notifyOnChange )
