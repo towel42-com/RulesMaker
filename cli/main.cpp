@@ -88,7 +88,7 @@ std::pair< EParseResult, EOperation > parseCommandLine( QString &errorMsg )
 
     if ( accountName.isEmpty() )
     {
-        errorMsg = QString( R"(-account unset and no default account found for profile "%1".)" ).arg( profileName );
+        errorMsg = QString( R"(--account unset and no default account found for profile "%1".)" ).arg( profileName );
         return { EParseResult::eError, operation };
     }
 
@@ -176,18 +176,21 @@ bool runRules( bool onJunkIfFolderNotSet )
     }
 
     bool aOK = false;
+    std::size_t numItemsMoved = 0;
     if ( rule )
-        aOK = api->runRuleOnFolder( rule, folder );
+        std::tie( aOK, numItemsMoved ) = api->runRuleOnFolder( rule, folder );
     else
     {
         if ( onJunkIfFolderNotSet )
-            aOK = api->runAllRulesOnJunkFolder();
+            std::tie( aOK, numItemsMoved ) = api->runAllRulesOnJunkFolder();
         else
-            aOK = api->runAllRulesOnFolder( folder );
+            std::tie( aOK, numItemsMoved ) = api->runAllRulesOnFolder( folder );
     }
 
     if ( !aOK )
         std::cerr << "Failed to run rule(s)." << std::endl;
+    else
+        std::cout << numItemsMoved << " were moved by running the rules.\n";
     return aOK;
 }
 
@@ -205,6 +208,12 @@ int main( int argc, char *argv[] )
     std::map< QString, std::pair< int, int > > statusCounter;
 
     auto api = COutlookAPI::cliInstance();
+    if ( !api->hasApplication() )
+    {
+        std::cerr << "ERROR: Outlook could not be launched." << std::endl;
+        return 1;
+    }
+
     QObject::connect(
         api.get(), &COutlookAPI::sigInitStatus,
         [ & ]( const QString &label, int max )
@@ -235,7 +244,6 @@ int main( int argc, char *argv[] )
         api.get(), &COutlookAPI::sigStatusFinished,
         [ = ]( const QString &label )
         {
-
             auto pos = label.indexOf( QRegularExpression( "[^\\s]" ) );
             if ( pos )
             {

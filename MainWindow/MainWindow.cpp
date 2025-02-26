@@ -21,6 +21,13 @@ CMainWindow::CMainWindow( QWidget *parent ) :
 {
     auto api = COutlookAPI::instance( this );
 
+    if ( !api->hasApplication() )
+    {
+        QMessageBox::critical( this, "Could not launch Outlook", "Outlook could not be loaded. Exiting", QMessageBox::StandardButton::Ok );
+        QTimer::singleShot( 0, this, &CMainWindow::close );
+        return;
+    }
+
     fImpl->setupUi( this );
 
     connect( fImpl->actionSelectServer, &QAction::triggered, this, &CMainWindow::slotSelectServer );
@@ -136,8 +143,11 @@ CMainWindow::CMainWindow( QWidget *parent ) :
 
 CMainWindow::~CMainWindow()
 {
-    clearViews();
-    COutlookAPI::instance()->logout( false );
+    if ( COutlookAPI::instance()->hasApplication() )
+    {
+        clearViews();
+        COutlookAPI::instance()->logout( false );
+    }
 }
 
 void CMainWindow::slotUpdateActions()

@@ -2,12 +2,14 @@ set(_PROJECT_NAME OutlookAPI)
 set(FOLDER_NAME libs)
 
 set(qtproject_UIS
+    DelayDlg.ui
     SelectAccount.ui
     SelectFolders.ui
     ShowRule.ui
 )
 
 set(project_SRCS
+    DelayDlg.cpp
     EmailAddress.cpp
     OutlookAPI.cpp
     OutlookAPI_account.cpp
@@ -30,6 +32,7 @@ set(project_SRCS
 )
  
 set(qtproject_H
+    DelayDlg.h
     OutlookAPI.h
     SelectAccount.h
     SelectFolders.h

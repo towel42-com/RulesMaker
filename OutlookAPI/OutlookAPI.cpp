@@ -1,17 +1,24 @@
 #include "OutlookAPI.h"
 #include "ShowRule.h"
+#include "DelayDlg.h"
 
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QDebug>
 #include <QMetaProperty>
 #include <QTreeView>
+#include <QFileInfo>
 
-#include <cstdlib>
-#include <iostream>
-#include <oaidl.h>
 #include "MSOUTL.h"
+
+#include <iostream>
+#include <cstdlib>
+#include <chrono>
+#include <thread>
+
+#include <oaidl.h>
 #include <objbase.h>
+#include <psapi.h>
 
 std::shared_ptr< COutlookAPI > COutlookAPI::sInstance;
 
@@ -19,8 +26,8 @@ Q_DECLARE_METATYPE( std::shared_ptr< Outlook::Rule > );
 
 COutlookAPI::COutlookAPI( QWidget *parent, COutlookAPI::SPrivate )
 {
-    getApplication();
     fParentWidget = parent;
+    getApplication();
 
     initSettings();
 
@@ -54,26 +61,6 @@ std::shared_ptr< COutlookAPI > COutlookAPI::instance( QWidget *parent )
 COutlookAPI::~COutlookAPI()
 {
     logout( false );
-}
-
-void COutlookAPI::logout( bool andNotify )
-{
-    fSession.reset();
-    fAccount.reset();
-    fInbox.reset();
-    fRootFolder.reset();
-    fJunkFolder.reset();
-    fTrashFolder.reset();
-    fContacts.reset();
-    fRules.reset();
-
-    if ( fLoggedIn && fOutlookApp && !fOutlookApp->isNull() && fOutlookApp->Session() )
-    {
-        Outlook::NameSpace( fOutlookApp->Session() ).Logoff();
-        fLoggedIn = false;
-        if ( andNotify )
-            emit sigAccountChanged();
-    }
 }
 
 QString COutlookAPI::getDebugName( const std::shared_ptr< Outlook::Rule > &rule )
@@ -124,14 +111,107 @@ QString COutlookAPI::getSubject( Outlook::MailItem *mailItem )
     return mailItem ? mailItem->Subject() : QString();
 }
 
+bool COutlookAPI::outlookProcessRunning()
+{
+    if ( !fOutlookProcessRunning.has_value() )
+    {
+        std::size_t baseSize = 256;
+        std::size_t incrSize = 256;
+        std::vector< DWORD > processIDs;
+        processIDs.resize( baseSize );
+        bool aOK = false;
+        while ( !aOK )
+        {
+            DWORD size = static_cast< DWORD >( processIDs.capacity() * sizeof( DWORD ) );
+            DWORD bytesNeeded{ 0 };
+            if ( !EnumProcesses( processIDs.data(), size, &bytesNeeded ) )
+            {
+                return false;
+            }
+            aOK = size > bytesNeeded;
+            if ( !aOK )
+                processIDs.resize( processIDs.size() + incrSize );
+        }
+
+        bool found = false;
+        for ( auto &&processID : processIDs )
+        {
+            //    // Get a handle to the process.
+
+            auto hProcess = OpenProcess( PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processID );
+            if ( hProcess )
+            {
+                HMODULE hMod{ 0 };
+                DWORD cbNeeded{ 0 };
+                if ( EnumProcessModules( hProcess, &hMod, sizeof( hMod ), &cbNeeded ) )
+                {
+                    TCHAR szProcessName[ MAX_PATH ] = TEXT( "<unknown>" );
+                    GetModuleBaseName( hProcess, hMod, szProcessName, sizeof( szProcessName ) / sizeof( TCHAR ) );
+                    auto nm = QString::fromWCharArray( szProcessName );
+                    if ( QFileInfo( QString::fromWCharArray( szProcessName ) ).fileName().toLower() == "outlook.exe" )
+                    {
+                        found = true;
+                    }
+                }
+                CloseHandle( hProcess );
+            }
+            if ( found )
+                break;
+        }
+
+        fOutlookProcessRunning = found;
+    }
+    return fOutlookProcessRunning.value();
+}
+
 std::shared_ptr< Outlook::Application > COutlookAPI::getApplication()
 {
-    static HRESULT comInit = CoInitialize( nullptr );
-    Q_UNUSED( comInit );
-
     if ( !fOutlookApp )
-        fOutlookApp = connectToException( std::make_shared< Outlook::Application >() );
+    {
+        (void)CoInitialize( nullptr );
+
+        auto outlookRunning = outlookProcessRunning();
+        fOutlookApp = std::make_shared< Outlook::Application >();
+        int numAttempts = 0;
+        if ( !outlookRunning )
+        {
+            if ( getParentWidget() )
+            {
+                CDelayDlg dlg( [ = ]() { return outlookFullySetup( true ); }, getParentWidget() );
+                dlg.exec();
+                if ( dlg.cancelled() || dlg.timedOut() )
+                {
+                    fOutlookApp.reset();
+                }
+            }
+            else
+            {
+                while ( !outlookRunning && !outlookFullySetup( false ) && ( numAttempts < 5 ) )
+                {
+                    std::cerr << "WARNING: Outlook was not previously running, waiting up to 5 seconds to allow the system to initialize (Remaining: " << ( 5 - numAttempts ) << ")." << std::endl;
+
+                    using namespace std::chrono_literals;
+                    std::this_thread::sleep_for( 1000ms );
+
+                    resetApplication();
+                    numAttempts++;
+                }
+                if ( !outlookFullySetup( false ) )
+                {
+                    fOutlookApp.reset();
+                }
+            }
+        }
+        if ( fOutlookApp )
+            fOutlookApp = connectToException( fOutlookApp );
+    }
     return fOutlookApp;
+}
+
+void COutlookAPI::resetApplication()
+{
+    fOutlookApp.reset();
+    fOutlookApp = std::make_shared< Outlook::Application >();
 }
 
 std::shared_ptr< Outlook::Application > COutlookAPI::outlookApp()
@@ -210,7 +290,7 @@ bool COutlookAPI::editRule( std::shared_ptr< Outlook::Rule > rule )
 
 bool COutlookAPI::showRuleDialog( std::shared_ptr< Outlook::Rule > rule, bool readOnly )
 {
-    CShowRule ruleDlg( rule, readOnly, fParentWidget );
+    CShowRule ruleDlg( rule, readOnly, getParentWidget() );
 
     return ruleDlg.exec() == QDialog::Accepted;
 }
@@ -220,7 +300,7 @@ void COutlookAPI::slotHandleException( int code, const QString &source, const QS
     if ( fIgnoreExceptions )
         return;
 
-    if ( fParentWidget )
+    if ( getParentWidget() )
     {
         auto msg = QString( "%1 - %2: %3" ).arg( source ).arg( code );
         auto txt = "<br>" + desc + "</br>";
