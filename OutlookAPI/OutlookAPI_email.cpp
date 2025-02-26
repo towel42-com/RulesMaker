@@ -54,36 +54,34 @@ std::shared_ptr< Outlook::MailItem > COutlookAPI::getEmailItem( IDispatch *item 
     return connectToException( std::make_shared< Outlook::MailItem >( item ) );
 }
 
-std::pair< bool, QString > COutlookAPI::canDeleteItem( IDispatch *item )
+std::tuple< bool, QString, std::unique_ptr< QAxObject > > COutlookAPI::canDeleteItem( IDispatch *item )
 {
-    std::pair< bool, QString > retVal{ false, QString() };
+    std::tuple< bool, QString, std::unique_ptr< QAxObject > > retVal{ false, QString(), nullptr };
     if ( !item )
         return retVal;
 
     item->AddRef();
-    auto axObject = QAxObject( (IUnknown *)item, nullptr );
-    auto properties = axObject.propertyBag();
-
-    auto desc = Outlook::toString( static_cast< Outlook::OlObjectClass >( axObject.dynamicCall( "Class()" ).toInt() ) );
-    auto metaObject = axObject.metaObject();
+    auto axObject = std::make_unique< QAxObject >( (IUnknown *)item, nullptr );
+    auto properties = axObject->propertyBag();
+    auto metaObject = axObject->metaObject();
     if ( !metaObject )
     {
         return retVal;
     }
 
     auto methodIndex = metaObject->indexOfMethod( "Delete()" );
-    return { methodIndex != -1, desc };
+    auto desc = Outlook::toString( static_cast< Outlook::OlObjectClass >( axObject->dynamicCall( "Class()" ).toInt() ) );
+    return { methodIndex != -1, desc, std::move( axObject ) };
 }
 
-bool COutlookAPI::deleteItem( IDispatch *item )
+std::pair< bool, QString > COutlookAPI::deleteItem( IDispatch *item )
 {
-    if ( !canDeleteItem( item ).first )
-        return false;
+    auto &&[ canDelete, desc, axObj ] = canDeleteItem( item );
 
-    auto axObject = QAxObject( (IUnknown *)item, nullptr );
+    if ( canDelete )
+        axObj->dynamicCall( "Delete()" );
 
-    axObject.dynamicCall( "Delete()" );
-    return true;
+    return { canDelete, desc };
 }
 
 void COutlookAPI::displayEmail( const std::shared_ptr< Outlook::MailItem > &email ) const

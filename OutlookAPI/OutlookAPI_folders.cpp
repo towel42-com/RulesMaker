@@ -96,7 +96,7 @@ std::list< std::shared_ptr< Outlook::Folder > > COutlookAPI::getFolders( const s
         {
             emit sigIncStatusValue( msg );
         }
-        
+
         auto folder = getFolder( folders->Item( jj ) );
 
         bool isMatch = !acceptFolder || ( acceptFolder && acceptFolder( folder ) );
@@ -263,7 +263,7 @@ std::pair< std::shared_ptr< Outlook::Folder >, bool > COutlookAPI::selectFolder(
 {
     if ( folders.empty() )
     {
-        QMessageBox::critical( fParentWidget, QString( "Could not find %1" ).arg( folderName.toLower() ), folderName + " not found" );
+        QMessageBox::critical( getParentWidget(), QString( "Could not find %1" ).arg( folderName.toLower() ), folderName + " not found" );
         return { {}, false };
     }
     if ( folders.size() == 1 )
@@ -281,7 +281,7 @@ std::pair< std::shared_ptr< Outlook::Folder >, bool > COutlookAPI::selectFolder(
         folderMap[ path ] = ii;
     }
     bool aOK{ false };
-    auto item = QInputDialog::getItem( fParentWidget, QString( "Select %1 Folder" ).arg( folderName ), folderName + " Folder", folderNames, 0, false, &aOK );
+    auto item = QInputDialog::getItem( getParentWidget(), QString( "Select %1 Folder" ).arg( folderName ), folderName + " Folder", folderNames, 0, false, &aOK );
     if ( !aOK )
         return { {}, false };
     auto pos = folderMap.find( item );
@@ -399,9 +399,18 @@ bool COutlookAPI::emptyFolder( std::shared_ptr< Outlook::Folder > &folder )
     if ( !folder )
         return false;
 
-    auto subFolders = folder->Folders();
     auto msg = tr( "Emptying Folder - %1" ).arg( folder->Name() );
     emit sigStatusMessage( msg );
+
+    auto subFolders = folder->Folders();
+    auto items = getItems( folder->Items() );
+
+    if (subFolders && (subFolders->Count() == 0) && items && (items->Count() == 0))
+    {
+        emit sigStatusMessage( tr( "    %1 had Nothing to empty" ).arg( folder->Name() ) );
+        return true;
+    }
+
     int numFoldersDeleted = 0;
     if ( subFolders && subFolders->Count() )
     {
@@ -424,7 +433,6 @@ bool COutlookAPI::emptyFolder( std::shared_ptr< Outlook::Folder > &folder )
         }
     }
     emit sigStatusMessage( QString( "%1 folders deleted" ).arg( numFoldersDeleted ) );
-    auto items = getItems( folder->Items() );
     int numItemsDeleted = 0;
     int numItemsSkipped = 0;
     if ( items && items->Count() )
@@ -433,21 +441,20 @@ bool COutlookAPI::emptyFolder( std::shared_ptr< Outlook::Folder > &folder )
         auto msg = tr( "Emptying Folder - %1 - Deleting items" ).arg( folder->Name() );
         emit sigInitStatus( msg, count );
         int itemNum = 1;
-        while ( items->Count() && ( itemNum <= items->Count() ) ) 
+        while ( items->Count() && ( itemNum <= items->Count() ) )
         {
             if ( canceled() )
                 break;
             auto item = getItem( items, itemNum );
-            auto && [ aOK, desc ] = canDeleteItem( item );
+            auto &&[ aOK, desc ] = deleteItem( item );
             if ( !aOK )
             {
                 itemNum++;
                 numItemsSkipped++;
                 continue;
             }
-            emit sigStatusMessage( tr( "Deleting item - %1" ).arg( desc ) );
+            emit sigStatusMessage( tr( "Deleted item - %1" ).arg( desc ) );
             emit sigIncStatusValue( msg );
-            deleteItem( item );
             numItemsDeleted++;
         }
     }
