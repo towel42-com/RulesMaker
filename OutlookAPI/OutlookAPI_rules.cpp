@@ -137,7 +137,7 @@ std::optional< bool > COutlookAPI::addToRule( std::shared_ptr< Outlook::Rule > r
     }
     saveRules();
 
-    bool retVal = runRuleOnFolder( newRule, {}, 0 );
+    auto retVal = runRuleOnFolder( newRule, {}, 0 ).first;
     if ( !retVal )
     {
         msgs.push_back( "Could not run rule, but it was created" );
@@ -182,7 +182,7 @@ bool COutlookAPI::deleteRule( std::shared_ptr< Outlook::Rule > rule, bool forceD
     if ( andSave )
     {
         saveRules();
-        QMessageBox::information( fParentWidget, "Deleted Rule", QString( "Deleted Rule: %1" ).arg( ruleName ) );
+        QMessageBox::information( getParentWidget(), "Deleted Rule", QString( "Deleted Rule: %1" ).arg( ruleName ) );
     }
 
     if ( !disable )
@@ -200,7 +200,7 @@ bool COutlookAPI::disableRule( const std::shared_ptr< Outlook::Rule > &rule, boo
     if ( andSave )
     {
         saveRules();
-        QMessageBox::information( fParentWidget, "Disabled Rule", QString( "Disabled Rule: %1" ).arg( ruleName ) );
+        QMessageBox::information( getParentWidget(), "Disabled Rule", QString( "Disabled Rule: %1" ).arg( ruleName ) );
     }
     emit sigRuleChanged( rule );
     return true;
@@ -216,7 +216,7 @@ bool COutlookAPI::enableRule( const std::shared_ptr< Outlook::Rule > &rule, bool
     if ( andSave )
     {
         saveRules();
-        QMessageBox::information( fParentWidget, "Enabled Rule", QString( "Enabled Rule: %1" ).arg( ruleName ) );
+        QMessageBox::information( getParentWidget(), "Enabled Rule", QString( "Enabled Rule: %1" ).arg( ruleName ) );
     }
 
     emit sigRuleChanged( rule );
@@ -391,46 +391,52 @@ std::vector< std::shared_ptr< Outlook::Rule > > COutlookAPI::getAllRules()
     return rules;
 }
 
-bool COutlookAPI::runAllRulesOnTrashFolder()
+std::pair< bool, std::size_t > COutlookAPI::runAllRulesOnTrashFolder()
 {
     return runAllRulesOnFolder( getTrashFolder() );
 }
 
-bool COutlookAPI::runAllRulesOnJunkFolder()
+std::pair< bool, std::size_t > COutlookAPI::runAllRulesOnJunkFolder()
 {
     return runAllRulesOnFolder( getJunkFolder() );
 }
 
-bool COutlookAPI::runAllRulesOnFolder( std::shared_ptr< Outlook::Folder > folder )
+std::pair< bool, std::size_t > COutlookAPI::runAllRulesOnFolder( std::shared_ptr< Outlook::Folder > folder )
 {
-    bool aOK = runRulesOnFolder( std::make_pair( getAllRules(), QString( "All Rules" ) ), folder );
-    return aOK;
+    return runRulesOnFolder( std::make_pair( getAllRules(), QString( "All Rules" ) ), folder );
 }
 
-bool COutlookAPI::runRulesOnFolder( const std::pair< std::vector< std::shared_ptr< Outlook::Rule > >, QString > &rules, std::shared_ptr< Outlook::Folder > folder )
+std::pair< bool, std::size_t > COutlookAPI::runRulesOnFolder( const std::pair< std::vector< std::shared_ptr< Outlook::Rule > >, QString > &rules, std::shared_ptr< Outlook::Folder > folder )
 {
     if ( !folder )
         folder = rootFolder();
 
     if ( !folder )
-        return false;
+        return { false, 0 };
 
     return runRulesOnFolder( rules, folder, 0 );
 }
 
-bool COutlookAPI::runRulesOnFolder( const std::pair< std::vector< std::shared_ptr< Outlook::Rule > >, QString > &namedRules, std::shared_ptr< Outlook::Folder > folder, int indent )
+std::pair< bool, std::size_t > COutlookAPI::runRulesOnFolder( const std::pair< std::vector< std::shared_ptr< Outlook::Rule > >, QString > &namedRules, std::shared_ptr< Outlook::Folder > folder, int indent )
 {
     if ( !folder )
-        return false;
+        return { false, 0 };
 
     auto &&[ rules, nameForRules ] = namedRules;
     if ( rules.empty() )
-        return true;
+        return { true, 0 };
 
     auto msg = QString( "%1Running %2 on '%3'" ).arg( ::indent( indent ) ).arg( nameForRules ).arg( folderDisplayPath( folder ) );
     emit sigInitStatus( msg, static_cast< int >( rules.size() ) );
 
     auto beforeCount = folder->Items() ? folder->Items()->Count() : 0;
+    if ( beforeCount == 0 )
+    {
+        emit sigStatusMessage( QString( "%1'%2' has 0 items" ).arg( ::indent( indent + 1 ) ).arg( folderDisplayPath( folder ) ) );
+        emit sigStatusFinished( msg );
+        return { true, 0 };
+    }
+
     emit sigStatusMessage( QString( "%1'%2' has %3 items" ).arg( ::indent( indent + 1 ) ).arg( folderDisplayPath( folder ) ).arg( beforeCount ) );
 
     slotClearCanceled();
@@ -438,9 +444,18 @@ bool COutlookAPI::runRulesOnFolder( const std::pair< std::vector< std::shared_pt
     bool aOK = true;
     for ( auto &&rule : rules )
     {
-        aOK = aOK && runRuleOnFolder( rule, folder, indent + 1 );
+        auto currCount = folder->Items() ? folder->Items()->Count() : 0;
+        if (currCount == 0)
+        {
+            emit sigStatusMessage( QString( "%1'%2' has 0 items" ).arg( ::indent( indent + 1 ) ).arg( folderDisplayPath( folder ) ) );
+            break;
+        }
+        aOK = aOK && runRuleOnFolder( rule, folder, indent + 1 ).first;
         if ( canceled() )
-            return false;
+        {
+            auto afterCount = folder->Items() ? folder->Items()->Count() : 0;
+            return { false, afterCount - beforeCount };
+        }
 
         emit sigIncStatusValue( msg );
     }
@@ -449,32 +464,36 @@ bool COutlookAPI::runRulesOnFolder( const std::pair< std::vector< std::shared_pt
     emit sigStatusMessage( QString( "%1'%2' has %3 items" ).arg( ::indent( indent + 1 ) ).arg( folderDisplayPath( folder ) ).arg( afterCount ) );
 
     sigStatusFinished( msg );
-    return aOK;
+    return { aOK, afterCount - beforeCount };
 }
 
-bool COutlookAPI::runRuleOnFolder( const std::shared_ptr< Outlook::Rule > &rule, std::shared_ptr< Outlook::Folder > folder )
+std::pair< bool, std::size_t > COutlookAPI::runRuleOnFolder( const std::shared_ptr< Outlook::Rule > &rule, std::shared_ptr< Outlook::Folder > folder )
 {
     return runRuleOnFolder( rule, folder, 0 );
 }
 
-bool COutlookAPI::runRuleOnFolder( const std::shared_ptr< Outlook::Rule > &rule, std::shared_ptr< Outlook::Folder > folder, int indent )
+std::pair< bool, std::size_t > COutlookAPI::runRuleOnFolder( const std::shared_ptr< Outlook::Rule > &rule, std::shared_ptr< Outlook::Folder > folder, int indent )
 {
     if ( !rule || !rule->Enabled() )
-        true;
+        return { false, 0 };
 
     auto folderPtr = reinterpret_cast< Outlook::MAPIFolder * >( folder.get() );
     if ( !folderPtr )
-        return false;
+        return { false, 0 };
+
     auto folderTypeID = qRegisterMetaType< Outlook::MAPIFolder * >( "MAPIFolder*", &folderPtr );
 
     if ( canceled() )
-        return false;
+        return { false, 0 };
 
-    emit sigStatusMessage( QString( "%1Running Rule: %2 - Count: %4" ).arg( ::indent( indent + 1 ) ).arg( rule->Name() ).arg( folderPtr->Items() ? folderPtr->Items()->Count() : 0 ) );
+    auto beforeCount = folderPtr->Items() ? folderPtr->Items()->Count() : 0;
+    emit sigStatusMessage( QString( "%1Running Rule: %2 - Count: %4" ).arg( ::indent( indent + 1 ) ).arg( rule->Name() ).arg( beforeCount ) );
     rule->Execute( false, QVariant( folderTypeID, &folderPtr ) );
-    emit sigStatusMessage( QString( "%1Finished Running Rule: %2 - Count: %4" ).arg( ::indent( indent + 1 ) ).arg( rule->Name() ).arg( folderPtr->Items() ? folderPtr->Items()->Count() : 0 ) );
+    auto afterCount = folderPtr->Items() ? folderPtr->Items()->Count() : 0;
+    emit sigStatusMessage( QString( "%1Finished Running Rule: %2 - Count: %4" ).arg( ::indent( indent + 1 ) ).arg( rule->Name() ).arg( afterCount ) );
 
-    return true;
+    return { true, 0 };
+    ;
 }
 
 bool COutlookAPI::addDisplayNamesToRule( Outlook::Rule *rule, const QStringList &displayNames, QStringList &msgs )
