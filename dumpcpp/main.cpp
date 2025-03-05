@@ -40,11 +40,13 @@
 #include <QCommandLineParser>
 #include <QWidget>
 #include <QFileInfo>
-#include <optional>
 #include <QHash>
 #include <QSet>
 #include <QRegularExpression>
+#include <QDebug>
 
+#include <optional>
+#include <unordered_set>
 #include <qt_windows.h>
 #include <ocidl.h>
 
@@ -126,18 +128,40 @@ bool writeToFromStringImpl( QTextStream &implOut )
     return true;
 }
 
-QString stripPrefix( QString enumName )
+QString stripPrefix( const QString &enumName )
 {
-    if ( enumName.isEmpty() )
-        return {};
-    if ( !sOptions.enumPrefix.isEmpty() && enumName.startsWith( sOptions.enumPrefix, Qt::CaseInsensitive ) )
-        enumName = enumName.mid( sOptions.enumPrefix.length() );
-    return enumName;
+    if ( enumName.isEmpty() || sOptions.enumPrefix.isEmpty() )
+        return enumName;
+    static std::map< QString, QString > sEnumNameMap;
+    auto pos = sEnumNameMap.find( enumName );
+    if ( pos != sEnumNameMap.end() )
+        return ( *pos ).second;
+
+    auto retVal = enumName;
+    while ( retVal.startsWith( "_" ) )
+        retVal = retVal.mid( 1 );
+    if ( retVal.startsWith( sOptions.enumPrefix, Qt::CaseInsensitive ) )
+        retVal = retVal.mid( sOptions.enumPrefix.length() );
+    while ( retVal.startsWith( "_" ) )
+        retVal = retVal.mid( 1 );
+    sEnumNameMap[ enumName ] = retVal;
+    return retVal;
 };
 
 QString getValueNameForEnum( QString valueName )
 {
     valueName = stripPrefix( valueName );
+    if ( valueName.contains( "_" ) )
+    {
+        valueName = valueName.toLower();
+        auto pos = valueName.indexOf( "_" );
+        while ( pos != -1 )
+        {
+            valueName = valueName.remove( pos, 1 );
+            valueName[ pos ] = valueName[ pos ].toUpper();
+            pos = valueName.indexOf( '_', pos );
+        }
+    }
     if ( !valueName.isEmpty() )
     {
         valueName[ 0 ] = valueName[ 0 ].toLower();
@@ -145,30 +169,35 @@ QString getValueNameForEnum( QString valueName )
     return valueName;
 }
 
-QString getEnumDescriptiveString( QString enumName )
+QString getEnumDescriptiveString( const QString &enumName )
 {
     if ( enumName.isEmpty() )
         return {};
-    enumName = stripPrefix( enumName );
+    auto retVal = getValueNameForEnum( enumName );
+    if ( retVal.isEmpty() )
+        return {};
+
+    retVal[ 0 ] = retVal[ 0 ].toUpper();
 
     QStringList words;
     auto regEx = QRegularExpression( "[A-Z][a-z]+" );
-    auto iter = regEx.globalMatch( enumName );
+    auto iter = regEx.globalMatch( retVal );
     auto prevEnd = 0;
     while ( iter.hasNext() )
     {
         auto match = iter.next();
         if ( match.capturedStart( 0 ) != prevEnd )
         {
-            words << enumName.mid( prevEnd, match.capturedStart( 0 ) - prevEnd );
+            words << retVal.mid( prevEnd, match.capturedStart( 0 ) - prevEnd );
         }
         auto word = match.captured( 0 );
         words << word;
         prevEnd = match.capturedEnd( 0 );
     }
 
-    enumName = words.join( " " );
-    return enumName;
+    retVal = words.join( " " );
+
+    return retVal;
 }
 
 QString getToStringDecl( const QString &enumName, const std::optional< QString > &nameSpace = {} )
@@ -224,7 +253,8 @@ std::optional< QString > generateFromString( const QMetaEnum &metaEnum, const QS
             out << Qt::endl;
         for ( auto &&ii : keys )
         {
-            out << "        " << "sEnumMap[\"" << ii << "\"] = " << enumValue << ";" << Qt::endl;
+            out << "        "
+                << "sEnumMap[\"" << ii << "\"] = " << enumValue << ";" << Qt::endl;
         }
     }
 
@@ -253,11 +283,19 @@ std::optional< QString > generateToString( const QMetaEnum &metaEnum, const QStr
     auto enumName = metaEnum.name();
     out << getToStringDecl( enumName, nameSpace ) << Qt::endl << "{" << Qt::endl << "    switch( " << getValueNameForEnum( enumName ) << " )" << Qt::endl << "    {" << Qt::endl;
 
+    std::unordered_set< int > valuesUsed;
+
     for ( int ii = 0; ii < metaEnum.keyCount(); ++ii )
     {
         auto enumString = getEnumDescriptiveString( metaEnum.key( ii ) );
         auto key = enumName + QLatin1String( "::" ) + metaEnum.key( ii );
-        out << "        case " << key << ": return \"" << enumString << "\";" << Qt::endl;
+        auto value = metaEnum.value( ii );
+
+        out << "        ";
+        if ( valuesUsed.find( value ) != valuesUsed.end() )
+            out << "//";
+        valuesUsed.insert( value );
+        out << "case " << key << ": return \"" << enumString << "\";" << Qt::endl;
     }
 
     out << QString( R"(        default: return "<UNKNOWN-%1>";)" ).arg( enumName ) << Qt::endl   //
@@ -363,8 +401,29 @@ QByteArray constRefify( const QByteArray &type )
     return ctype;
 }
 
-void generateClassDecl( QTextStream &out, const QString &controlID, const QMetaObject *mo, const QByteArray &className, const QByteArray &nameSpace, ObjectCategories category )
+QByteArray cleanCArrayRef( const QByteArray &parameter )
 {
+    auto retVal = parameter;
+    auto cArrayRefRegEx = QRegularExpression( R"((?<paramType>([A-Za-z][A-Za-z\d]+))(\s+(?<paramName>([A-Za-z][A-Za-z0-9]+)))?\s*(?<arraySize>\[\s*\d+\s*\])\s*\&)" );
+    auto ii = cArrayRefRegEx.globalMatch( retVal );
+    while ( ii.hasNext() )
+    {
+        QRegularExpressionMatch match = ii.next();
+        auto paramType = match.captured( "paramType" );
+        auto paramName = match.captured( "paramName" );
+        auto arraySize = match.captured( "arraySize" );
+
+        auto start = match.capturedStart();
+        auto len = match.capturedLength();
+
+        auto replace = paramType + ( paramName.isEmpty() ? "" : " " ) + "(&" + paramName + ")" + arraySize.remove( " " );
+        retVal.replace( start, len, replace.toLocal8Bit() );
+    }
+    return retVal;
+}
+
+void generateClassDecl( QTextStream &out, const QString &controlID, const QMetaObject *mo, const QByteArray &className, const QByteArray &nameSpace, ObjectCategories category )
+    {
     QList< QByteArray > functions;
 
     QByteArray indent;
@@ -577,7 +636,8 @@ void generateClassDecl( QTextStream &out, const QString &controlID, const QMetaO
                 setter = "set" + setter;
             }
 
-            out << indent << "inline " << "void ";
+            out << indent << "inline "
+                << "void ";
             if ( category & OnlyInlines )
                 out << className << "::";
             out << setter << '(' << constRefify( propertyType ) << " value)";
@@ -664,6 +724,8 @@ void generateClassDecl( QTextStream &out, const QString &controlID, const QMetaO
         {
             slotNamedSignature = slotSignature.left( slotSignature.indexOf( '(' ) + 1 );
             QByteArray slotSignatureTruncated( slotSignature.mid( slotNamedSignature.length() ) );
+            slotSignatureTruncated = cleanCArrayRef( slotSignatureTruncated );
+
             slotSignatureTruncated.truncate( slotSignatureTruncated.length() - 1 );
 
             QList< QByteArray > signatureSplit = slotSignatureTruncated.split( ',' );
@@ -684,16 +746,29 @@ void generateClassDecl( QTextStream &out, const QString &controlID, const QMetaO
                 if ( !parameterType.contains( "::" ) && namespaceForType.contains( parameterType ) )
                     parameterType.prepend( namespaceForType.value( parameterType ) + "::" );
 
-                QByteArray arraySpec;   // transform array method signature "foo(int[4])" ->"foo(int p[4])"
+                // transform array method signature "foo(int[4])" ->"foo(int p[4])"
+                // also transform array reference method signature "foo(int(&)[4])" -> "foo(int (&p)[4])"
+                QByteArray arraySpec;
                 const int arrayPos = parameterType.lastIndexOf( '[' );
+                QByteArray paramName = parameterSplit.at( i );
                 if ( arrayPos != -1 )
                 {
-                    arraySpec = parameterType.right( parameterType.size() - arrayPos );
-                    parameterType.truncate( arrayPos );
+                    auto refPos = parameterType.indexOf( "(&)" );
+                    if ( refPos == -1 )
+                    {
+                        arraySpec = parameterType.right( parameterType.size() - arrayPos );
+                        parameterType.truncate( arrayPos );
+                    }
+                    else
+                    {
+                        arraySpec = "(&" + paramName + parameterType.right( parameterType.size() - ( refPos + 2 ) );
+                        paramName.clear();
+                        parameterType.truncate( refPos );
+                    }
                 }
                 slotNamedSignature += constRefify( parameterType );
                 slotNamedSignature += ' ';
-                slotNamedSignature += parameterSplit.at( i );
+                slotNamedSignature += paramName;
                 slotNamedSignature += arraySpec;
                 if ( defaultArguments >= signatureSplit.count() - i )
                 {
@@ -1194,8 +1269,9 @@ void generateClassImpl( QTextStream &out, const QMetaObject *mo, const QByteArra
 
 static void formatCommentBlockFooter( const QString &typeLibFile, QTextStream &str )
 {
-    str << " generated by dumpcpp v" << sVersionString << " using\n**";
+    str << " generated by dumpcpp v" << sVersionString << " \n**";
     str << " Generated on " << QDateTime::currentDateTime().toString() << "\n**";
+    str << " Using Parameters:" << sVersionString << " \n**";
     const QStringList arguments = QCoreApplication::arguments();
     for ( const QString &arg : arguments )
         str << ' ' << arg;
@@ -1761,8 +1837,9 @@ bool generateTypeLibrary( QString typeLibFile )
         QList< QByteArray > currentList;
 
         int currentTableLen = 0;
-        for ( const auto &s : strings )
+        for ( const auto &s1 : strings )
         {
+            auto s = cleanCArrayRef( s1 );
             currentTableLen += s.length() + 1;
             currentList.append( s );
             // Split strings into chunks less than 64k to work around compiler limits.
@@ -1812,8 +1889,10 @@ bool generateTypeLibrary( QString typeLibFile )
             int len = 0;
             implOut << ',' << Qt::endl;
             implOut << "    \"";
-            for ( const auto &s : l )
+            for ( const auto &s1 : l )
             {
+                auto s = cleanCArrayRef( s1 );
+
                 len = s.length();
                 if ( col && col + len >= 150 )
                 {
