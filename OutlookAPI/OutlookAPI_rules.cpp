@@ -437,7 +437,7 @@ std::pair< bool, std::size_t > COutlookAPI::runRulesOnFolder( const std::pair< s
         return { true, 0 };
     }
 
-    emit sigStatusMessage( QString( "%1'%2' has %3 items" ).arg( ::indent( indent + 1 ) ).arg( folderDisplayPath( folder ) ).arg( beforeCount ) );
+    emit sigStatusMessage( QString( "%1'%2' has %3 items before the rules have been run" ).arg( ::indent( indent + 1 ) ).arg( folderDisplayPath( folder ) ).arg( beforeCount ) );
 
     slotClearCanceled();
 
@@ -454,17 +454,17 @@ std::pair< bool, std::size_t > COutlookAPI::runRulesOnFolder( const std::pair< s
         if ( canceled() )
         {
             auto afterCount = folder->Items() ? folder->Items()->Count() : 0;
-            return { false, afterCount - beforeCount };
+            return { false, beforeCount - afterCount };
         }
 
         emit sigIncStatusValue( msg );
     }
 
     auto afterCount = folder->Items() ? folder->Items()->Count() : 0;
-    emit sigStatusMessage( QString( "%1'%2' has %3 items" ).arg( ::indent( indent + 1 ) ).arg( folderDisplayPath( folder ) ).arg( afterCount ) );
+    emit sigStatusMessage( QString( "%1'%2' has %3 items after the rules have been run" ).arg( ::indent( indent + 1 ) ).arg( folderDisplayPath( folder ) ).arg( afterCount ) );
 
     sigStatusFinished( msg );
-    return { aOK, afterCount - beforeCount };
+    return { aOK, beforeCount - afterCount };
 }
 
 std::pair< bool, std::size_t > COutlookAPI::runRuleOnFolder( const std::shared_ptr< Outlook::Rule > &rule, std::shared_ptr< Outlook::Folder > folder )
@@ -492,8 +492,7 @@ std::pair< bool, std::size_t > COutlookAPI::runRuleOnFolder( const std::shared_p
     auto afterCount = folderPtr->Items() ? folderPtr->Items()->Count() : 0;
     emit sigStatusMessage( QString( "%1Finished Running Rule: %2 - Count: %4" ).arg( ::indent( indent + 1 ) ).arg( rule->Name() ).arg( afterCount ) );
 
-    return { true, 0 };
-    ;
+    return { true, beforeCount - afterCount };
 }
 
 bool COutlookAPI::addDisplayNamesToRule( Outlook::Rule *rule, const QStringList &displayNames, QStringList &msgs )
