@@ -76,39 +76,37 @@ ENDMACRO()
 
 
 MACRO( GenerateCPPFromFileID fileID prefix enumPrefix )
-    if( NOT DUMPCPP_EXECUTABLE )
-        MESSAGE( FATAL_ERROR "Could not find sab_dumpcpp" )
+    if( DUMPCPP_EXECUTABLE )
+        if ( NOT EXISTS ${DUMPCPP_EXECUTABLE} )
+            message( FATAL_ERROR "${DUMPCPP_EXECUTABLE} does not exist" )
+        endif()
+
+        FileForTypeID( ${fileID} ${prefix} )
+
+        #message( STATUS "${prefix}_TYPEID_FILEPATH=${${prefix}_TYPEID_FILEPATH}" )
+        if ( NOT EXISTS ${${prefix}_TYPEID_FILEPATH} )
+            message( FATAL_ERROR "Could not find OLB file '${${prefix}_TYPEID_FILEPATH}' for file id ${fileID}" )
+        endif()
+
+        set( ${prefix}_CPP ${CMAKE_CURRENT_BINARY_DIR}/${prefix}.cpp )
+        set( ${prefix}_H ${CMAKE_CURRENT_BINARY_DIR}/${prefix}.h )
+
+        #message( STATUS "${prefix}_CPP=${${prefix}_CPP}" )
+        #message( STATUS "${prefix}_H=${${prefix}_H}" )
+        #message( STATUS "DUMPCPP_EXECUTABLE=${DUMPCPP_EXECUTABLE} - ${DUMPCPP_VERSION}" )
+
+        ADD_CUSTOM_COMMAND( 
+            OUTPUT 
+                ${${prefix}_CPP} ${${prefix}_H}
+            COMMENT "[DUMPCPP] Generating ${prefix}.cpp and ${prefix}.h from '${${prefix}_TYPEID_FILEPATH}' using \"${DUMPCPP_EXECUTABLE} - ${DUMPCPP_VERSION}\" ${fileID} -o ${prefix} --enum_class --gen_tofrom_enum --prefix ${enumPrefix} --disable_clang_format"
+            COMMAND echo "${DUMPCPP_EXECUTABLE}" ${fileID} -o ${prefix} --enum_class --gen_tofrom_enum --prefix ${enumPrefix} --disable_clang_format
+            COMMAND "${DUMPCPP_EXECUTABLE}" ${fileID} -o ${prefix} --enum_class --gen_tofrom_enum --prefix ${enumPrefix} --disable_clang_format
+            VERBATIM
+            DEPENDS
+               ${${prefix}_TYPEID_FILEPATH}
+               ${DUMPCPP_EXECUTABLE}
+        )
     endif()
-
-    if ( NOT EXISTS ${DUMPCPP_EXECUTABLE} )
-        message( FATAL_ERROR "${DUMPCPP_EXECUTABLE} does not exist" )
-    endif()
-
-    FileForTypeID( ${fileID} ${prefix} )
-
-    #message( STATUS "${prefix}_TYPEID_FILEPATH=${${prefix}_TYPEID_FILEPATH}" )
-    if ( NOT EXISTS ${${prefix}_TYPEID_FILEPATH} )
-        message( FATAL_ERROR "Could not find OLB file '${${prefix}_TYPEID_FILEPATH}' for file id ${fileID}" )
-    endif()
-
-    set( ${prefix}_CPP ${CMAKE_CURRENT_BINARY_DIR}/${prefix}.cpp )
-    set( ${prefix}_H ${CMAKE_CURRENT_BINARY_DIR}/${prefix}.h )
-
-    #message( STATUS "${prefix}_CPP=${${prefix}_CPP}" )
-    #message( STATUS "${prefix}_H=${${prefix}_H}" )
-    #message( STATUS "DUMPCPP_EXECUTABLE=${DUMPCPP_EXECUTABLE} - ${DUMPCPP_VERSION}" )
-
-    ADD_CUSTOM_COMMAND( 
-        OUTPUT 
-            ${${prefix}_CPP} ${${prefix}_H}
-        COMMENT "[DUMPCPP] Generating ${prefix}.cpp and ${prefix}.h from '${${prefix}_TYPEID_FILEPATH}' using \"${DUMPCPP_EXECUTABLE} - ${DUMPCPP_VERSION}\" ${fileID} -o ${prefix} --enum_class --gen_tofrom_enum --prefix ${enumPrefix} --disable_clang_format"
-        COMMAND echo "${DUMPCPP_EXECUTABLE}" ${fileID} -o ${prefix} --enum_class --gen_tofrom_enum --prefix ${enumPrefix} --disable_clang_format
-        COMMAND "${DUMPCPP_EXECUTABLE}" ${fileID} -o ${prefix} --enum_class --gen_tofrom_enum --prefix ${enumPrefix} --disable_clang_format
-        VERBATIM
-        DEPENDS
-           ${${prefix}_TYPEID_FILEPATH}
-           ${DUMPCPP_EXECUTABLE}
-    )
 endmacro()
    
 
