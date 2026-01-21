@@ -23,7 +23,7 @@ set_target_properties( ${PROJECT_NAME} PROPERTIES FOLDER ${FOLDER_NAME}
                                     VS_DEBUGGER_ENVIRONMENT "PATH=${DEBUG_PATH}" 
                                     )
 
-target_include_directories( ${PROJECT_NAME} PUBLIC ${_PROJECT_INCLUDE_DIRECTORIES} )
+target_include_directories( ${PROJECT_NAME} PUBLIC ${_PROJECT_INCLUDE_DIRECTORIES} ${CMAKE_BINARY_DIR} )
 
 target_link_directories( ${PROJECT_NAME}
     PUBLIC

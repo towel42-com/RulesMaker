@@ -25,6 +25,7 @@ set( EXTRA_CMAKE_FILES
 )
 
 set( project_pri_LIB_DIRS 
+    ${CMAKE_BINARY_DIR}
 )
 
 set( project_pri_DEPS
