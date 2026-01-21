@@ -15,7 +15,10 @@ add_library( ${PROJECT_NAME}
 set_target_properties( ${PROJECT_NAME} PROPERTIES FOLDER ${FOLDER_NAME} 
                                     )
 
-target_include_directories( ${PROJECT_NAME} PUBLIC ${_PROJECT_INCLUDE_DIRECTORIES} )
+target_include_directories( ${PROJECT_NAME} 
+    PUBLIC 
+        ${_PROJECT_INCLUDE_DIRECTORIES} 
+)
 
 target_link_libraries( ${PROJECT_NAME}
     PUBLIC

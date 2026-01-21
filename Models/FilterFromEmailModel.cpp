@@ -134,12 +134,12 @@ void CFilterFromEmailModel::addMailItem( std::shared_ptr< Outlook::MailItem > ma
 
         qDebug() << "Processing Email Address: " << key;
 
-        auto split = emailAddress->emailAddress().splitRef( '@', Qt::SplitBehaviorFlags::SkipEmptyParts );
+        auto split = emailAddress->emailAddress().split( '@', Qt::SplitBehaviorFlags::SkipEmptyParts );
         if ( split.empty() )
             continue;
 
         auto user = split.front();
-        QStringRef domain;
+        QStringView domain;
         if ( split.count() != 2 )
             continue;
 
@@ -520,7 +520,7 @@ std::pair< CEmailAddressSection *, QList< QStandardItem * > > CFilterFromEmailMo
     return { item, row };
 }
 
-CEmailAddressSection *CFilterFromEmailModel::findOrAddEmailAddressSection( const QString &curr, const QVector< QStringRef > &remaining, CEmailAddressSection *parent, const QString &displayName, const QString &subject )
+CEmailAddressSection *CFilterFromEmailModel::findOrAddEmailAddressSection( const QString &curr, const QVector< QStringView > &remaining, CEmailAddressSection *parent, const QString &displayName, const QString &subject )
 {
     CEmailAddressSection *retVal{ nullptr };
     auto key = curr.toLower();

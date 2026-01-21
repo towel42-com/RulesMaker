@@ -12,7 +12,7 @@ add_executable( ${PROJECT_NAME}
                 ${_CMAKE_MODULE_FILES}
           )
 set ( DEBUG_PATH 
-        "%PATH%;${QT_MSVCDIR}/bin"
+        "%PATH%;${QT6_INSTALL_PREFIX}/bin"
         )
 
 set_target_properties( ${PROJECT_NAME} PROPERTIES FOLDER ${FOLDER_NAME} 
@@ -21,13 +21,19 @@ set_target_properties( ${PROJECT_NAME} PROPERTIES FOLDER ${FOLDER_NAME}
                                     VS_DEBUGGER_ENVIRONMENT "PATH=${DEBUG_PATH}" 
                                     )
 
-if ( ( NOT EXISTS ${QT_MSVCDIR}/include/QtCore/${QT_VERSION}/private/qmetaobject_p.h ) AND 
-     ( NOT EXISTS ${QT_MSVCDIR}/include/QtCore/${QT_VERSION}/QtCore/private/qmetaobject_p.h ) )
-     Message( fatal "Could not find qmetaobject_p.h" )
+target_compile_definitions(${PROJECT_NAME} 
+    PRIVATE 
+        QT_ASCII_CAST_WARNINGS QT_NO_CAST_TO_ASCII)
+
+if ( EXISTS ${QT6_INSTALL_PREFIX}/include/QtCore/${Qt6_VERSION}/QtCore/private/qmetaobject_p.h )
+    target_include_directories( ${PROJECT_NAME} PUBLIC ${QT6_INSTALL_PREFIX}/include/QtCore/${Qt6_VERSION}/ )
+    target_include_directories( ${PROJECT_NAME} PUBLIC ${QT6_INSTALL_PREFIX}/include/QtCore/${Qt6_VERSION}/QtCore/ )
+else()
+     MESSAGE( FATAL_ERROR 
+"Could not find qmetaobject_p.h at
+    '${QT6_INSTALL_PREFIX}/include/QtCore/${Qt6_VERSION}/QtCore/private/qmetaobject_p.h'" )
 endif()
 
-target_include_directories( ${PROJECT_NAME} PUBLIC ${QT_MSVCDIR}/include/QtCore/${QT_VERSION}/ )
-target_include_directories( ${PROJECT_NAME} PUBLIC ${QT_MSVCDIR}/include/QtCore/${QT_VERSION}/QtCore/ )
 target_include_directories( ${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR} )
 
 target_link_directories( ${PROJECT_NAME}
@@ -39,7 +45,7 @@ target_link_directories( ${PROJECT_NAME}
 
 target_link_libraries( ${PROJECT_NAME}
     PUBLIC
-       ${project_pub_DEPS} Qt5::Widgets Qt5::AxContainer 
+       ${project_pub_DEPS}
     PRIVATE 
        ${project_pri_DEPS} 
 )

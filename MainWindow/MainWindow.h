@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QLabel>
+#include <QAbstractButton>
 
 #include <memory>
 #include <list>

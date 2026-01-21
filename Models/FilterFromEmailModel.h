@@ -96,7 +96,7 @@ private:
 
     void sortAll( QStandardItem *root );
     void addMailItem( std::shared_ptr< Outlook::MailItem > mailItem );
-    CEmailAddressSection *findOrAddEmailAddressSection( const QString &curr, const QVector< QStringRef > &remaining, CEmailAddressSection *parent, const QString &displayName, const QString &subject );
+    CEmailAddressSection *findOrAddEmailAddressSection( const QString &curr, const QVector< QStringView > &remaining, CEmailAddressSection *parent, const QString &displayName, const QString &subject );
     std::pair< CEmailAddressSection *, QList< QStandardItem * > > makeRow( const QString &section, bool inBack, const QString &displayName, const QString &subject );
 
     std::shared_ptr< Outlook::Items > fItems{ nullptr };

@@ -14,7 +14,7 @@ add_executable( ${PROJECT_NAME}
           )
 
 set ( DEBUG_PATH 
-        "%PATH%;${QT_MSVCDIR}/bin"
+        "%PATH%;${QT6_INSTALL_PREFIX}/bin"
         )
 
 set_target_properties( ${PROJECT_NAME} PROPERTIES FOLDER ${FOLDER_NAME} 
