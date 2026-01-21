@@ -2,7 +2,7 @@ set(_PROJECT_NAME OutlookLib)
 set(FOLDER_NAME libs)
 
 #message( "DUMPCPP=${DUMPCPP_EXECUTABLE}" )
-find_package( FileForTypeID  )
+find_package( FileForTypeID )
 
 
 GenerateCPPFromFileID( "{00062FFF-0000-0000-C000-000000000046}" MSOUTL ol )
