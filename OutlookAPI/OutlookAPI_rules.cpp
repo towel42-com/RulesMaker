@@ -5,7 +5,7 @@
 #include <QRegularExpression>
 
 #include <set>
-#include "MSOUTL.h"
+#include "OutlookLib/MSOUTL.h"
 
 #include <QDebug>
 
@@ -330,7 +330,7 @@ std::shared_ptr< Outlook::Rule > COutlookAPI::getRule( Outlook::_Rule *item )
 {
     if ( !item )
         return {};
-    return connectToException( std::make_shared< Outlook::Rule >( item ) );
+    return connectToException( std::make_shared< Outlook::Rule >( reinterpret_cast< IDispatch * >( item ) ) );
 }
 
 std::optional< QStringList > COutlookAPI::getRecipients( Outlook::Rule *rule, QStringList *msgs )
@@ -445,7 +445,7 @@ std::pair< bool, std::size_t > COutlookAPI::runRulesOnFolder( const std::pair< s
     for ( auto &&rule : rules )
     {
         auto currCount = folder->Items() ? folder->Items()->Count() : 0;
-        if (currCount == 0)
+        if ( currCount == 0 )
         {
             emit sigStatusMessage( QString( "%1'%2' has 0 items" ).arg( ::indent( indent + 1 ) ).arg( folderDisplayPath( folder ) ) );
             break;
@@ -481,7 +481,7 @@ std::pair< bool, std::size_t > COutlookAPI::runRuleOnFolder( const std::shared_p
     if ( !folderPtr )
         return { false, 0 };
 
-    auto folderTypeID = qRegisterMetaType< Outlook::MAPIFolder * >( "MAPIFolder*", &folderPtr );
+    auto folderTypeID = static_cast< QMetaType >( qRegisterMetaType< Outlook::MAPIFolder * >( "MAPIFolder*" ) );
 
     if ( canceled() )
         return { false, 0 };

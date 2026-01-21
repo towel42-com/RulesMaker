@@ -1,7 +1,7 @@
 #include "OutlookAPI.h"
 #include "EmailAddress.h"
 
-#include "MSOUTL.h"
+#include "OutlookLib/MSOUTL.h"
 
 TEmailAddressList cleanResults( QStringList keys )
 {

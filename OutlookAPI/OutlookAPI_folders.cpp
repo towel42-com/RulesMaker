@@ -5,7 +5,7 @@
 #include <QDebug>
 #include <QSettings>
 
-#include "MSOUTL.h"
+#include "OutlookLib/MSOUTL.h"
 
 std::shared_ptr< Outlook::Folder > COutlookAPI::rootFolder()
 {
@@ -145,7 +145,7 @@ std::shared_ptr< Outlook::Folder > COutlookAPI::parentFolder( const std::shared_
         return {};
 
     auto parentFolder = new Outlook::Folder( parentObj );
-    if ( parentFolder->Class() != Outlook::OlObjectClass::olFolder )
+    if ( static_cast< Outlook::OlObjectClass >( parentFolder->Class() ) != Outlook::OlObjectClass::olFolder )
     {
         delete parentFolder;
         return {};
@@ -244,7 +244,7 @@ std::pair< std::shared_ptr< Outlook::Folder >, bool > COutlookAPI::getMailFolder
         {
             if ( !folder )
                 return false;
-            if ( folder->DefaultItemType() != Outlook::OlItemType::olMailItem )
+            if ( static_cast< Outlook::OlItemType >( folder->DefaultItemType() ) != Outlook::OlItemType::olMailItem )
                 return false;
 
             return isFolder( folder, path );
@@ -405,7 +405,7 @@ bool COutlookAPI::emptyFolder( std::shared_ptr< Outlook::Folder > &folder )
     auto subFolders = folder->Folders();
     auto items = getItems( folder->Items() );
 
-    if (subFolders && (subFolders->Count() == 0) && items && (items->Count() == 0))
+    if ( subFolders && ( subFolders->Count() == 0 ) && items && ( items->Count() == 0 ) )
     {
         emit sigStatusMessage( tr( "    %1 had Nothing to empty" ).arg( folder->Name() ) );
         return true;

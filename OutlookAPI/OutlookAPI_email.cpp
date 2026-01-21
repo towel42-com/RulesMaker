@@ -1,7 +1,7 @@
 #include "OutlookAPI.h"
 #include "EmailAddress.h"
 
-#include "MSOUTL.h"
+#include "OutlookLib/MSOUTL.h"
 #include <oaidl.h>
 
 std::pair< std::shared_ptr< Outlook::Items >, int > COutlookAPI::getEmailItemsForRootFolder()

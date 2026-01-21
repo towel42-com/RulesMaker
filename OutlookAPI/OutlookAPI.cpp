@@ -9,7 +9,7 @@
 #include <QTreeView>
 #include <QFileInfo>
 
-#include "MSOUTL.h"
+#include "OutlookLib/MSOUTL.h"
 
 #include <iostream>
 #include <cstdlib>
@@ -329,7 +329,7 @@ Outlook::OlObjectClass COutlookAPI::getObjectClass( IDispatch *item )
 
     IDispatch *pdisp = (IDispatch *)NULL;
     DISPID dispid;
-    OLECHAR *szMember = L"Class";
+    LPOLESTR szMember = const_cast< LPOLESTR >( L"Class" );
     auto result = item->GetIDsOfNames( IID_NULL, &szMember, 1, LOCALE_SYSTEM_DEFAULT, &dispid );
 
     if ( result == S_OK )
@@ -354,7 +354,8 @@ std::shared_ptr< Outlook::Items > COutlookAPI::getItems( Outlook::_Items *item )
 {
     if ( !item )
         return {};
-    return connectToException( std::make_shared< Outlook::Items >( item ) );
+    auto items = reinterpret_cast< IDispatch * >( item );
+    return connectToException( std::make_shared< Outlook::Items >( items ) );
 }
 
 bool isFilterType( EFilterType value, EFilterType filter )

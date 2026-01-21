@@ -2,7 +2,7 @@
 #include "OutlookAPI_pri.h"
 #include "EmailAddress.h"
 
-#include "MSOUTL.h"
+#include "OutlookLib/MSOUTL.h"
 
 #include <QRegularExpression>
 
@@ -198,7 +198,7 @@ QStringList conditionNames( Outlook::SensitivityRuleCondition *condition, const 
     if ( !condition || !condition->Enabled() )
         return {};
 
-    return conditionRuleNameBase( condition, conditionStr, toString( condition->Sensitivity() ), wrapperMode );
+    return conditionRuleNameBase( condition, conditionStr, Outlook::toString( static_cast< Outlook::OlSensitivity >( condition->Sensitivity() ) ), wrapperMode );
 }
 
 QStringList conditionNames( Outlook::SenderInAddressListRuleCondition *condition, const QString &conditionStr, EWrapperMode wrapperMode )
@@ -224,7 +224,7 @@ QStringList conditionNames( Outlook::ImportanceRuleCondition *condition, const Q
     if ( !condition || !condition->Enabled() )
         return {};
 
-    return conditionRuleNameBase( condition, conditionStr, toString( condition->Importance() ), wrapperMode );
+    return conditionRuleNameBase( condition, conditionStr, toString( static_cast< Outlook::OlImportance >( condition->Importance() ) ), wrapperMode );
 }
 
 QStringList conditionNames( Outlook::FromRssFeedRuleCondition *condition, const QString &conditionStr, EWrapperMode wrapperMode )
@@ -303,7 +303,7 @@ QStringList conditionNames( Outlook::AccountRuleCondition *condition, const QStr
     if ( !condition || !condition->Enabled() )
         return {};
 
-    return conditionRuleNameBase( condition, conditionStr, toString( condition->ConditionType() ), wrapperMode );
+    return conditionRuleNameBase( condition, conditionStr, toString( static_cast< Outlook::OlRuleConditionType >( condition->ConditionType() ) ), wrapperMode );
 }
 
 QStringList COutlookAPI::getActionStrings( std::shared_ptr< Outlook::Rule > rule )
@@ -348,7 +348,7 @@ QString actionName( Outlook::AssignToCategoryRuleAction *action )
     if ( !action )
         return {};
     if ( !action->Enabled() )
-        return false;
+        return {};
 
     return QString( "Set Categories To: %1" ).arg( toString( action->Categories(), " and " ) );
 }
@@ -358,8 +358,8 @@ QString actionName( Outlook::MarkAsTaskRuleAction *action )
     if ( !action )
         return {};
     if ( !action->Enabled() )
-        return false;
-    return QString( "Mark as Task: Yes - %1" ).arg( toString( action->MarkInterval() ) );
+        return {};
+    return QString( "Mark as Task: Yes - %1" ).arg( toString( static_cast< Outlook::OlMarkInterval >( action->MarkInterval() ) ) );
 }
 
 QString actionName( Outlook::MoveOrCopyRuleAction *action, const QString &actionName )
@@ -367,7 +367,7 @@ QString actionName( Outlook::MoveOrCopyRuleAction *action, const QString &action
     if ( !action )
         return {};
     if ( !action->Enabled() )
-        return false;
+        return {};
     return QString( "%1: %2" ).arg( actionName ).arg( action->Folder()->FullFolderPath() );
 }
 
@@ -376,7 +376,7 @@ QString actionName( Outlook::NewItemAlertRuleAction *action )
     if ( !action )
         return {};
     if ( !action->Enabled() )
-        return false;
+        return {};
     return QString( "New Item Alert: %1" ).arg( action->Text() );
 }
 
@@ -385,7 +385,7 @@ QString actionName( Outlook::PlaySoundRuleAction *action )
     if ( !action )
         return {};
     if ( !action->Enabled() )
-        return false;
+        return {};
     return QString( "Play Sound: \"%1\"" ).arg( action->FilePath() );
 }
 
@@ -394,7 +394,7 @@ QString actionName( Outlook::RuleAction *action, const QString &actionName )
     if ( !action )
         return {};
     if ( !action->Enabled() )
-        return false;
+        return {};
     return QString( "%1: Yes" ).arg( actionName );
 }
 
@@ -403,7 +403,7 @@ QString actionName( Outlook::SendRuleAction *action, const QString &actionName )
     if ( !action )
         return {};
     if ( !action->Enabled() )
-        return false;
+        return {};
     auto recipients = COutlookAPI::getEmailAddresses( action->Recipients() );
 
     return QString( "%1: %2" ).arg( actionName ).arg( toStringList( recipients ).join( " and " ) );

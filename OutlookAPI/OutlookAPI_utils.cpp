@@ -1,7 +1,7 @@
 #include "OutlookAPI.h"
 #include <QVariant>
 
-#include "MSOUTL.h"
+#include "OutlookLib/MSOUTL.h"
 
 QString toString( const QVariant &variant, const QString &joinSeparator )
 {
@@ -13,9 +13,9 @@ QString toString( const QVariant &variant, const QString &joinSeparator )
 QStringList toStringList( const QVariant &variant )
 {
     QStringList retVal;
-    if ( variant.type() == QVariant::Type::String )
+    if ( variant.typeId() == QMetaType::QString )
         retVal << variant.toString();
-    else if ( variant.type() == QVariant::Type::StringList )
+    else if ( variant.typeId() == QMetaType::QStringList )
         retVal << variant.toStringList();
     return retVal;
 }
