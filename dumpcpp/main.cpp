@@ -256,8 +256,15 @@ std::optional< QByteArray > findPropertyType( const QMetaObject *mo, const QByte
 // Hash of C# only types.
 static const QSet< QByteArray > cSharpTypes = { "ICloneable", "ICollection", "IDisposable", "IEnumerable", "IList", "ISerializable", "_Attribute" };
 
+bool isQaxQualifiedUserType( const QByteArray &simplePropType )
+{
+    return ( qax_qualified_usertypes.contains( simplePropType ) || qax_qualified_usertypes.contains( "enum " + simplePropType ) || qax_qualified_usertypes.contains( ( gOptions.enumToken() + " " ) + simplePropType ) );
+}
+
 void generateClassDecl( QTextStream &out, const QMetaObject *mo, const QByteArray &className, const QByteArray &nameSpace, ObjectCategories category )
 {
+    if ( className == "OlkControl" )
+        int xyz = 0;
     QByteArrayList functions;
 
     QByteArray indent;
@@ -338,7 +345,7 @@ void generateClassDecl( QTextStream &out, const QMetaObject *mo, const QByteArra
 
         out << indent << "inline ";
         bool foreignNamespace = true;
-        if ( !propertyType.contains( "::" ) && ( qax_qualified_usertypes.contains( simplePropType ) || qax_qualified_usertypes.contains( ( gOptions.enumToken() + " " ) + simplePropType ) ) )
+        if ( !propertyType.contains( "::" ) && isQaxQualifiedUserType( simplePropType ) )
         {
             propertyType.prepend( nameSpace + "::" );
             foreignNamespace = false;
@@ -353,7 +360,7 @@ void generateClassDecl( QTextStream &out, const QMetaObject *mo, const QByteArra
         if ( !( category & NoInlines ) )
         {
             out << Qt::endl << indent << '{' << Qt::endl;
-            if ( qax_qualified_usertypes.contains( simplePropType ) )
+            if ( isQaxQualifiedUserType( simplePropType ) )
             {
                 if ( foreignNamespace )
                     out << "#ifdef QAX_DUMPCPP_" << propertyType.left( propertyType.indexOf( "::" ) ).toUpper() << "_H" << Qt::endl;
@@ -365,7 +372,7 @@ void generateClassDecl( QTextStream &out, const QMetaObject *mo, const QByteArra
             out << indent << "    QVariant qax_result = property(\"" << propertyName << "\");" << Qt::endl;
             if ( propertyType.length() && propertyType.at( propertyType.length() - 1 ) == '*' )
                 out << indent << "    if (qax_result.constData() == nullptr)\n" << indent << "        return nullptr;\n" << indent << "    Q_ASSERT(qax_result.isValid());" << Qt::endl;
-            if ( qax_qualified_usertypes.contains( simplePropType ) )
+            if ( isQaxQualifiedUserType( simplePropType ) )
             {
                 simplePropType = propertyType;
                 simplePropType.replace( '*', "" );
@@ -411,7 +418,8 @@ void generateClassDecl( QTextStream &out, const QMetaObject *mo, const QByteArra
                 else
                 {
                     auto variantString = QStringLiteral( "QVariant(value)" );
-                    if ( gOptions.enumClass && property.isEnumType() )
+                    if ( ( gOptions.enumClass && property.isEnumType() ) || isQaxQualifiedUserType( simplePropType ) || 
+                        ( computedPropType.has_value() && isQaxQualifiedUserType( computedPropType.value() ) ) )
                     {
                         variantString = QStringLiteral( "QVariant( static_cast< int >( value ) ) " );
                     }
@@ -469,7 +477,7 @@ void generateClassDecl( QTextStream &out, const QMetaObject *mo, const QByteArra
 
         QByteArray simpleSlotType = slotType;
         simpleSlotType.replace( '*', "" );
-        if ( !slotType.contains( "::" ) && qax_qualified_usertypes.contains( simpleSlotType ) )
+        if ( !slotType.contains( "::" ) && isQaxQualifiedUserType( simpleSlotType ) )
             slotType.prepend( nameSpace + "::" );
 
         QByteArray slotNamedSignature;
@@ -573,7 +581,7 @@ void generateClassDecl( QTextStream &out, const QMetaObject *mo, const QByteArra
                 if ( slotType.endsWith( '*' ) )
                     out << " = nullptr";
                 out << ';' << Qt::endl;
-                if ( qax_qualified_usertypes.contains( simpleSlotType ) )
+                if ( isQaxQualifiedUserType( simpleSlotType ) )
                 {
                     bool foreignNamespace = simpleSlotType.contains( "::" );
                     if ( foreignNamespace )
@@ -891,7 +899,7 @@ bool generateTypeLibrary( QString typeLibFile )
                                     break;
                             }
                             namespaces[ libNameBa ].append( className );
-                            if ( !qax_qualified_usertypes.contains( className ) )
+                            if ( !isQaxQualifiedUserType( className ) )
                                 qax_qualified_usertypes << className;
                         }
                         break;
