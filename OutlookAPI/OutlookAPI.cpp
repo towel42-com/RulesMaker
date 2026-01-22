@@ -16,6 +16,7 @@
 #include <chrono>
 #include <thread>
 
+#include <qt_windows.h>
 #include <oaidl.h>
 #include <objbase.h>
 #include <psapi.h>
@@ -354,8 +355,7 @@ std::shared_ptr< Outlook::Items > COutlookAPI::getItems( Outlook::_Items *item )
 {
     if ( !item )
         return {};
-    auto items = reinterpret_cast< IDispatch * >( item );
-    return connectToException( std::make_shared< Outlook::Items >( items ) );
+    return connectToException( std::make_shared< Outlook::Items >( item ) );
 }
 
 bool isFilterType( EFilterType value, EFilterType filter )

@@ -330,7 +330,7 @@ std::shared_ptr< Outlook::Rule > COutlookAPI::getRule( Outlook::_Rule *item )
 {
     if ( !item )
         return {};
-    return connectToException( std::make_shared< Outlook::Rule >( reinterpret_cast< IDispatch * >( item ) ) );
+    return connectToException( std::make_shared< Outlook::Rule >( item ) );
 }
 
 std::optional< QStringList > COutlookAPI::getRecipients( Outlook::Rule *rule, QStringList *msgs )

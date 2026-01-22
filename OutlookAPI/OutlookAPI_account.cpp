@@ -47,7 +47,7 @@ void COutlookAPI::logout( bool andNotify )
 
     if ( fLoggedIn && fOutlookApp && !fOutlookApp->isNull() && fOutlookApp->Session() )
     {
-        Outlook::NameSpace( reinterpret_cast< IDispatch * >( fOutlookApp->Session() ) ).Logoff();
+        Outlook::NameSpace( fOutlookApp->Session() ).Logoff();
         if ( !outlookProcessRunning() )
             fOutlookApp->Quit();
         fLoggedIn = false;
@@ -101,7 +101,7 @@ std::shared_ptr< Outlook::NameSpace > COutlookAPI::getNamespace( Outlook::_NameS
 {
     if ( !ns )
         return {};
-    return connectToException( std::make_shared< Outlook::NameSpace >( reinterpret_cast< IDispatch * >( ns ) ) );
+    return connectToException( std::make_shared< Outlook::NameSpace >( ns ) );
 }
 
 std::optional< std::map< QString, std::shared_ptr< Outlook::Account > > > COutlookAPI::getAllAccounts( const QString &profileName )
@@ -237,5 +237,5 @@ std::shared_ptr< Outlook::Account > COutlookAPI::getAccount( Outlook::_Account *
     if ( !item )
         return {};
 
-    return connectToException( std::make_shared< Outlook::Account >( reinterpret_cast< IDispatch * >( item ) ) );
+    return connectToException( std::make_shared< Outlook::Account >( item ) );
 }
