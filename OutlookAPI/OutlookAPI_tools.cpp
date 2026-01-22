@@ -10,7 +10,7 @@
 #include <QTextStream>
 #include <QMetaMethod>
 
-#include "MSOUTL.h"
+#include "OutlookLib/MSOUTL.h"
 #include <tuple>
 
 bool COutlookAPI::deleteAllDisabledRules( bool andSave /*= true*/, bool *needsSaving /*= nullptr*/ )

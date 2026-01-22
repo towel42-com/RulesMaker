@@ -2,7 +2,7 @@
 #include "OutlookAPI_pri.h"
 #include "EmailAddress.h"
 
-#include "MSOUTL.h"
+#include "OutlookLib/MSOUTL.h"
 #include <map>
 #include <QDebug>
 

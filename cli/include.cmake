@@ -25,11 +25,12 @@ set( EXTRA_CMAKE_FILES
 )
 
 set( project_pri_LIB_DIRS 
+    ${CMAKE_BINARY_DIR}
 )
 
 set( project_pri_DEPS
-    Qt5::Widgets
-    Qt5::AxContainer 
+    Qt6::Widgets
+    Qt6::AxContainer 
     OutlookAPI 
     OutlookLib 
     Models

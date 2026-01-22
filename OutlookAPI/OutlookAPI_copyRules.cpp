@@ -1,7 +1,7 @@
 #include "OutlookAPI.h"
 #include "EmailAddress.h"
 
-#include "MSOUTL.h"
+#include "OutlookLib/MSOUTL.h"
 
 void copyAction( Outlook::AssignToCategoryRuleAction *lhsAction, Outlook::AssignToCategoryRuleAction *rhsAction )
 {
@@ -300,7 +300,7 @@ std::shared_ptr< Outlook::Rule > COutlookAPI::copyRule( std::shared_ptr< Outlook
     if ( !rule )
         return {};
 
-    auto retVal = std::shared_ptr< Outlook::Rule >( fRules->Create( rule->Name(), rule->RuleType() ) );
+    auto retVal = std::shared_ptr< Outlook::Rule >( fRules->Create( rule->Name(), static_cast< Outlook::OlRuleType >( rule->RuleType() ) ) );
     if ( !retVal )
         return {};
 

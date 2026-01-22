@@ -3,7 +3,7 @@
 #include "SelectAccount.h"
 #include <QSettings>
 
-#include "MSOUTL.h"
+#include "OutlookLib/MSOUTL.h"
 #include <objbase.h>
 
 #include <iostream>
@@ -14,7 +14,7 @@ bool COutlookAPI::connected()
         return false;
     if ( !fSession || fSession->isNull() )
         return false;
-    return ( fSession->ExchangeConnectionMode() != Outlook::OlExchangeConnectionMode::olOffline );
+    return ( static_cast< Outlook::OlExchangeConnectionMode >( fSession->ExchangeConnectionMode() ) != Outlook::OlExchangeConnectionMode::olOffline );
 }
 
 bool COutlookAPI::logon( const QString &profileName )
@@ -126,10 +126,10 @@ std::optional< std::map< QString, std::shared_ptr< Outlook::Account > > > COutlo
 
         auto account = getAccount( item );
 
-        if ( account->AccountType() != Outlook::OlAccountType::olExchange )
+        if ( static_cast< Outlook::OlAccountType >( account->AccountType() ) != Outlook::OlAccountType::olExchange )
             continue;
 
-        switch ( account->ExchangeConnectionMode() )
+        switch ( static_cast< Outlook::OlExchangeConnectionMode >( account->ExchangeConnectionMode() ) )
         {
             case Outlook::OlExchangeConnectionMode::olNoExchange:
             case Outlook::OlExchangeConnectionMode::olOffline:

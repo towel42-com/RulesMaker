@@ -18,6 +18,7 @@ namespace Outlook
     class Rule;
 }
 
+class QAbstractButton;
 class QPushButton;
 class CStatusProgress;
 class QModelIndex;

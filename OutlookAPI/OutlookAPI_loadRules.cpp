@@ -1,8 +1,8 @@
 #include "OutlookAPI.h"
 #include "OutlookAPI_pri.h"
 
-#include "EmailAddress.h" 
-#include "MSOUTL.h"
+#include "EmailAddress.h"
+#include "OutlookLib/MSOUTL.h"
 
 #include <QStandardItem>
 #include <QRegularExpression>
@@ -21,7 +21,7 @@ void COutlookAPI::loadRuleData( QStandardItem *ruleItem, std::shared_ptr< Outloo
     loadAttribute( ruleItem, "Enabled", rule->Enabled() );
     loadAttribute( ruleItem, "Execution Order", rule->ExecutionOrder() );
     loadAttribute( ruleItem, "Is Local", rule->IsLocalRule() );
-    loadAttribute( ruleItem, "Rule Type", toString( rule->RuleType() ) );
+    loadAttribute( ruleItem, "Rule Type", Outlook::toString( static_cast< Outlook::OlRuleType >( rule->RuleType() ) ) );
 
     loadConditions( ruleItem, rule );
     loadExceptions( ruleItem, rule );
@@ -139,7 +139,7 @@ bool loadCondition( QStandardItem *parent, Outlook::AccountRuleCondition *condit
     if ( !condition->Enabled() )
         return false;
 
-    loadAttribute( parent, "Condition Type", toString( condition->ConditionType() ) );
+    loadAttribute( parent, "Condition Type", Outlook::toString( static_cast< Outlook::OlRuleConditionType >( condition->ConditionType() ) ) );
     return true;
 }
 
@@ -224,7 +224,7 @@ bool loadCondition( QStandardItem *parent, Outlook::ImportanceRuleCondition *con
     if ( !condition->Enabled() )
         return false;
 
-    loadAttribute( parent, "Importance", toString( condition->Importance() ) );
+    loadAttribute( parent, "Importance", Outlook::toString( static_cast< Outlook::OlImportance >( condition->Importance() ) ) );
     return true;
 }
 
@@ -262,7 +262,7 @@ bool loadCondition( QStandardItem *parent, Outlook::SensitivityRuleCondition *co
     if ( !condition->Enabled() )
         return false;
 
-    loadAttribute( parent, "Sensitivity", toString( condition->Sensitivity() ) );
+    loadAttribute( parent, "Sensitivity", Outlook::toString( static_cast< Outlook::OlSensitivity >( condition->Sensitivity() ) ) );
     return true;
 }
 
@@ -323,7 +323,7 @@ bool loadAction( QStandardItem *parent, Outlook::MarkAsTaskRuleAction *action )
     if ( !action->Enabled() )
         return false;
 
-    loadAttribute( parent, "Mark as Task:", QString( "%1 - %2" ).arg( action->FlagTo(), toString( action->MarkInterval() ) ) );
+    loadAttribute( parent, "Mark as Task:", QString( "%1 - %2" ).arg( action->FlagTo(), Outlook::toString( static_cast< Outlook::OlMarkInterval >( action->MarkInterval() ) ) ) );
     return true;
 }
 
@@ -398,7 +398,7 @@ void loadAttribute( QStandardItem *parent, const QString &label, const char *val
     return loadAttribute( parent, label, QString( value ) );
 }
 
-void loadAttribute( QStandardItem *parent, const QString &label, const QStringList & value, const QString &separator )
+void loadAttribute( QStandardItem *parent, const QString &label, const QStringList &value, const QString &separator )
 {
     QStringList tmp;
     if ( value.size() > 1 )
@@ -412,7 +412,7 @@ void loadAttribute( QStandardItem *parent, const QString &label, const QStringLi
     return loadAttribute( parent, label, text );
 }
 
-void loadAttribute( QStandardItem *parent, const QString &label, const TEmailAddressList & value, const QString &separator )
+void loadAttribute( QStandardItem *parent, const QString &label, const TEmailAddressList &value, const QString &separator )
 {
     QStringList tmp;
     if ( value.size() > 1 )

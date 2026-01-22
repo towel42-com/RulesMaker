@@ -36,7 +36,7 @@ set( project_pub_LIB_DIRS
 )
 
 set( project_pub_DEPS    
-    Qt5::Widgets Qt5::AxContainer 
+    Qt6::Widgets Qt6::AxContainer 
 )
 
 set( EXTRA_CMAKE_FILES

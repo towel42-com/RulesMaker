@@ -2,7 +2,7 @@
 
 #include <QMetaMethod>
 #include <QDebug>
-#include "MSOUTL.h"
+#include "OutlookLib/MSOUTL.h"
 
 void COutlookAPI::dumpSession( Outlook::NameSpace &session )
 {
@@ -78,7 +78,7 @@ void COutlookAPI::dumpFolder( Outlook::Folder *parent )
     for ( auto jj = 1; jj <= folderCount; ++jj )
     {
         auto folder = reinterpret_cast< Outlook::Folder * >( folders->Item( jj ) );
-        qDebug() << folder->FullFolderPath() << toString( folder->DefaultItemType() );
+        qDebug() << folder->FullFolderPath() << Outlook::toString( static_cast< Outlook::OlItemType >( folder->DefaultItemType() ) );
         dumpFolder( folder );
     }
 }

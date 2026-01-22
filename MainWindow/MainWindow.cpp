@@ -1,8 +1,9 @@
 #include "MainWindow.h"
 #include "OutlookAPI/OutlookAPI.h"
 #include "StatusProgress.h"
-#include "Version.h"
 #include "Settings.h"
+
+#include "Version.h"
 
 #include "ui_MainWindow.h"
 
@@ -457,7 +458,7 @@ void CMainWindow::reloadAll( bool andLoadServer )
 
 void CMainWindow::updateWindowTitle()
 {
-    auto windowTitle = NVersion::APP_NAME + " - " + NVersion::getVersionString( true, true );
+    auto windowTitle = NVersion::APP_NAME + " - " + NVersion::getVersionText( true, true, false );
     if ( COutlookAPI::instance()->accountSelected() )
     {
         windowTitle += tr( " - %1" ).arg( COutlookAPI::instance()->accountName() );
@@ -649,7 +650,7 @@ void CMainWindow::slotAbout()
                        "<p>%1 version %2</p>"
                        "<p>It is an opensource application licensed under the MIT license.</p>" )
                        .arg( NVersion::APP_NAME )
-                       .arg( NVersion::getVersionString( true, true ) );
+                       .arg( NVersion::getVersionText( true, true, false ) );
     auto aboutText = tr( "<p>It is a tool to help create and maintain Outlook Rules to keep your inbox clean.</p>"
                          "<p>It is designed to work with Microsoft Outlook.</p>"
                          "<p>It is provided under the terms of the MIT License.</p>"

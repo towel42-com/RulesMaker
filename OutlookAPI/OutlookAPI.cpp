@@ -9,13 +9,14 @@
 #include <QTreeView>
 #include <QFileInfo>
 
-#include "MSOUTL.h"
+#include "OutlookLib/MSOUTL.h"
 
 #include <iostream>
 #include <cstdlib>
 #include <chrono>
 #include <thread>
 
+#include <qt_windows.h>
 #include <oaidl.h>
 #include <objbase.h>
 #include <psapi.h>
@@ -329,7 +330,7 @@ Outlook::OlObjectClass COutlookAPI::getObjectClass( IDispatch *item )
 
     IDispatch *pdisp = (IDispatch *)NULL;
     DISPID dispid;
-    OLECHAR *szMember = L"Class";
+    LPOLESTR szMember = const_cast< LPOLESTR >( L"Class" );
     auto result = item->GetIDsOfNames( IID_NULL, &szMember, 1, LOCALE_SYSTEM_DEFAULT, &dispid );
 
     if ( result == S_OK )

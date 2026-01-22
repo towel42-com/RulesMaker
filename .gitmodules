@@ -1,0 +1,3 @@
+[submodule "T42-CMakeUtils"]
+	path = T42-CMakeUtils
+	url = ssh://git@github.com/towel42-com/T42-CMakeUtils.git
