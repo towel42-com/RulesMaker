@@ -3,7 +3,6 @@
 
 #include <QMainWindow>
 #include <QLabel>
-#include <QAbstractButton>
 
 #include <memory>
 #include <list>
@@ -19,6 +18,7 @@ namespace Outlook
     class Rule;
 }
 
+class QAbstractButton;
 class QPushButton;
 class CStatusProgress;
 class QModelIndex;
