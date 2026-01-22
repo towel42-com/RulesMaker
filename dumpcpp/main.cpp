@@ -263,8 +263,6 @@ bool isQaxQualifiedUserType( const QByteArray &simplePropType )
 
 void generateClassDecl( QTextStream &out, const QMetaObject *mo, const QByteArray &className, const QByteArray &nameSpace, ObjectCategories category )
 {
-    if ( className == "OlkControl" )
-        int xyz = 0;
     QByteArrayList functions;
 
     QByteArray indent;
@@ -366,8 +364,8 @@ void generateClassDecl( QTextStream &out, const QMetaObject *mo, const QByteArra
                     out << "#ifdef QAX_DUMPCPP_" << propertyType.left( propertyType.indexOf( "::" ) ).toUpper() << "_H" << Qt::endl;
                 QByteArray simplePropTypeWithNamespace = propertyType;
                 simplePropTypeWithNamespace.replace( '*', "" );
-                out << indent << "    qRegisterMetaType<" << propertyType << ">(\"" << property.typeName() << "\");" << Qt::endl;
-                out << indent << "    qRegisterMetaType<" << simplePropTypeWithNamespace << ">(\"" << simplePropType << "\");" << Qt::endl;
+                out << indent << "    qRegisterMetaType< " << propertyType << " >(\"" << property.typeName() << "\");" << Qt::endl;
+                out << indent << "    qRegisterMetaType< " << simplePropTypeWithNamespace << " >(\"" << simplePropType << "\");" << Qt::endl;
             }
             out << indent << "    QVariant qax_result = property(\"" << propertyName << "\");" << Qt::endl;
             if ( propertyType.length() && propertyType.at( propertyType.length() - 1 ) == '*' )
@@ -376,17 +374,21 @@ void generateClassDecl( QTextStream &out, const QMetaObject *mo, const QByteArra
             {
                 simplePropType = propertyType;
                 simplePropType.replace( '*', "" );
-                out << indent << "    return *reinterpret_cast<" << propertyType << "*>(qax_result.data());\n";
+                out << indent << "    return *reinterpret_cast< " << propertyType << "* >(qax_result.data());\n";
                 if ( foreignNamespace )
                 {
                     out << "#else" << Qt::endl;
-                    out << indent << "    return nullptr; // foreign namespace not included" << Qt::endl;
+                    if ( simplePropType == propertyType )
+                        out << indent << "    return static_cast< ";
+                    else
+                        out << indent << "    return reinterpret_cast< ";
+                    out << propertyType << " >( 0 );  // foreign namespace not included" << Qt::endl;
                     out << "#endif" << Qt::endl;
                 }
             }
             else
             {
-                out << indent << "    return *reinterpret_cast<" << propertyType << "*>(qax_result.data());\n";
+                out << indent << "    return *reinterpret_cast< " << propertyType << "* >(qax_result.data());\n";
             }
             out << indent << '}' << Qt::endl;
         }
@@ -411,7 +413,7 @@ void generateClassDecl( QTextStream &out, const QMetaObject *mo, const QByteArra
                 if ( propertyType.endsWith( '*' ) )
                 {
                     out << '{' << Qt::endl;
-                    out << "    int typeId = qRegisterMetaType<" << propertyType << ">(\"" << propertyType << "\");" << Qt::endl;
+                    out << "    int typeId = qRegisterMetaType< " << propertyType << " >(\"" << propertyType << "\");" << Qt::endl;
                     out << "    setProperty(\"" << propertyName << "\", QVariant(QMetaType(typeId), &value));" << Qt::endl;
                     out << '}' << Qt::endl;
                 }
@@ -588,9 +590,9 @@ void generateClassDecl( QTextStream &out, const QMetaObject *mo, const QByteArra
                         out << "#ifdef QAX_DUMPCPP_" << simpleSlotType.left( simpleSlotType.indexOf( ':' ) ).toUpper() << "_H" << Qt::endl;
                     QByteArray simpleSlotTypeWithNamespace = slotType;
                     simpleSlotTypeWithNamespace.replace( '*', "" );
-                    out << indent << "    qRegisterMetaType<" << simpleSlotTypeWithNamespace << "*>(\"" << simpleSlotType << "*\");" << Qt::endl;
+                    out << indent << "    qRegisterMetaType< " << simpleSlotTypeWithNamespace << "* >(\"" << simpleSlotType << "*\");" << Qt::endl;
                     if ( !vTableOnlyStubs.contains( simpleSlotTypeWithNamespace ) )
-                        out << indent << "    qRegisterMetaType<" << simpleSlotTypeWithNamespace << ">(\"" << simpleSlotType << "\");" << Qt::endl;
+                        out << indent << "    qRegisterMetaType< " << simpleSlotTypeWithNamespace << " >(\"" << simpleSlotType << "\");" << Qt::endl;
                     if ( foreignNamespace )
                         out << "#endif" << Qt::endl;
                 }
