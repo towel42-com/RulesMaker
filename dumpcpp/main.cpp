@@ -138,6 +138,45 @@ QByteArray constRefify( const QByteArray &type )
     return ctype;
 }
 
+static bool generateConstructorSignatures( QTextStream &out, const QMetaObject *mo, const QByteArray &nameSpace, const QByteArray &className, ObjectCategories category, bool generateBody )
+{
+    bool retVal = false;
+    for ( int ci = mo->classInfoOffset(); ci < mo->classInfoCount(); ++ci )
+    {
+        QMetaClassInfo info = mo->classInfo( ci );
+        QByteArray iface_name = info.name();
+        if ( iface_name.startsWith( "Event " ) )
+            continue;
+
+        retVal = true;
+        QByteArray iface_class = info.value();
+
+        if ( generateBody )
+        {
+            if ( !nameSpace.isEmpty() )
+                out << nameSpace << "::";
+            out << className << "::" << className;
+        }
+        else
+            out << "    " << className;
+
+        out << '(' << iface_class << " *iface)";
+        if ( generateBody )
+        {
+            if ( category & ActiveX )
+                out << " :\n    QAxWidget()" << Qt::endl;
+            else
+                out << " :\n    QAxObject()" << Qt::endl;
+            out << "{" << Qt::endl;
+            out << "    initializeFrom(iface);" << Qt::endl;
+            out << "    delete iface;" << Qt::endl;
+            out << "}" << Qt::endl;
+            out << Qt::endl;
+        }
+    }
+    return retVal;
+}
+
 static void formatConstructorSignature( QTextStream &out, ObjectCategories category, bool declaration )
 {
     out << '(';
@@ -283,6 +322,9 @@ void generateClassDecl( QTextStream &out, const QMetaObject *mo, const QByteArra
         out << "public:" << Qt::endl << "    explicit " << className;
         formatConstructorSignature( out, category, true );
         out << ';' << Qt::endl;
+
+        if ( generateConstructorSignatures( out, mo, nameSpace, className, category, false ) )
+            out << ';' << Qt::endl;
     }
 
     functions << className;
@@ -420,8 +462,7 @@ void generateClassDecl( QTextStream &out, const QMetaObject *mo, const QByteArra
                 else
                 {
                     auto variantString = QStringLiteral( "QVariant(value)" );
-                    if ( ( gOptions.enumClass && property.isEnumType() ) || isQaxQualifiedUserType( simplePropType ) || 
-                        ( computedPropType.has_value() && isQaxQualifiedUserType( computedPropType.value() ) ) )
+                    if ( ( gOptions.enumClass && property.isEnumType() ) || isQaxQualifiedUserType( simplePropType ) || ( computedPropType.has_value() && isQaxQualifiedUserType( computedPropType.value() ) ) )
                     {
                         variantString = QStringLiteral( "QVariant( static_cast< int >( value ) ) " );
                     }
@@ -697,6 +738,8 @@ bool generateClassImpl( QTextStream &out, const QMetaObject *mo, const QByteArra
     out << moCode << "\n\n";
 
     formatConstructorBody( out, nameSpace, className, controlID, category, useControlName );
+
+    generateConstructorSignatures( out, mo, nameSpace, className, category, true );
 
     return true;
 }
@@ -1102,6 +1145,7 @@ bool generateTypeLibrary( QString typeLibFile )
                     subtypes << className;
                     generateClassDecl( inlinesOut, metaObject, className, libNameBa, object_category | OnlyInlines );
                     inlinesOut << Qt::endl;
+                    declFile.flush();
                 }
                 if ( implFile.isOpen() )
                 {
@@ -1111,6 +1155,7 @@ bool generateTypeLibrary( QString typeLibFile )
                         qWarning( "%s", qPrintable( errorString ) );
                         return false;
                     }
+                    implFile.flush();
                 }
             }
             currentTypeInfo = nullptr;
