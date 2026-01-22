@@ -12,7 +12,6 @@
 #include <ocidl.h>
 #include <map>
 
-
 Options gOptions;
 static QHash< QString, bool > sToStringDeclMap;
 static QHash< QString, bool > sToStringImplMap;
@@ -374,3 +373,4 @@ void updateEnumMap( const QByteArray &key, const QByteArray &metaEnumName )
 
     sEnumMap[ enumMapKey ] = enumMapValue;
 }
+

@@ -3,6 +3,7 @@
 
 #include "moc.h"
 #include "utils.h"
+#include "MetaUtils.h"
 
 #include <QAxObject>
 #include <QAxBaseWidget>
@@ -159,17 +160,26 @@ static void formatConstructorSignature( QTextStream &out, ObjectCategories categ
     else if ( category & SubObject )
     {
         out << "IDispatch *subobject";
-        if ( declaration )
-            out << " = nullptr";
+        if ( !declaration )
+            out << " /*";
+        out << " = nullptr";
+        if ( !declaration )
+            out << "*/";
         out << ", QAxObject *parent";
-        if ( declaration )
-            out << " = nullptr";
+        if ( !declaration )
+            out << " /*";
+        out << " = nullptr";
+        if ( !declaration )
+            out << "*/";
     }
     else
     {
         out << "QObject *parent";
-        if ( declaration )
-            out << " = nullptr";
+        if ( !declaration )
+            out << " /*";
+        out << " = nullptr";
+        if ( !declaration )
+            out << "*/";
     }
     out << ')';
 }
@@ -215,6 +225,32 @@ static void formatConstructorBody( QTextStream &out, const QByteArray &nameSpace
         out << "    setControl(QStringLiteral(\"" << controlName << "\"));" << Qt::endl;
     }
     out << '}' << Qt::endl << Qt::endl;
+}
+
+std::optional< QByteArray > findPropertyType( const QMetaObject *mo, const QByteArray &propertyName )
+{
+    if ( !mo || propertyName.isEmpty() )
+        return {};
+
+    auto setPropFuncName = setterName( propertyName );
+
+    std::optional< QMetaMethod > method;
+    for ( auto ii = 0; !method.has_value() && ( ii < mo->methodCount() ); ++ii )
+    {
+        auto curr = mo->method( ii );
+        if ( !curr.isValid() )
+            continue;
+        auto name = QByteArray( curr.name() );
+        if ( name == setPropFuncName && ( curr.parameterCount() == 1 ) )
+            method = curr;
+    }
+    if ( !method.has_value() || !method.value().isValid() )
+        return {};
+
+    // guaranteed to only have 1 parameter
+    auto paramType = method.value().parameterTypeName( 0 );
+
+    return paramType;
 }
 
 // Hash of C# only types.
@@ -290,7 +326,12 @@ void generateClassDecl( QTextStream &out, const QMetaObject *mo, const QByteArra
             qWarning( "property conflits with QAXBase: %s changed to %s", propertyName.constData(), propertyFunctionName.constData() );
         }
 
-        QByteArray propertyType( property.typeName() );
+        QByteArray propertyType;
+        auto computedPropType = findPropertyType( mo, propertyName );
+        if ( computedPropType.has_value() )
+            propertyType = computedPropType.value();
+        else
+            propertyType = QByteArray( property.typeName() );
 
         QByteArray simplePropType = propertyType;
         simplePropType.replace( '*', "" );
@@ -768,6 +809,8 @@ bool generateTypeLibrary( QString typeLibFile )
 
         implOut << "#include \"" << gOptions.outname << ".h\"" << Qt::endl;
         implOut << "#include <OAIdl.h>" << Qt::endl;   // For IDispatch
+
+        implOut << Qt::endl << "using namespace " << libName << ';' << Qt::endl;
         implOut << Qt::endl;
     }
 
