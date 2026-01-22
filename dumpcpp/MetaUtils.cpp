@@ -13,9 +13,6 @@ inline QString indentText( int indent )
     return QString( 4 * indent, QChar::fromLatin1( ' ' ) );
 }
 
-#pragma warning( push )
-#pragma warning( disable:4996 )
-
 void dumpProperty( const QMetaProperty &metaProperty, std::optional< int > num, const QString & type, int indent )
 {
     if ( !metaProperty.isValid() )
@@ -25,7 +22,10 @@ void dumpProperty( const QMetaProperty &metaProperty, std::optional< int > num, 
         << indentText( indent ) << "QMetaProperty: " << type << " " << ( num.has_value() ? std::to_string( num.value() ) : std::string() ) << "\n"   //
         << indentText( indent + 1 ) << "name() = " << metaProperty.name() << "\n"   //
         << indentText( indent + 1 ) << "typeId() = " << metaProperty.typeId() << "\n"   //
+#pragma warning( push )
+#pragma warning( disable:4996 )
         << indentText( indent + 1 ) << "type() = " << metaProperty.type() << "\n"   //
+#pragma warning( pop )
         << indentText( indent + 1 ) << "typeName() = " << metaProperty.typeName() << "\n"   //
         << indentText( indent + 1 ) << "userType() = " << metaProperty.userType() << "\n"   //
         << indentText( indent + 1 ) << "isEnumType() = " << metaProperty.isEnumType() << "\n"   //
@@ -212,4 +212,3 @@ void dumpMetaObject( const QMetaObject &metaObject, int indent )
 
     dumpProperty( metaObject.userProperty(), {}, QStringLiteral( "User Property" ), indent + 1 );
 }
-#pragma warning( pop )
