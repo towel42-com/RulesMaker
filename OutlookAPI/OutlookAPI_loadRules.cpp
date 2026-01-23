@@ -164,7 +164,7 @@ bool loadCondition( QStandardItem *parent, Outlook::ToOrFromRuleCondition *condi
         return false;
 
     auto recipients = COutlookAPI::getEmailAddresses( condition->Recipients() );
-    loadAttribute( parent, ( from ? "From" : "To" ), recipients, " or " );
+    loadAttribute( parent, ( from ? QStringLiteral( "From" ) : QStringLiteral( "To" ) ), recipients, QStringLiteral( " or " ) );
     return true;
 }
 
@@ -395,7 +395,7 @@ void loadAttribute( QStandardItem *parent, const QString &label, int value )
 
 void loadAttribute( QStandardItem *parent, const QString &label, const char *value )
 {
-    return loadAttribute( parent, label, QString( value ) );
+    return loadAttribute( parent, label, QString::fromLatin1( value ) );
 }
 
 void loadAttribute( QStandardItem *parent, const QString &label, const QStringList &value, const QString &separator )

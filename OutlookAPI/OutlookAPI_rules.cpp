@@ -161,7 +161,7 @@ bool COutlookAPI::deleteRule( std::shared_ptr< Outlook::Rule > rule, bool forceD
     auto ruleName = getDisplayName( rule );
 
     auto disable = forceDisable || disableRatherThanDeleteRules();
-    emit sigStatusMessage( QString( "%1 Rule: %2" ).arg( ( disable ? "Disabling" : "Deleting" ), ruleName ) );
+    emit sigStatusMessage( tr( "%1 Rule: %2" ).arg( ( disable ? QStringLiteral( "Disabling" ) : QStringLiteral( "Deleting" ) ), ruleName ) );
     bool aOK = false;
     if ( disable )
         aOK = disableRule( rule, andSave );

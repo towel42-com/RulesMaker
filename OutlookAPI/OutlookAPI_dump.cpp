@@ -33,7 +33,7 @@ void dumpMetaMethods( QObject *object )
     for ( int methodIdx = metaObject->methodOffset(); methodIdx < metaObject->methodCount(); ++methodIdx )
     {
         auto mmTest = metaObject->method( methodIdx );
-        auto signature = QString( mmTest.methodSignature() );
+        auto signature = QString::fromLatin1( mmTest.methodSignature() );
         switch ( mmTest.methodType() )
         {
             case QMetaMethod::Signal:

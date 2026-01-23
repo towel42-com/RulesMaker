@@ -73,14 +73,14 @@ QString COutlookAPI::getDebugName( const Outlook::Rule *rule )
 {
     if ( !rule )
         return {};
-    return QString( "%1%3" ).arg( getDisplayName( rule ) ).arg( rule->Enabled() ? "" : " (Disabled)" );
+    return QString( "%1%3" ).arg( getDisplayName( rule ) ).arg( rule->Enabled() ? QStringLiteral( "" ) : QStringLiteral( " (Disabled)" ) );
 }
 
 QString COutlookAPI::getDebugName( const Outlook::_Rule *rule )
 {
     if ( !rule )
         return {};
-    return QString( "%1%3" ).arg( getDisplayName( rule ) ).arg( rule->Enabled() ? "" : " (Disabled)" );
+    return QString( "%1%3" ).arg( getDisplayName( rule ) ).arg( rule->Enabled() ? QStringLiteral( "" ): QStringLiteral( " (Disabled)" ) );
 }
 
 QString COutlookAPI::getDisplayName( const std::shared_ptr< Outlook::Rule > &rule )

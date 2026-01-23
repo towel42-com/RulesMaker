@@ -26,7 +26,7 @@ QString CEmailAddress::key() const
     if ( fEmailAddress.isEmpty() && fDisplayName.isEmpty() )
         return {};
 
-    return fEmailAddress + "<<<BREAK>>>" + fDisplayName + "<<<BREAK>>>" + ( fOutlookContact ? "Yes" : "No" );
+    return fEmailAddress + QStringLiteral( "<<<BREAK>>>" ) + fDisplayName + QStringLiteral( "<<<BREAK>>>" ) + ( fOutlookContact ? QStringLiteral( "Yes" ) : QStringLiteral( "No" ) );
 }
 
 bool CEmailAddress::isBlank() const

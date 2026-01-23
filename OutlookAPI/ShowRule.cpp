@@ -70,7 +70,7 @@ QString getHtml( const std::list< QStringList > &list )
     {
         if ( curr.isEmpty() )
             continue;
-        retVal += QString( "<tr><td style=\"white-space:nowrap\">%1</td><td style=\"white-space:nowrap\">%2</td>" ).arg( first ? "&nbsp;" : "and", getHtml( curr, "or" ) );
+        retVal += QString( "<tr><td style=\"white-space:nowrap\">%1</td><td style=\"white-space:nowrap\">%2</td>" ).arg( first ? QStringLiteral( "&nbsp;" ) : QStringLiteral( "and" ), getHtml( curr, QStringLiteral( "or" ) ) );
         first = false;
     }
     retVal += "</table>";
