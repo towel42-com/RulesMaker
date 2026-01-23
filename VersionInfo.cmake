@@ -30,13 +30,13 @@ STRING(TIMESTAMP BUILD_TIME "%H:%M:%SUTC" UTC)
 SET( MAJOR_VERSION    1 )
 SET( MINOR_VERSION    0 )
 SET( APP_NAME         "Outlook Rules Maker" )
-SET( VENDOR           "Towel 42 Development" )
+SET( VENDOR           "Towel 42 Development, LLC" )
 SET( HOMEPAGE         "www.towel42.com" )
 SET( PRODUCT_HOMEPAGE "github.com/towel42-com/RulesMaker" )
 SET( EMAIL            "support@towel42.com" )
 STRING(TIMESTAMP COPYRIGHT "Copyright ( C ) 2024-%Y Scott Aron Bloom and ${VENDOR}")
 
-CreateVersion( ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/CMakeSupport/Version.h.in
+CreateVersion( ${CMAKE_SOURCE_DIR} 
     MAJOR ${MAJOR_VERSION} 
     MINOR ${MINOR_VERSION} 
     PATCH ${GIT_VERSION_INFO_REV}
