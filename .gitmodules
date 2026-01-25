@@ -1,3 +1,8 @@
 [submodule "T42-CMakeUtils"]
 	path = T42-CMakeUtils
 	url = ssh://git@github.com/towel42-com/T42-CMakeUtils.git
+    branch = trunk
+[submodule "T42-DumpCPP"]
+	path = T42-DumpCPP
+	url = ssh://git@github.com/towel42-com/T42-DumpCPP
+    branch = trunk
