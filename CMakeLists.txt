@@ -50,7 +50,8 @@ add_subdirectory( cli )
 add_subdirectory( MainWindow )
 add_subdirectory( Models )
 add_subdirectory( OutlookAPI )
+add_subdirectory( T42-DumpCPP ) # must be added before outlook lib
 add_subdirectory( OutlookLib )
-add_subdirectory( dumpcpp )
+add_subdirectory( T42-CMakeUtils )
 
 include( InstallerInfo.cmake )
